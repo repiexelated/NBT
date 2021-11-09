@@ -4,9 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Provides main and utility functions to read and write .mca files and
@@ -16,12 +22,26 @@ public final class MCAUtil {
 
 	private MCAUtil() {}
 
+	private static final Pattern mcaFilePattern = Pattern.compile("^.*\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
+	private static final Map<String, BiFunction<Integer, Integer, MCAFileBase<?>>> MCA_CREATORS;
+
+	static {
+		Map<String, BiFunction<Integer, Integer, MCAFileBase<?>>> map = new HashMap<>();
+		map.put("region", MCAFile::new);
+		map.put("poi", PoiMCAFile::new);
+		map.put("entities", EntitiesMCAFile::new);
+		MCA_CREATORS = Collections.unmodifiableMap(map);
+	}
+
+	//<editor-fold desc="Legacy Readers" defaultstate="collapsed">
 	/**
 	 * @see MCAUtil#read(File)
 	 * @param file The file to read the data from.
 	 * @return An in-memory representation of the MCA file with decompressed chunk data.
 	 * @throws IOException if something during deserialization goes wrong.
+	 * @deprecated switch to {@link #readAuto(String)}
 	 */
+	@Deprecated
 	public static MCAFile read(String file) throws IOException {
 		return read(new File(file), LoadFlags.ALL_DATA);
 	}
@@ -31,18 +51,22 @@ public final class MCAUtil {
 	 * @param file The file to read the data from.
 	 * @return An in-memory representation of the MCA file with decompressed chunk data.
 	 * @throws IOException if something during deserialization goes wrong.
+	 * @deprecated switch to {@link #readAuto(File)}
 	 */
+	@Deprecated
 	public static MCAFile read(File file) throws IOException {
 		return read(file, LoadFlags.ALL_DATA);
 	}
 
 	/**
-	 * @see MCAUtil#read(File)
+	 * @see MCAUtil#read(File, long)
 	 * @param file The file to read the data from.
 	 * @return An in-memory representation of the MCA file with decompressed chunk data.
 	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
 	 * @throws IOException if something during deserialization goes wrong.
+	 * @deprecated switch to {@link #readAuto(String, long)}
 	 */
+	@Deprecated
 	public static MCAFile read(String file, long loadFlags) throws IOException {
 		return read(new File(file), loadFlags);
 	}
@@ -53,7 +77,9 @@ public final class MCAUtil {
 	 * @return An in-memory representation of the MCA file with decompressed chunk data
 	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
 	 * @throws IOException if something during deserialization goes wrong.
+	 * @deprecated switch to {@link #readAuto(File, long)}
 	 */
+	@Deprecated
 	public static MCAFile read(File file, long loadFlags) throws IOException {
 		MCAFile mcaFile = newMCAFile(file);
 		try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
@@ -61,7 +87,57 @@ public final class MCAUtil {
 			return mcaFile;
 		}
 	}
+	//</editor-fold>
 
+	//<editor-fold desc="Auto MCA Readers">
+	/**
+	 * @see MCAUtil#readAuto(File)
+	 * @param file The file to read the data from.
+	 * @return An in-memory representation of the MCA file with decompressed chunk data.
+	 * @throws IOException if something during deserialization goes wrong.
+	 */
+	public static <T extends MCAFileBase<?>> T readAuto(String file) throws IOException {
+		return readAuto(new File(file), LoadFlags.ALL_DATA);
+	}
+
+	/**
+	 * Reads an MCA file and loads all of its chunks.
+	 * @param file The file to read the data from.
+	 * @return An in-memory representation of the MCA file with decompressed chunk data.
+	 * @throws IOException if something during deserialization goes wrong.
+	 */
+	public static <T extends MCAFileBase<?>> T readAuto(File file) throws IOException {
+		return readAuto(file, LoadFlags.ALL_DATA);
+	}
+
+	/**
+	 * @see MCAUtil#readAuto(File, long)
+	 * @param file The file to read the data from.
+	 * @return An in-memory representation of the MCA file with decompressed chunk data.
+	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+	 * @throws IOException if something during deserialization goes wrong.
+	 */
+	public static <T extends MCAFileBase<?>> T readAuto(String file, long loadFlags) throws IOException {
+		return readAuto(new File(file), loadFlags);
+	}
+
+	/**
+	 * Reads an MCA file and loads all of its chunks.
+	 * @param file The file to read the data from.
+	 * @return An in-memory representation of the MCA file with decompressed chunk data
+	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+	 * @throws IOException if something during deserialization goes wrong.
+	 */
+	public static <T extends MCAFileBase<?>> T readAuto(File file, long loadFlags) throws IOException {
+		T mcaFile = autoMCAFile(file);
+		try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+			mcaFile.deserialize(raf, loadFlags);
+			return mcaFile;
+		}
+	}
+	//</editor-fold>
+
+	//<editor-fold desc="Writers">
 	/**
 	 * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
 	 * @see MCAUtil#write(MCAFile, File, boolean)
@@ -124,7 +200,9 @@ public final class MCAUtil {
 		}
 		return chunks;
 	}
+	//</editor-fold>
 
+	//<editor-fold desc="Region File Name Generators">
 	/**
 	 * Turns the chunks coordinates into region coordinates and calls
 	 * {@link MCAUtil#createNameFromRegionLocation(int, int)}
@@ -156,7 +234,9 @@ public final class MCAUtil {
 	public static String createNameFromRegionLocation(int regionX, int regionZ) {
 		return "r." + regionX + "." + regionZ + ".mca";
 	}
+	//</editor-fold>
 
+	//<editor-fold desc="Coordinate Helpers">
 	/**
 	 * Turns a block coordinate value into a chunk coordinate value.
 	 * @param block The block coordinate value.
@@ -210,14 +290,89 @@ public final class MCAUtil {
 	public static int chunkToBlock(int chunk) {
 		return chunk << 4;
 	}
+	//</editor-fold>
 
-	private static final Pattern mcaFilePattern = Pattern.compile("^.*r\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
-
+	/**
+	 * Creates a REGION {@link MCAFile} initialized with its X and Z extracted from the given file name. The file
+	 * does not need to exist.
+	 * @deprecated Legacy helper, switch to {@link #autoMCAFile(Path)} for POI (1.14+) and ENTITIES (1.17+) mca support.
+	 */
+	@Deprecated
 	public static MCAFile newMCAFile(File file) {
-		Matcher m = mcaFilePattern.matcher(file.getName());
-		if (m.find()) {
-			return new MCAFile(Integer.parseInt(m.group("regionX")), Integer.parseInt(m.group("regionZ")));
+		final Matcher m = mcaFilePattern.matcher(file.getName());
+		if (!m.find()) {
+			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): "
+					+ file.getName());
 		}
-		throw new IllegalArgumentException("invalid mca file name: " + file.getName());
+		return new MCAFile(Integer.parseInt(m.group("regionX")), Integer.parseInt(m.group("regionZ")));
+	}
+
+
+	private static void throwCannotDetermineMcaType(Exception cause) {
+		throw new IllegalArgumentException(
+				"Unable to determine mca file type. Expect the mca file to have a parent folder with one of the following names: "
+						+ MCA_CREATORS.keySet().stream().sorted().collect(Collectors.joining(", ")), cause);
+	}
+
+	/**
+	 * @see #autoMCAFile(Path)
+	 */
+	public static <T extends MCAFileBase<?>> T autoMCAFile(File file) {
+		return autoMCAFile(file.toPath());
+	}
+
+	/**
+	 * Detects and creates a concretion (implementer) of {@link MCAFileBase}. The actual type returned is determined by
+	 * the name of the folder containing the .mca file.
+	 * <p><b>Usage suggestion</b>  when the caller fully controls passed file name:
+	 * <pre>{@code EntitiesMCAFile entitiesMca = MCAUtil.autoMCAFile(Paths.get("entities/r.0.0.mca"));}</pre>
+	 * <p><b>Usage suggestion</b> when the caller expects a specific return type but does not control the passed file name:
+	 * <pre>{@code try {
+	 *   EntitiesMCAFile entitiesMca = MCAUtil.autoMCAFile(filename);
+	 * } catch (ClassCastException expected) {
+	 *   // got an unexpected type
+	 * }}</pre>
+	 * <p><b>Usage suggestion</b>  when the caller may not know what return type to expect:
+	 * <pre>{@code MCAFileBase<?> mcaFile = MCAUtil.autoMCAFile(filename);
+	 * if (mcaFile instanceof MCAFile) {
+	 *   // process region mca file
+	 *   MCAFile regionMca = (MCAFile) mcaFile;
+	 * } else if (mcaFile instanceof PoiMCAFile) {
+	 *   // process poi mca file
+	 *   PoiMCAFile poiMca = (PoiMCAFile) mcaFile;
+	 * } else if (mcaFile instanceof EntitiesMCAFile) {
+	 *   // process entities mca file
+	 *   EntitiesMCAFile entitiesMca = (EntitiesMCAFile) mcaFile;
+	 * } else {
+	 *   // unsupported type / don't care about this type, etc.
+	 * }}</pre>
+	 *
+	 * @param path The file does not need to exist but the given path must have at least 2 parts.
+	 *             Required parts: "mca_type/mca_file"
+	 *             where mca_type is used to determine the type of {@link MCAFileBase} to return (such as "region",
+	 *             "poi", "entities") and mca_file is the .mca file such as "r.0.0.mca".
+	 * @param <T> {@link MCAFileBase} type - do note that any {@link ClassCastException} errors will be thrown
+	 *           at the location of assignment, not from within this call.
+	 * @return Instantiated and initialized concretion of {@link MCAFileBase}
+	 * @throws IllegalArgumentException Thrown when the mca type could not be determined from the path or when the
+	 * regions X and Z locations could not be extracted from the filename.
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T extends MCAFileBase<?>> T autoMCAFile(Path path) {
+		BiFunction<Integer, Integer, MCAFileBase<?>> creator = null;
+		try {
+			String hint = path.getParent().getFileName().toString();
+			creator = MCA_CREATORS.get(hint);
+			if (creator == null) throwCannotDetermineMcaType(null);
+		} catch (Exception ex) {
+			throwCannotDetermineMcaType(ex);
+		}
+		final Matcher m = mcaFilePattern.matcher(path.getFileName().toString());
+		if (m.find()) {
+			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): " + path);
+		}
+		final int x = Integer.parseInt(m.group("regionX"));
+		final int z = Integer.parseInt(m.group("regionZ"));
+		return (T) creator.apply(x, z);
 	}
 }
