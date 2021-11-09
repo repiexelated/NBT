@@ -368,7 +368,7 @@ public final class MCAUtil {
 			throwCannotDetermineMcaType(ex);
 		}
 		final Matcher m = mcaFilePattern.matcher(path.getFileName().toString());
-		if (!m.find()) {
+		if (m.find()) {
 			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): " + path);
 		}
 		final int x = Integer.parseInt(m.group("regionX"));
