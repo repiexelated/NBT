@@ -1,6 +1,8 @@
 package net.querz.mca;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class MCAUtilTest extends MCATestCase {
 
@@ -88,5 +90,22 @@ public class MCAUtilTest extends MCATestCase {
 		File target = getNewTmpFile("r.0.0.mca");
 		assertThrowsNoException(() -> MCAUtil.write(m, target, false));
 		assertThrowsNoException(() -> MCAUtil.write(m, target, false));
+	}
+
+	public void testAutoCreateMcaFile() {
+		MCAFileBase<?> mcaFile = MCAUtil.autoMCAFile(Paths.get("region", "r.1.2.mca"));
+		assertTrue(mcaFile instanceof MCAFile);
+		assertEquals(1, mcaFile.getRegionX());
+		assertEquals(2, mcaFile.getRegionZ());
+
+		mcaFile = MCAUtil.autoMCAFile(Paths.get("poi", "r.3.-4.mca"));
+		assertTrue(mcaFile instanceof PoiMCAFile);
+		assertEquals(3, mcaFile.getRegionX());
+		assertEquals(-4, mcaFile.getRegionZ());
+
+		mcaFile = MCAUtil.autoMCAFile(Paths.get("entities", "r.-5.6.mca"));
+		assertTrue(mcaFile instanceof EntitiesMCAFile);
+		assertEquals(-5, mcaFile.getRegionX());
+		assertEquals(6, mcaFile.getRegionZ());
 	}
 }
