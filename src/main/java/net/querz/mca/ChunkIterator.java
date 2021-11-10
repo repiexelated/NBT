@@ -30,4 +30,14 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      * @return Current chunk z within region (in range 0-31)
      */
     int currentZ();
+
+    /**
+     * @return Current chunk x in world coordinates (not block coordinates)
+     */
+    int currentWorldX();
+
+    /**
+     * @return Current chunk z in world coordinates (not block coordinates)
+     */
+    int currentWorldZ();
 }

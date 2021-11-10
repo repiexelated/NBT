@@ -167,7 +167,12 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 	 * @return Deserialized chunk.
 	 * @throws IOException if something went wrong during deserialization.
 	 */
-	protected abstract T deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp) throws IOException;
+	protected T deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp) throws IOException {
+		T chunk = createChunk();
+		chunk.setLastMCAUpdate(timestamp);
+		chunk.deserialize(raf, loadFlags);
+		return chunk;
+	}
 
 	/**
 	 * Reads an .mca file from a {@code RandomAccessFile} into this object.
@@ -420,6 +425,16 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		@Override
 		public int currentZ() {
 			return (currentIndex >> 5) & 0x1F;
+		}
+
+		@Override
+		public int currentWorldX() {
+			return currentX() + owner.getRegionX() * 32;
+		}
+
+		@Override
+		public int currentWorldZ() {
+			return currentZ() + owner.getRegionZ() * 32;
 		}
 	}
 }

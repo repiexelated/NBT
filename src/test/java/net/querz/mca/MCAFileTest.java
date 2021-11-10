@@ -5,8 +5,6 @@ import net.querz.nbt.tag.ListTag;
 import static net.querz.mca.LoadFlags.*;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Objects;
 
 public class MCAFileTest extends MCATestCase {
@@ -138,32 +136,45 @@ public class MCAFileTest extends MCATestCase {
 		f.getChunk(1023).setInhabitedTime(13243546);
 		assertEquals(13243546, f.getChunk(1023).getInhabitedTime());
 		assertThrowsRuntimeException(() -> f.getChunk(1023).setBiomes(new int[255]), IllegalArgumentException.class);
-		assertThrowsNoRuntimeException(() -> f.getChunk(1023).setBiomes(new int[256]));
-		assertTrue(Arrays.equals(new int[256], f.getChunk(1023).getBiomes()));
-		f.getChunk(1023).setHeightMaps(getSomeCompoundTag());
-		assertEquals(getSomeCompoundTag(), f.getChunk(1023).getHeightMaps());
-		f.getChunk(1023).setCarvingMasks(getSomeCompoundTag());
-		assertEquals(getSomeCompoundTag(), f.getChunk(1023).getCarvingMasks());
-		f.getChunk(1023).setEntities(getSomeCompoundTagList());
-		assertEquals(getSomeCompoundTagList(), f.getChunk(1023).getEntities());
-		f.getChunk(1023).setTileEntities(getSomeCompoundTagList());
-		assertEquals(getSomeCompoundTagList(), f.getChunk(1023).getTileEntities());
-		f.getChunk(1023).setTileTicks(getSomeCompoundTagList());
-		assertEquals(getSomeCompoundTagList(), f.getChunk(1023).getTileTicks());
-		f.getChunk(1023).setLiquidTicks(getSomeCompoundTagList());
-		assertEquals(getSomeCompoundTagList(), f.getChunk(1023).getLiquidTicks());
-		f.getChunk(1023).setLights(getSomeListTagList());
-		assertEquals(getSomeListTagList(), f.getChunk(1023).getLights());
-		f.getChunk(1023).setLiquidsToBeTicked(getSomeListTagList());
-		assertEquals(getSomeListTagList(), f.getChunk(1023).getLiquidsToBeTicked());
-		f.getChunk(1023).setToBeTicked(getSomeListTagList());
-		assertEquals(getSomeListTagList(), f.getChunk(1023).getToBeTicked());
-		f.getChunk(1023).setPostProcessing(getSomeListTagList());
-		assertEquals(getSomeListTagList(), f.getChunk(1023).getPostProcessing());
-		f.getChunk(1023).setStructures(getSomeCompoundTag());
-		assertEquals(getSomeCompoundTag(), f.getChunk(1023).getStructures());
+		int[] biomes = new int[256];
+		assertThrowsNoRuntimeException(() -> f.getChunk(1023).setBiomes(biomes));
+		assertSame(biomes, f.getChunk(1023).getBiomes());
+		CompoundTag compoundTag = getSomeCompoundTag();
+		f.getChunk(1023).setHeightMaps(compoundTag);
+		assertSame(compoundTag, f.getChunk(1023).getHeightMaps());
+		compoundTag = getSomeCompoundTag();
+		f.getChunk(1023).setCarvingMasks(compoundTag);
+		assertSame(compoundTag, f.getChunk(1023).getCarvingMasks());
+		ListTag<CompoundTag> compoundTagListTag = getSomeCompoundTagList();
+		f.getChunk(1023).setEntities(compoundTagListTag);
+		assertSame(compoundTagListTag, f.getChunk(1023).getEntities());
+		compoundTagListTag = getSomeCompoundTagList();
+		f.getChunk(1023).setTileEntities(compoundTagListTag);
+		assertSame(compoundTagListTag, f.getChunk(1023).getTileEntities());
+		compoundTagListTag = getSomeCompoundTagList();
+		f.getChunk(1023).setTileTicks(compoundTagListTag);
+		assertSame(compoundTagListTag, f.getChunk(1023).getTileTicks());
+		compoundTagListTag = getSomeCompoundTagList();
+		f.getChunk(1023).setLiquidTicks(compoundTagListTag);
+		assertSame(compoundTagListTag, f.getChunk(1023).getLiquidTicks());
+		ListTag<ListTag<?>> listTagListTag = getSomeListTagList();
+		f.getChunk(1023).setLights(listTagListTag);
+		assertSame(listTagListTag, f.getChunk(1023).getLights());
+		listTagListTag = getSomeListTagList();
+		f.getChunk(1023).setLiquidsToBeTicked(listTagListTag);
+		assertSame(listTagListTag, f.getChunk(1023).getLiquidsToBeTicked());
+		listTagListTag = getSomeListTagList();
+		f.getChunk(1023).setToBeTicked(listTagListTag);
+		assertSame(listTagListTag, f.getChunk(1023).getToBeTicked());
+		listTagListTag = getSomeListTagList();
+		f.getChunk(1023).setPostProcessing(listTagListTag);
+		assertSame(listTagListTag, f.getChunk(1023).getPostProcessing());
+		compoundTag = getSomeCompoundTag();
+		f.getChunk(1023).setStructures(compoundTag);
+		assertSame(compoundTag, f.getChunk(1023).getStructures());
 		Section s = f.getChunk(1023).createSection();
 		f.getChunk(1023).setSection(0, s);
+		assertEquals(0, s.getHeight());
 		assertEquals(s, f.getChunk(1023).getSection(0));
 		assertThrowsRuntimeException(() -> f.getChunk(1023).getSection(0).setBlockStates(null), NullPointerException.class);
 		assertThrowsRuntimeException(() -> f.getChunk(1023).getSection(0).setBlockStates(new long[321]), IllegalArgumentException.class);
@@ -330,7 +341,7 @@ public class MCAFileTest extends MCATestCase {
 		//test "line break" for DataVersion 2527
 		MCAFile f = assertThrowsNoException(() -> MCAUtil.read(copyResourceToTmp("r.2.2.mca")));
 		Chunk p = f.getChunk(0, 0);
-		p.setDataVersion(3000);
+		p.setDataVersion(999999);
 		Section section = f.getChunk(0, 0).getSection(0);
 		assertEquals(10, section.getPalette().size());
 		assertEquals(0b0001000100010001000100010001000100010001000100010001000100010001L, section.getBlockStates()[0]);
@@ -390,7 +401,7 @@ public class MCAFileTest extends MCATestCase {
 		}, IOException.class);
 	}
 
-	private void assertLoadFLag(Object field, long flags, long wantedFlag) {
+	private void assertLoadFlag(Object field, long flags, long wantedFlag) {
 		if((flags & wantedFlag) != 0) {
 			assertNotNull(String.format("Should not be null. Flags=%08x, Wanted flag=%08x", flags, wantedFlag), field);
 		} else {
@@ -399,24 +410,24 @@ public class MCAFileTest extends MCATestCase {
 	}
 
 	private void assertPartialChunk(Chunk c, long loadFlags) {
-		assertLoadFLag(c.getBiomes(), loadFlags, BIOMES);
-		assertLoadFLag(c.getHeightMaps(), loadFlags, HEIGHTMAPS);
-		assertLoadFLag(c.getEntities(), loadFlags, ENTITIES);
-		assertLoadFLag(c.getCarvingMasks(), loadFlags, CARVING_MASKS);
-		assertLoadFLag(c.getLights(), loadFlags, LIGHTS);
-		assertLoadFLag(c.getPostProcessing(), loadFlags, POST_PROCESSING);
-		assertLoadFLag(c.getLiquidTicks(), loadFlags, LIQUID_TICKS);
-		assertLoadFLag(c.getLiquidsToBeTicked(), loadFlags, LIQUIDS_TO_BE_TICKED);
-		assertLoadFLag(c.getTileTicks(), loadFlags, TILE_TICKS);
-		assertLoadFLag(c.getTileEntities(), loadFlags, TILE_ENTITIES);
-		assertLoadFLag(c.getToBeTicked(), loadFlags, TO_BE_TICKED);
-		assertLoadFLag(c.getSection(0), loadFlags, BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT);
+		assertLoadFlag(c.getBiomes(), loadFlags, BIOMES);
+		assertLoadFlag(c.getHeightMaps(), loadFlags, HEIGHTMAPS);
+		assertLoadFlag(c.getEntities(), loadFlags, ENTITIES);
+		assertLoadFlag(c.getCarvingMasks(), loadFlags, CARVING_MASKS);
+		assertLoadFlag(c.getLights(), loadFlags, LIGHTS);
+		assertLoadFlag(c.getPostProcessing(), loadFlags, POST_PROCESSING);
+		assertLoadFlag(c.getLiquidTicks(), loadFlags, LIQUID_TICKS);
+		assertLoadFlag(c.getLiquidsToBeTicked(), loadFlags, LIQUIDS_TO_BE_TICKED);
+		assertLoadFlag(c.getTileTicks(), loadFlags, TILE_TICKS);
+		assertLoadFlag(c.getTileEntities(), loadFlags, TILE_ENTITIES);
+		assertLoadFlag(c.getToBeTicked(), loadFlags, TO_BE_TICKED);
+		assertLoadFlag(c.getSection(0), loadFlags, BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT);
 		if ((loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0) {
 			Section s = c.getSection(0);
 			assertNotNull(String.format("Section is null. Flags=%08x", loadFlags), s);
-			assertLoadFLag(s.getBlockStates(), loadFlags, BLOCK_STATES);
-			assertLoadFLag(s.getBlockLight(), loadFlags, BLOCK_LIGHTS);
-			assertLoadFLag(s.getSkyLight(), loadFlags, SKY_LIGHT);
+			assertLoadFlag(s.getBlockStates(), loadFlags, BLOCK_STATES);
+			assertLoadFlag(s.getBlockLight(), loadFlags, BLOCK_LIGHTS);
+			assertLoadFlag(s.getSkyLight(), loadFlags, SKY_LIGHT);
 		}
 	}
 
@@ -539,7 +550,9 @@ public class MCAFileTest extends MCATestCase {
 		assertEquals(SectionBase.NO_HEIGHT_SENTINEL, chunk.getMinSectionY());
 		assertEquals(SectionBase.NO_HEIGHT_SENTINEL, chunk.getMaxSectionY());
 		Section section = chunk.createSection(3);
-
+		assertEquals(3, section.getHeight());
+		assertEquals(3, chunk.getMinSectionY());
+		assertEquals(3, chunk.getMaxSectionY());
 	}
 
 	public void testMCAFileChunkIterator() {
@@ -549,13 +562,15 @@ public class MCAFileTest extends MCATestCase {
 		final int populatedX = -65 & 0x1F;
 		final int populatedZ = -42 & 0x1F;
 		int i = 0;
-		for (int z = 0; z < 32; z++) {
-			for (int x = 0; x < 32; x++) {
+		for (int z = 0, wz = -2 * 32; z < 32; z++, wz++) {
+			for (int x = 0, wx = -3 * 32; x < 32; x++, wx++) {
 				assertTrue(iter.hasNext());
 				Chunk chunk = iter.next();
 				assertEquals(i, iter.currentIndex());
 				assertEquals(x, iter.currentX());
 				assertEquals(z, iter.currentZ());
+				assertEquals(wx, iter.currentWorldX());
+				assertEquals(wz, iter.currentWorldZ());
 				if (x == populatedX && z == populatedZ) {
 					assertNotNull(chunk);
 				} else {
