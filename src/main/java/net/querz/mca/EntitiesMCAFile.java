@@ -18,16 +18,13 @@ public class EntitiesMCAFile extends MCAFileBase<EntitiesChunk> {
 
     @Override
     public Class<EntitiesChunk> chunkClass() {
-        return null;
+        return EntitiesChunk.class;
     }
 
     @Override
     public EntitiesChunk createChunk() {
-        return null;
-    }
-
-    @Override
-    protected EntitiesChunk deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp) throws IOException {
-        return null;
+        EntitiesChunk chunk = new EntitiesChunk(0);
+        chunk.setDataVersion(getDefaultChunkDataVersion());
+        return chunk;
     }
 }

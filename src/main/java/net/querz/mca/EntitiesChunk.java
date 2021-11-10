@@ -15,4 +15,9 @@ public class EntitiesChunk extends ChunkBase {
     protected void initReferences(long loadFlags) {
 
     }
+
+    @Override
+    public CompoundTag updateHandle() {
+        return data;
+    }
 }
