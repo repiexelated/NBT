@@ -164,7 +164,9 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 	}
 
 	/***
-	 * Creates a new section and places it in this chunk at the specified section-y
+	 * Creates a new section and places it in this chunk at the specified section-y UNLESS
+	 * the given sectionY is {@link SectionBase#NO_HEIGHT_SENTINEL} in which case the new
+	 * section is not added to this chunk.
 	 * @param sectionY section y
 	 * @return new section
 	 * @throws IllegalArgumentException thrown if the specified y already has a section - basically throwns if

@@ -1,20 +1,11 @@
 package net.querz.mca;
 
 import net.querz.nbt.tag.CompoundTag;
-import net.querz.nbt.tag.Tag;
-
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Represents a REGION data mca file.
  */
-public class MCAFile extends MCAFileBase<Chunk> implements Iterable<Chunk> {
+public class RegionMCAFileBase extends MCAFileBase<Chunk> implements Iterable<Chunk> {
 	/**
 	 * The default chunk data version used when no custom version is supplied.
 	 * <p>Deprecated: use {@code DataVersion.latest().id()} instead.
@@ -25,21 +16,21 @@ public class MCAFile extends MCAFileBase<Chunk> implements Iterable<Chunk> {
 	/**
 	 * {@inheritDoc}
 	 */
-	public MCAFile(int regionX, int regionZ) {
+	public RegionMCAFileBase(int regionX, int regionZ) {
 		super(regionX, regionZ);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public MCAFile(int regionX, int regionZ, int defaultDataVersion) {
+	public RegionMCAFileBase(int regionX, int regionZ, int defaultDataVersion) {
 		super(regionX, regionZ, defaultDataVersion);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public MCAFile(int regionX, int regionZ, DataVersion defaultDataVersion) {
+	public RegionMCAFileBase(int regionX, int regionZ, DataVersion defaultDataVersion) {
 		super(regionX, regionZ, defaultDataVersion);
 	}
 
