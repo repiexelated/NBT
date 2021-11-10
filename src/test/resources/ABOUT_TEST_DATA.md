@@ -1,7 +1,7 @@
 ## 1.17.1 (DV 2730)
 
 ### 1_17_1/r.-3.2.mca (seed: -592955240269541309)
-Village, with villager with POI of cartography table and bed
+Village, with villager with POI of cartography table and bed as well as nether portal
 
 Chunks:
 - -65 -42
