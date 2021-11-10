@@ -16,21 +16,29 @@ import java.util.stream.Collectors;
 
 /**
  * Provides main and utility functions to read and write .mca files and
- * to convert block, chunk and region coordinates.
+ * to convert block, chunk, and region coordinates.
  */
 public final class MCAUtil {
 
 	private MCAUtil() {}
 
 	private static final Pattern mcaFilePattern = Pattern.compile("^.*\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
-	private static final Map<String, BiFunction<Integer, Integer, MCAFileBase<?>>> MCA_CREATORS;
+
+	/**
+	 * This map controls the factory creation behavior of the various "auto" functions. When an auto function is
+	 * given an mca file location the folder name which contains the .mca files is used to lookup the correct
+	 * mca file creator from this map. For example, if an auto method were passed the path
+	 * "foo/bar/creator_name/r.4.2.mca" it would call {@code MCA_CREATORS.get("creator_name").apply(4, 2)}.
+	 * <p>By manipulating this map you can control the factory behavior to support new mca types or to specify
+	 * that a custom creation method should be called which could even return a custom {@link MCAFileBase}
+	 * implementation.</p>
+	 */
+	public static final Map<String, BiFunction<Integer, Integer, MCAFileBase<?>>> MCA_CREATORS = new HashMap<>();
 
 	static {
-		Map<String, BiFunction<Integer, Integer, MCAFileBase<?>>> map = new HashMap<>();
-		map.put("region", MCAFile::new);
-		map.put("poi", PoiMCAFile::new);
-		map.put("entities", EntitiesMCAFile::new);
-		MCA_CREATORS = Collections.unmodifiableMap(map);
+		MCA_CREATORS.put("region", MCAFile::new);
+		MCA_CREATORS.put("poi", PoiMCAFile::new);
+		MCA_CREATORS.put("entities", EntitiesMCAFile::new);
 	}
 
 	//<editor-fold desc="Legacy Readers" defaultstate="collapsed">
@@ -139,38 +147,38 @@ public final class MCAUtil {
 
 	//<editor-fold desc="Writers">
 	/**
-	 * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
-	 * @see MCAUtil#write(MCAFile, File, boolean)
+	 * Calls {@link MCAUtil#write(MCAFileBase, File, boolean)} without changing the timestamps.
+	 * @see MCAUtil#write(MCAFileBase, File, boolean)
 	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
 	 */
-	public static int write(MCAFile mcaFile, String file) throws IOException {
+	public static int write(MCAFileBase<?> mcaFile, String file) throws IOException {
 		return write(mcaFile, new File(file), false);
 	}
 
 	/**
-	 * Calls {@link MCAUtil#write(MCAFile, File, boolean)} without changing the timestamps.
-	 * @see MCAUtil#write(MCAFile, File, boolean)
+	 * Calls {@link MCAUtil#write(MCAFileBase, File, boolean)} without changing the timestamps.
+	 * @see MCAUtil#write(MCAFileBase, File, boolean)
 	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
 	 */
-	public static int write(MCAFile mcaFile, File file) throws IOException {
+	public static int write(MCAFileBase<?> mcaFile, File file) throws IOException {
 		return write(mcaFile, file, false);
 	}
 
 	/**
-	 * @see MCAUtil#write(MCAFile, File, boolean)
+	 * @see MCAUtil#write(MCAFileBase, File, boolean)
 	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
 	 * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
 	 */
-	public static int write(MCAFile mcaFile, String file, boolean changeLastUpdate) throws IOException {
+	public static int write(MCAFileBase<?> mcaFile, String file, boolean changeLastUpdate) throws IOException {
 		return write(mcaFile, new File(file), changeLastUpdate);
 	}
 
@@ -185,7 +193,7 @@ public final class MCAUtil {
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
 	 */
-	public static int write(MCAFile mcaFile, File file, boolean changeLastUpdate) throws IOException {
+	public static int write(MCAFileBase<?> mcaFile, File file, boolean changeLastUpdate) throws IOException {
 		File to = file;
 		if (file.exists()) {
 			to = File.createTempFile(to.getName(), null);
@@ -349,20 +357,23 @@ public final class MCAUtil {
 	 *
 	 * @param path The file does not need to exist but the given path must have at least 2 parts.
 	 *             Required parts: "mca_type/mca_file"
-	 *             where mca_type is used to determine the type of {@link MCAFileBase} to return (such as "region",
-	 *             "poi", "entities") and mca_file is the .mca file such as "r.0.0.mca".
+	 *             where mca_type (such as "region", "poi", "entities") is used to determine which
+	 *             {@link #MCA_CREATORS} to call and mca_file is the .mca file such as "r.0.0.mca".
 	 * @param <T> {@link MCAFileBase} type - do note that any {@link ClassCastException} errors will be thrown
 	 *           at the location of assignment, not from within this call.
-	 * @return Instantiated and initialized concretion of {@link MCAFileBase}
-	 * @throws IllegalArgumentException Thrown when the mca type could not be determined from the path or when the
-	 * regions X and Z locations could not be extracted from the filename.
+	 * @return Instantiated and initialized concretion of {@link MCAFileBase}. Never Null.
+	 * @throws IllegalArgumentException Thrown when the mca type could not be determined from the path, when there
+	 * is no {@link #MCA_CREATORS} mapped to the mca type, or when the regions X and Z locations could not be
+	 * extracted from the filename.
+	 * @throws NullPointerException Thrown when a custom creator did not produce a result.
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends MCAFileBase<?>> T autoMCAFile(Path path) {
 		BiFunction<Integer, Integer, MCAFileBase<?>> creator = null;
+		String creatorName = null;
 		try {
-			String hint = path.getParent().getFileName().toString();
-			creator = MCA_CREATORS.get(hint);
+			creatorName = path.getParent().getFileName().toString();
+			creator = MCA_CREATORS.get(creatorName);
 			if (creator == null) throwCannotDetermineMcaType(null);
 		} catch (Exception ex) {
 			throwCannotDetermineMcaType(ex);
@@ -373,6 +384,10 @@ public final class MCAUtil {
 		}
 		final int x = Integer.parseInt(m.group("regionX"));
 		final int z = Integer.parseInt(m.group("regionZ"));
-		return (T) creator.apply(x, z);
+		T mcaFile = (T) creator.apply(x, z);
+		if (mcaFile == null) {
+			throw new NullPointerException("Creator for " + creatorName + " did not produce a result for " + path);
+		}
+		return mcaFile;
 	}
 }
