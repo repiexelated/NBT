@@ -113,6 +113,11 @@ public abstract class NBTTestCase extends TestCase {
 		return null;
 	}
 
+
+	protected void assertThrowsIllegalArgumentException(ExceptionRunnable<IllegalArgumentException> r) {
+		assertThrowsException(r, IllegalArgumentException.class);
+	}
+
 	protected <E extends Exception> void assertThrowsException(ExceptionRunnable<E> r, Class<? extends Exception> e) {
 		assertThrowsException(r, e, false);
 	}
