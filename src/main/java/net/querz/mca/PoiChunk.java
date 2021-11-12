@@ -18,4 +18,5 @@ public class PoiChunk extends PoiChunkBase<PoiRecord>{
     protected PoiRecord createPoiRecord(CompoundTag recordTag) {
         return new PoiRecord(recordTag);
     }
+
 }

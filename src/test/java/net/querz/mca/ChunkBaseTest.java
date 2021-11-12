@@ -2,6 +2,10 @@ package net.querz.mca;
 
 import net.querz.NBTTestCase;
 import net.querz.nbt.tag.CompoundTag;
+import net.querz.util.Mutable;
+
+import java.util.function.Consumer;
+
 import static net.querz.mca.DataVersion.*;
 
 /**
@@ -12,6 +16,19 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     protected abstract T createChunk();
     protected abstract T createChunk(CompoundTag tag);
     protected abstract T createChunk(CompoundTag tag, long loadData);
+
+    protected T createChunk(DataVersion dataVersion) {
+        T chunk = createChunk();
+        chunk.setDataVersion(dataVersion);
+        return chunk;
+    }
+
+    /**
+     * helper equivalent to {@code createChunk(createTag(dataVersion.id()))}
+     */
+    final protected T createFilledChunk(DataVersion dataVersion) {
+        return createChunk(createTag(dataVersion.id()));
+    }
 
     public void testChunkBase_defaultConstructor() {
         T chunk = createChunk();
@@ -48,7 +65,41 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
         return tag;
     }
 
-    protected abstract void validateAllDataConstructor();
+    protected abstract void validateAllDataConstructor(T chunk);
+
+    protected void validateTagRequired(DataVersion dataVersion, String tagName) {
+        validateTagRequired(dataVersion, tag -> tag.remove(tagName));
+    }
+
+    protected void validateTagRequired(DataVersion dataVersion, Consumer<CompoundTag> tagRemover) {
+        assertThrowsException(() -> {
+            CompoundTag tag = createTag(dataVersion.id());
+            assertNotNull(tag);
+            tagRemover.accept(tag);
+            createChunk(tag, LoadFlags.ALL_DATA);
+        }, IllegalArgumentException.class);
+    }
+
+    /**
+     * @return the resulting chunk
+     */
+    protected T validateTagNotRequired(DataVersion dataVersion, String tagName) {
+        return validateTagNotRequired(dataVersion, tag -> tag.remove(tagName));
+    }
+
+    /**
+     * @return the resulting chunk
+     */
+    protected T validateTagNotRequired(DataVersion dataVersion, Consumer<CompoundTag> tagRemover) {
+        Mutable<T> out = new Mutable<>();
+        assertThrowsNoException(() -> {
+            CompoundTag tag = createTag(dataVersion.id());
+            assertNotNull(tag);
+            tagRemover.accept(tag);
+            out.set(createChunk(tag, LoadFlags.ALL_DATA));
+        });
+        return out.get();
+    }
 
     final public void testConstructor_allData() {
         CompoundTag tag = createTag(DataVersion.JAVA_1_17_1.id());
@@ -59,7 +110,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
         assertFalse(chunk.partial);
         assertFalse(chunk.raw);
         assertSame(tag, chunk.getHandle());
-        validateAllDataConstructor();
+        validateAllDataConstructor(chunk);
     }
 
     final public void testConstructor_raw() {
@@ -85,4 +136,6 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
         assertNotNull(tag);
         assertThrowsNoException(() -> createChunk(tag, LoadFlags.RAW));
     }
+
+
 }

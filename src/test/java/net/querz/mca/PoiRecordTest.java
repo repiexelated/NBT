@@ -4,7 +4,7 @@ import junit.framework.TestCase;
 import net.querz.nbt.tag.CompoundTag;
 
 public class PoiRecordTest extends TestCase {
-    private CompoundTag makeTag(int tickets, String type, int x, int y, int z) {
+    public static CompoundTag makeTag(int tickets, String type, int x, int y, int z) {
         CompoundTag tag = new CompoundTag();
         tag.putString("type", type);
         tag.putIntArray("pos", new int[] {x, y, z});

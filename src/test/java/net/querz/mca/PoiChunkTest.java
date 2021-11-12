@@ -2,7 +2,7 @@ package net.querz.mca;
 
 import net.querz.nbt.tag.CompoundTag;
 
-public class PoiChunkTest extends PoiChunkBaseTest<PoiChunk> {
+public class PoiChunkTest extends PoiChunkBaseTest<PoiRecord, PoiChunk> {
 
     @Override
     protected PoiChunk createChunk() {
@@ -20,14 +20,7 @@ public class PoiChunkTest extends PoiChunkBaseTest<PoiChunk> {
     }
 
     @Override
-    protected CompoundTag createTag(int dataVersion) {
-        CompoundTag tag = super.createTag(dataVersion);
-        tag.put("Sections", new CompoundTag());
-        return tag;
-    }
-
-    @Override
-    protected void validateAllDataConstructor() {
-
+    protected PoiRecord createPoiRecord(int x, int y, int z, String type) {
+        return new PoiRecord(x, y, z, type);
     }
 }
