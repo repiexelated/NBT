@@ -2,7 +2,26 @@ package net.querz.mca;
 
 import junit.framework.TestCase;
 
+import java.util.regex.Pattern;
+
 public class DataVersionTest extends TestCase {
+    private static final Pattern ALLOWED_ENUM_DESCRIPTION_PATTERN = Pattern.compile("^(?:FINAL|\\d{2}w\\d{2}[a-z]|(?:CT|XS|PRE|RC)\\d+|)");
+    public void testEnumNamesMatchVersionInformation() {
+        for (DataVersion dv : DataVersion.values()) {
+            if (dv.id() != 0) {
+                StringBuilder sb = new StringBuilder("JAVA_1_");
+                sb.append(dv.minor()).append('_');
+                if (dv.isFullRelease()) {
+                    sb.append(dv.patch());
+                } else {
+                    sb.append(dv.getBuildDescription().toUpperCase());
+                }
+                assertEquals(sb.toString(), dv.name());
+                assertTrue("Build description of " + dv.name() + " does not follow convention!",
+                        ALLOWED_ENUM_DESCRIPTION_PATTERN.matcher(dv.getBuildDescription()).matches());
+            }
+        }
+    }
 
     public void testBestForNegativeValue() {
         assertEquals(DataVersion.UNKNOWN, DataVersion.bestFor(-42));

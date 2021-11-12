@@ -46,7 +46,7 @@ public enum DataVersion {
 
     // 3D Biomes added. Biomes array in the  Level tag for each chunk changed
     // to contain 1024 integers instead of 256 see {@link Chunk}
-    JAVA_1_15_19W36A(2203, 10, -1, "19w36a"),
+    JAVA_1_15_19W36A(2203, 15, -1, "19w36a"),
     JAVA_1_15_0(2225, 15, 0),
     JAVA_1_15_1(2227, 15, 1),
     JAVA_1_15_2(2230, 15, 2),
@@ -88,7 +88,8 @@ public enum DataVersion {
     // Added yPos the minimum section y position in the chunk
     // Added below_zero_retrogen containing data to support below zero generation
     // Added blending_data containing data to support blending new world generation with existing chunks
-    JAVA_1_18_21W43A(2844, 18, -1, "21w43a");
+    JAVA_1_18_21W43A(2844, 18, -1, "21w43a"),
+    JAVA_1_18_PRE1(2847, 18, -1, "PRE1");
 
 
     private static final int[] ids;
@@ -121,7 +122,7 @@ public enum DataVersion {
      *                         <li>CT# for combat tests (e.g. CT6, CT6b)</li>
      *                         <li>XS# for experimental snapshots(e.g. XS1, XS2)</li>
      *                         <li>YYwWWz for weekly builds (e.g. 21w37a, 21w37b)</li>
-     *                         <li>PR# for pre-releases (e.g. PR1, PR2)</li>
+     *                         <li>PRE# for pre-releases (e.g. PRE1, PRE2)</li>
      *                         <li>RC# for release candidates (e.g. RC1, RC2)</li></ul>
      */
     DataVersion(int id, int minor, int patch, String buildDescription) {
@@ -144,6 +145,21 @@ public enum DataVersion {
             this.str = name();
         }
     }
+
+//    private void checkEnumName() {
+//        if (id != 0) {
+//            StringBuilder sb = new StringBuilder("JAVA_1_");
+//            sb.append(minor).append('_');
+//            if (isFullRelease) {
+//                sb.append(patch);
+//            } else {
+//                sb.append(buildDescription.toUpperCase());
+//            }
+//            if (!name().equals(sb.toString())) {
+//                throw new IllegalArgumentException(String.format("Expected enum name to be '%s' but was '%s'", sb, name()));
+//            }
+//        }
+//    }
 
     public int id() {
         return id;
