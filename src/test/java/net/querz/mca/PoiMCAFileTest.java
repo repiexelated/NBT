@@ -22,6 +22,7 @@ public class PoiMCAFileTest extends MCATestCase {
         assertTrue(recordsByType.containsKey("minecraft:cartographer"));
         assertTrue(recordsByType.containsKey("minecraft:nether_portal"));
         assertEquals(1, recordsByType.get("minecraft:home").size());
+        assertEquals(6, recordsByType.get("minecraft:nether_portal").size());
         assertEquals(new PoiRecord(-1032, 63, -670, "minecraft:home"), recordsByType.get("minecraft:home").get(0));
         // it'd be better if we had a bell in this chunk to test a non-zero value here
         assertEquals(0, recordsByType.get("minecraft:home").get(0).getFreeTickets());
