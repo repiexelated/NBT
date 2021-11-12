@@ -25,6 +25,11 @@ public class Chunk extends RegionChunkBase<Section> {
 		super(data);
 	}
 
+	public Chunk(CompoundTag data, long loadFlags) {
+		super(data, loadFlags);
+	}
+
+
 	@Override
 	protected Section createSection(CompoundTag section, int dataVersion, long loadFlags) {
 		return new Section(section, dataVersion, loadFlags);

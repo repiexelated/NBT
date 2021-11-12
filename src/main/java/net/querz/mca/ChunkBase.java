@@ -13,6 +13,20 @@ import static net.querz.mca.LoadFlags.RAW;
 
 /**
  * Abstraction for the base of all chunk types which represent chunks composed of sub-chunks {@link SectionBase}.
+ * <p>
+ *     <b>Cautionary note to implementors - DO NOT USE INLINE MEMBER INITIALIZATION IN YOUR CLASSES</b><br/>
+ *     Define all member initialization in {@link #initMembers()} or be very confused!
+ * </p><p>
+ *     Due to how Java initializes objects, this base class will call {@link #initReferences(long)} before any inline
+ *     member initialization has occurred. The symptom of using in line member initialization is that you will get
+ *     very confusing {@link NullPointerException}'s from within {@link #initReferences(long)} for members which
+ *     are accessed by your {@link #initReferences(long)} implementation that you have defined inline initializers for
+ *     because those initializers will not run until AFTER {@link #initReferences(long)} returns.
+ * </p><p>
+ *     It is however "safe" to use inline member initialization for any members which are not accessed from within
+ *     {@link #initReferences(long)} - but unless you really fully understand the warning above and its full
+ *     ramifications just don't do it.
+ * </p>
  */
 public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	protected int dataVersion;
@@ -21,9 +35,22 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	protected int lastMCAUpdate;
 	protected CompoundTag data;
 
+	/**
+	 * Due to how Java initializes objects and how this class hierarchy is setup it is ill advised to use inline member
+	 * initialization because {@link #initReferences0(long)} may be called before members are initialized which WILL
+	 * result in very confusing {@link NullPointerException}'s being thrown from within {@link #initReferences(long)}.
+	 * This is not a problem that can be solved by moving initialization into your constructors, because you must call
+	 * the super constructor as the first line of your child constructor!
+	 * <p>So, to get around this hurdle, perform all member initialization you would normally inline in your
+	 * class def, within this method instead. Implementers should never need to call this method themselves
+	 * as ChunkBase will always call it, even from the default constructor.</p>
+	 */
+	protected void initMembers() { };
+
 	protected ChunkBase() {
 		dataVersion = DataVersion.latest().id();
 		lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
+		initMembers();
 	}
 
 	/**
@@ -41,6 +68,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	 */
 	public ChunkBase(CompoundTag data, long loadFlags) {
 		this.data = data;
+		initMembers();
 		initReferences0(loadFlags);
 	}
 
@@ -66,7 +94,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	}
 
 	/**
-	 * Child classes should not call this method directly.
+	 * Child classes should not call this method directly, it will be called for them.
 	 * Raw and partial data handling is taken care of, this method will not be called if {@code loadFlags} is
 	 * {@link LoadFlags#RAW}.
 	 */

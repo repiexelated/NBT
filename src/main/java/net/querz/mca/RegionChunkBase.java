@@ -42,6 +42,10 @@ public abstract class RegionChunkBase<T extends RegionSectionBase> extends Secti
 		super(data);
 	}
 
+	public RegionChunkBase(CompoundTag data, long loadFlags) {
+		super(data, loadFlags);
+	}
+
 	@Override
 	protected void initReferences(final long loadFlags) {
 		CompoundTag level = data.getCompoundTag("Level");

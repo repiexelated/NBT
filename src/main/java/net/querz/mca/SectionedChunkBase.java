@@ -24,6 +24,10 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 		super(data);
 	}
 
+	public SectionedChunkBase(CompoundTag data, long loadFlags) {
+		super(data, loadFlags);
+	}
+
 	public boolean containsSection(int sectionY) {
 		return sections.containsKey(sectionY);
 	}
