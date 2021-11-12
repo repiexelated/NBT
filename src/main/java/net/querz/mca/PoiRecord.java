@@ -85,6 +85,17 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
 
     public PoiRecord() { }
 
+    /**
+     * copy constructor
+     */
+    public PoiRecord(PoiRecord other) {
+        this.type = other.type;
+        this.freeTickets = other.freeTickets;
+        this.x = other.x;
+        this.y = other.y;
+        this.z = other.z;
+    }
+
     public PoiRecord(CompoundTag data) {
         this.freeTickets = data.getInt("free_tickets");
         this.type = data.getString("type");
@@ -171,16 +182,27 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
     }
 
     /**
-     *
+     * See class doc {@link PoiRecord}
      */
     public int getFreeTickets() {
         return freeTickets;
     }
 
     /**
+     * See class doc {@link PoiRecord}
      */
-    public void setFreeTickets(int freeTickets) {
+    public PoiRecord setFreeTickets(int freeTickets) {
         this.freeTickets = validateFreeTickets(freeTickets);
+        return this;
+    }
+
+    /**
+     * Sets freeTickets to the default max free tickets for this poi type.
+     * see class doc {@link PoiRecord}
+     */
+    public PoiRecord resetFreeTickets() {
+        this.freeTickets = maxFreeTickets(this.type);
+        return this;
     }
 
     /** Type of the point, for example: minecraft:home, minecraft:meeting, minecraft:butcher, minecraft:nether_portal */
@@ -189,8 +211,9 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
     }
 
     /** Type of the point, for example: minecraft:home, minecraft:meeting, minecraft:butcher, minecraft:nether_portal */
-    public void setType(String type) {
+    public PoiRecord setType(String type) {
         this.type = validateType(type);
+        return this;
     }
 
     /** world x location */
@@ -199,8 +222,9 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
     }
 
     /** world x location */
-    public void setX(int x) {
+    public PoiRecord setX(int x) {
         this.x = x;
+        return this;
     }
 
     /** world y location */
@@ -212,8 +236,9 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
      * @param y must be a within the absolute maximum limit of blocks
      *          theoretically supportable by chunk sections [-2048..2048)
      */
-    public void setY(int y) {
+    public PoiRecord setY(int y) {
         this.y = validateY(y);
+        return this;
     }
 
     /** world z location */
@@ -222,8 +247,23 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
     }
 
     /** world z location */
-    public void setZ(int z) {
+    public PoiRecord setZ(int z) {
         this.z = z;
+        return this;
+    }
+
+    /**
+     * Sets XYZ
+     * @param x world block x
+     * @param y world block y
+     * @param z world block z
+     * @return self
+     */
+    public PoiRecord setYXZ(int x, int y, int z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
     }
 
     @Override
