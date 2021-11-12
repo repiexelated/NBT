@@ -1,3 +1,41 @@
+## Older versions
+
+### 1.9.4
+has pigs in it, nothing special
+Chunks:
+- 88 -20
+
+### 1.12.2
+has sheep about and various villager shoved in a 2x2 hole
+
+Chunks:
+- 10 11
+
+### 1.13.2
+has chickens, horses, and villagers
+
+Chunks:
+- -42 -45
+
+### 1.14.4
+has villagers, lecturn, bell, bed. The librarian is bound to the lecturn in the chunk 
+
+Chunks:
+- -1 16
+
+### 1.15.2
+has a horse, villagers, lecturn, bell, bed (and half a bed).
+
+Chunks:
+- -3 11
+
+### 1.16.5
+has an iron golumn, villagers, fletching table, bell
+berry bushes
+
+Chunks:
+- 4 -27
+
 ## 1.17.1 (DV 2730)
 
 ### 1_17_1/r.-3.2.mca (seed: -592955240269541309)
@@ -6,18 +44,13 @@ Village, with villager with POI of cartography table and bed as well as nether p
 Chunks:
 - -65 -42
 
-## 1.18 21w44a (DV 2845)
+## 1.18
 Vanilla world height from Y -64 to 320
 
 Region chunk NBT data is not wrapped in the "Level" tag.
-### 1_18/r.-1.-1.mca (seed: 9014880806510125335)
-Village, with POI entries, and villager
+
+### 1_18_PRE1
+villager, lush caves, beds, bell, workstations, chickens, cat, geode
 
 Chunks:
-- -24, -12
-
-### 1_18/r.15.-9.mca (seed: 9014880806510125335)
-3D biomes - lush cave in selected chunk around Y0.
-
-Chunks:
-- 483, -263
+- -60 -69
