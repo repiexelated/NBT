@@ -347,6 +347,28 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 	}
 
 	/**
+	 * Removes the chunk at the given index (sets it to null) and returns the previous value.
+	 * @param index chunk index [0..1024)
+	 * @return chunk which was removed, or null if there was none.
+	 */
+	public T removeChunk(int index) {
+		T chunk = chunks[index];
+		chunks[index] = null;
+		return chunk;
+	}
+
+	/**
+	 * Removes the chunk at the given xz (sets it to null) and returns the previous value.
+	 * Works with absolute and relative coordinates.
+	 * @param chunkX chunk x
+	 * @param chunkZ chunk z
+	 * @return chunk which was removed, or null if there was none.
+	 */
+	public T removeChunk(int chunkX, int chunkZ) {
+		return removeChunk(getChunkIndex(chunkX, chunkZ));
+	}
+
+	/**
 	 * Calculates the index of a chunk from its x- and z-coordinates in this region.
 	 * This works with absolute and relative coordinates.
 	 * @param chunkX The x-coordinate of the chunk.

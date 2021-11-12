@@ -1,8 +1,12 @@
 package net.querz.mca;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
-
+/**
+ * POI files are best thought of as an INDEX the game uses to be able to quickly locate certain blocks.
+ * However, the names of the indexed locations is not necessarily a block type but often a description of its usage
+ * and one poi type may map to multiple block types (e.g. poi of 'minecraft:home' maps to any of the bed blocks).
+ *
+ * <p>See {@link PoiRecord} for more information and for a list of POI types and how they map to blocks.</p>
+ */
 public class PoiMCAFile extends MCAFileBase<PoiChunk> {
     public PoiMCAFile(int regionX, int regionZ) {
         super(regionX, regionZ);
@@ -18,16 +22,13 @@ public class PoiMCAFile extends MCAFileBase<PoiChunk> {
 
     @Override
     public Class<PoiChunk> chunkClass() {
-        return null;
+        return PoiChunk.class;
     }
 
     @Override
     public PoiChunk createChunk() {
-        return null;
-    }
-
-    @Override
-    protected PoiChunk deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp) throws IOException {
-        return null;
+        PoiChunk chunk = new PoiChunk();
+        chunk.setDataVersion(getDefaultChunkDataVersion());
+        return chunk;
     }
 }

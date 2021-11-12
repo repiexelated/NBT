@@ -21,8 +21,9 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	protected int lastMCAUpdate;
 	protected CompoundTag data;
 
-	ChunkBase(int lastMCAUpdate) {
-		this.lastMCAUpdate = lastMCAUpdate;
+	protected ChunkBase() {
+		dataVersion = DataVersion.latest().id();
+		lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
 	}
 
 	/**
@@ -30,8 +31,17 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	 * @param data The raw base data to be used.
 	 */
 	public ChunkBase(CompoundTag data) {
+		this(data, ALL_DATA);
+	}
+
+	/**
+	 * Create a new chunk based on raw base data from a region file.
+	 * @param data The raw base data to be used.
+	 * @param loadFlags Union of {@link LoadFlags} to process.
+	 */
+	public ChunkBase(CompoundTag data, long loadFlags) {
 		this.data = data;
-		initReferences0(ALL_DATA);
+		initReferences0(loadFlags);
 	}
 
 	private void initReferences0(long loadFlags) {
@@ -40,19 +50,18 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 		if ((loadFlags != ALL_DATA) && (loadFlags & RAW) != 0) {
 			raw = true;
-			return;
-		}
+		} else {
+			if (dataVersion == 0) {
+				throw new IllegalArgumentException("data does not contain \"DataVersion\" tag");
+			}
 
-		if (dataVersion == 0) {
-			throw new IllegalArgumentException("data does not contain \"DataVersion\" tag");
-		}
+			initReferences(loadFlags);
 
-		initReferences(loadFlags);
-
-		// If we haven't requested the full set of data we can drop the underlying raw data to let the GC handle it.
-		if (loadFlags != ALL_DATA) {
-			data = null;
-			partial = true;
+			// If we haven't requested the full set of data we can drop the underlying raw data to let the GC handle it.
+			if (loadFlags != ALL_DATA) {
+				data = null;
+				partial = true;
+			}
 		}
 	}
 

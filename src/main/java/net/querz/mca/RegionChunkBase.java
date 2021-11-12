@@ -10,7 +10,9 @@ import static net.querz.mca.LoadFlags.*;
 
 /**
  * Represents a REGION data mca chunk. Region chunks are composed of a set of {@link Section} where any empty/null
- * section is filled with air blocks by the game.
+ * section is filled with air blocks by the game. When altering existing chunks for MC 1.14+, be sure to have read and
+ * understood the documentation on {@link PoiRecord} to avoid problems with villagers, nether portal linking,
+ * lodestones, bees, and probably more as Minecraft continues to evolve.
  */
 public abstract class RegionChunkBase<T extends RegionSectionBase> extends SectionedChunkBase<T> {
 
@@ -30,9 +32,7 @@ public abstract class RegionChunkBase<T extends RegionSectionBase> extends Secti
 	protected String status;
 	protected CompoundTag structures;
 
-	RegionChunkBase(int lastMCAUpdate) {
-		super(lastMCAUpdate);
-	}
+	protected RegionChunkBase() { }
 
 	/**
 	 * Create a new chunk based on raw base data from a region file.

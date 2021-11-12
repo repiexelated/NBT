@@ -23,7 +23,7 @@ public class EntitiesMCAFile extends MCAFileBase<EntitiesChunk> {
 
     @Override
     public EntitiesChunk createChunk() {
-        EntitiesChunk chunk = new EntitiesChunk(0);
+        EntitiesChunk chunk = new EntitiesChunk();
         chunk.setDataVersion(getDefaultChunkDataVersion());
         return chunk;
     }

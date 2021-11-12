@@ -4,7 +4,9 @@ import net.querz.nbt.tag.CompoundTag;
 
 /**
  * Represents a REGION data mca chunk. Region chunks are composed of a set of {@link Section} where any empty/null
- * section is filled with air blocks by the game.
+ * section is filled with air blocks by the game. When altering existing chunks for MC 1.14+, be sure to have read and
+ * understood the documentation on {@link PoiRecord} to avoid problems with villagers, nether portal linking,
+ * lodestones, bees, and probably more as Minecraft continues to evolve.
  */
 public class Chunk extends RegionChunkBase<Section> {
 	/**
@@ -14,8 +16,9 @@ public class Chunk extends RegionChunkBase<Section> {
 	@Deprecated
 	public static final int DEFAULT_DATA_VERSION = DataVersion.latest().id();
 
-	Chunk(int lastMCAUpdate) {
-		super(lastMCAUpdate);
+	@Deprecated
+	protected Chunk(int lastMCAUpdate) {
+		setLastMCAUpdate(lastMCAUpdate);
 	}
 
 	public Chunk(CompoundTag data) {

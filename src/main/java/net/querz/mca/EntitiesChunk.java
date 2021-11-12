@@ -3,9 +3,7 @@ package net.querz.mca;
 import net.querz.nbt.tag.CompoundTag;
 
 public class EntitiesChunk extends ChunkBase {
-    EntitiesChunk(int lastMCAUpdate) {
-        super(lastMCAUpdate);
-    }
+    protected EntitiesChunk() {}
 
     public EntitiesChunk(CompoundTag data) {
         super(data);
