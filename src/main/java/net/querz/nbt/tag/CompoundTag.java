@@ -155,9 +155,19 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return t instanceof ByteTag && ((ByteTag) t).asByte() > 0;
 	}
 
+	public boolean getBoolean(String key, boolean defaultValue) {
+		Tag<?> t = get(key);
+		return t instanceof ByteTag ? ((ByteTag) t).asByte() > 0 : defaultValue;
+	}
+
 	public byte getByte(String key) {
 		ByteTag t = getByteTag(key);
 		return t == null ? ByteTag.ZERO_VALUE : t.asByte();
+	}
+
+	public byte getByte(String key, byte defaultValue) {
+		ByteTag t = getByteTag(key);
+		return t == null ? defaultValue : t.asByte();
 	}
 
 	public short getShort(String key) {
@@ -165,9 +175,19 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return t == null ? ShortTag.ZERO_VALUE : t.asShort();
 	}
 
+	public short getShort(String key, short defaultValue) {
+		ShortTag t = getShortTag(key);
+		return t == null ? defaultValue: t.asShort();
+	}
+
 	public int getInt(String key) {
 		IntTag t = getIntTag(key);
 		return t == null ? IntTag.ZERO_VALUE : t.asInt();
+	}
+
+	public int getInt(String key, int defaultValue) {
+		IntTag t = getIntTag(key);
+		return t == null ? defaultValue : t.asInt();
 	}
 
 	public long getLong(String key) {
@@ -175,9 +195,19 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return t == null ? LongTag.ZERO_VALUE : t.asLong();
 	}
 
+	public long getLong(String key, long defaultValue) {
+		LongTag t = getLongTag(key);
+		return t == null ? defaultValue : t.asLong();
+	}
+
 	public float getFloat(String key) {
 		FloatTag t = getFloatTag(key);
 		return t == null ? FloatTag.ZERO_VALUE : t.asFloat();
+	}
+
+	public float getFloat(String key, float defaultValue) {
+		FloatTag t = getFloatTag(key);
+		return t == null ? defaultValue : t.asFloat();
 	}
 
 	public double getDouble(String key) {
@@ -185,9 +215,19 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return t == null ? DoubleTag.ZERO_VALUE : t.asDouble();
 	}
 
+	public double getDouble(String key, double defaultValue) {
+		DoubleTag t = getDoubleTag(key);
+		return t == null ? defaultValue: t.asDouble();
+	}
+
 	public String getString(String key) {
 		StringTag t = getStringTag(key);
 		return t == null ? StringTag.ZERO_VALUE : t.getValue();
+	}
+
+	public String getString(String key, String defaultValue) {
+		StringTag t = getStringTag(key);
+		return t == null ? defaultValue: t.getValue();
 	}
 
 	public byte[] getByteArray(String key) {

@@ -373,4 +373,17 @@ public class CompoundTagTest extends NBTTestCase {
 		assertEquals(1, ct.size());
 		assertEquals("bar", ct.getString("foo"));
 	}
+
+	public void testDefaultValueGetters() {
+		CompoundTag ct = new CompoundTag();
+		assertTrue(ct.getBoolean("name", true));
+		assertFalse(ct.getBoolean("name", false));
+		assertEquals((byte)-7, ct.getByte("name", (byte) -7));
+		assertEquals((short)13456, ct.getShort("name", (short) 13456));
+		assertEquals(13456789, ct.getInt("name", 13456789));
+		assertEquals(13456789101112L, ct.getLong("name", 13456789101112L));
+		assertEquals(1.23456f, ct.getFloat("name", 1.23456f), 0.5e-5f);
+		assertEquals(1.234567981019, ct.getDouble("name", 1.234567981019), 0.5e-12f);
+		assertEquals("hello world", ct.getString("name", "hello world"));
+	}
 }
