@@ -2,6 +2,7 @@ package net.querz.nbt.tag;
 
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import net.querz.io.MaxDepthIO;
 
@@ -241,7 +242,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	}
 
 	/**
-	 * Convenience function to get a ListTag&lt;FloatTag&gt; as an array of floats.
+	 * Convenience function to get the values from a {@code ListTag<FloatTag>} as an array of floats.
 	 * @param key name of the ListTag
 	 * @return null if key does not exist; empty array if key exists but list was empty; array of values otherwise
 	 */
@@ -257,7 +258,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	}
 
 	/**
-	 * Convenience function to get a ListTag&lt;DoubleTag&gt; as an array of doubles.
+	 * Convenience function to get the values from a {@code ListTag<DoubleTag>} as an array of doubles.
 	 * @param key name of the ListTag
 	 * @return null if key does not exist; empty array if key exists but list was empty; array of values otherwise
 	 */
@@ -272,6 +273,20 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return doubles;
 	}
 
+	/**
+	 * Convenience function to get the values from a {@code ListTag<StringTag>} as a {@code List<String>}
+	 * @see #putStringsAsTagList(String, List)
+	 * @param key name of the ListTag
+	 * @return null if key does not exist; empty list if key exists but list was empty; list of values otherwise
+	 */
+	public List<String> getStringTagListValues(String key) {
+		ListTag<StringTag> t = getListTagAutoCast(key);
+		if (t == null) return null;
+		return t.getValue().stream()
+				.map(StringTag::getValue)
+				.collect(Collectors.toList());
+	}
+	
 	public Tag<?> put(String key, Tag<?> tag) {
 		return getValue().put(Objects.requireNonNull(key), Objects.requireNonNull(tag));
 	}
@@ -331,10 +346,10 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	 * Convenience function to set a ListTag&lt;FloatTag&gt; from an array. If values is null then
 	 * the specified key is REMOVED. Provide an empty array to indicate that an empty ListTag is desired.
 	 * @param key name of ListTag
-	 * @param values values to set
+	 * @param values values to set (may be one or more floats, or a float[])
 	 * @return new ListTag, or null if values was null
 	 */
-	public Tag<?> putFloatArrayAsTagList(String key, float[] values) {
+	public Tag<?> putFloatArrayAsTagList(String key, float... values) {
 		if (values == null) {
 			remove(key);
 			return null;
@@ -350,10 +365,10 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	 * Convenience function to set a ListTag&lt;DoubleTag&gt; from an array. If values is null then
 	 * the specified key is REMOVED. Provide an empty array to indicate that an empty ListTag is desired.
 	 * @param key name of ListTag
-	 * @param values values to set
+	 * @param values values to set (may be one or more doubles, or a double[])
 	 * @return new ListTag, or null if values was null
 	 */
-	public Tag<?> putDoubleArrayAsTagList(String key, double[] values) {
+	public Tag<?> putDoubleArrayAsTagList(String key, double... values) {
 		if (values == null) {
 			remove(key);
 			return null;
@@ -361,6 +376,27 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		ListTag<DoubleTag> listTag = new ListTag<>(DoubleTag.class, values.length);
 		for (double v : values) {
 			listTag.addDouble(v);
+		}
+		return put(key, listTag);
+	}
+
+	/**
+	 * Convenience function to set a {@code ListTag<StringTag>} from a {@code List<String>}. If values is null then
+	 * the specified key is REMOVED. Provide an empty List to indicate that an empty ListTag is desired.
+	 * @see #getStringTagListValues(String)
+	 * @see Arrays#asList(Object[])
+	 * @param key name of ListTag
+	 * @param values values to set
+	 * @return new ListTag, or null if values was null
+	 */
+	public Tag<?> putStringsAsTagList(String key, List<String> values) {
+		if (values == null) {
+			remove(key);
+			return null;
+		}
+		ListTag<StringTag> listTag = new ListTag<>(StringTag.class, values.size());
+		for (String v : values) {
+			listTag.addString(v);
 		}
 		return put(key, listTag);
 	}

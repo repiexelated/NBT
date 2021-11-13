@@ -3,9 +3,7 @@ package net.querz.nbt.tag;
 import net.querz.io.MaxDepthReachedException;
 import net.querz.NBTTestCase;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -394,11 +392,23 @@ public class CompoundTagTest extends NBTTestCase {
 		assertTrue(tag.containsKey("name"));
 		assertArrayEquals(values, tag.getFloatTagListAsArray("name"), 1e-5f);
 
-		tag.putFloatArrayAsTagList("name", new float[0]);
+		// put singleton
+		tag = new CompoundTag();
+		tag.putFloatArrayAsTagList("name", 42.7f);
+		assertTrue(tag.containsKey("name"));
+		assertArrayEquals(new float[]{42.7f}, tag.getFloatTagListAsArray("name"), 1e-5f);
+
+		// put empty should create empty
+		values = new float[0];
+		tag = new CompoundTag();
+		tag.putFloatArrayAsTagList("name", values);
 		assertTrue(tag.containsKey("name"));
 		assertEquals(0, tag.getFloatTagListAsArray("name").length);
 
-		tag.putFloatArrayAsTagList("name", null);  // should remove tag
+		// put null should remove tag
+		values = null;
+		tag = new CompoundTag();
+		tag.putFloatArrayAsTagList("name", values);
 		assertFalse(tag.containsKey("name"));
 	}
 
@@ -409,11 +419,45 @@ public class CompoundTagTest extends NBTTestCase {
 		assertTrue(tag.containsKey("name"));
 		assertArrayEquals(values, tag.getDoubleTagListAsArray("name"), 1e-5f);
 
-		tag.putDoubleArrayAsTagList("name", new double[0]);
+		// put singleton
+		tag = new CompoundTag();
+		tag.putDoubleArrayAsTagList("name", 42.7);
+		assertTrue(tag.containsKey("name"));
+		assertArrayEquals(new double[]{42.7}, tag.getDoubleTagListAsArray("name"), 1e-5f);
+
+		// put empty should create empty
+		values = new double[0];
+		tag = new CompoundTag();
+		tag.putDoubleArrayAsTagList("name", values);
 		assertTrue(tag.containsKey("name"));
 		assertEquals(0, tag.getDoubleTagListAsArray("name").length);
 
-		tag.putDoubleArrayAsTagList("name", null);  // should remove tag
+		// put null should remove tag
+		values = null;
+		tag = new CompoundTag();
+		tag.putDoubleArrayAsTagList("name", values);
+		assertFalse(tag.containsKey("name"));
+	}
+
+	public void testPutGetStringsAsTagList() {
+		CompoundTag tag = new CompoundTag();
+		List<String> values = Arrays.asList("abba", "dabba");
+
+		tag.putStringsAsTagList("name", values);
+		assertTrue(tag.containsKey("name"));
+		assertEquals(values, tag.getStringTagListValues("name"));
+
+		// put empty should create empty
+		values = new ArrayList<>();
+		tag = new CompoundTag();
+		tag.putStringsAsTagList("name", values);
+		assertTrue(tag.containsKey("name"));
+		assertEquals(0, tag.getStringTagListValues("name").size());
+
+		// put null should remove tag
+		values = null;
+		tag = new CompoundTag();
+		tag.putStringsAsTagList("name", values);
 		assertFalse(tag.containsKey("name"));
 	}
 }
