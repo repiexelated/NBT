@@ -386,4 +386,34 @@ public class CompoundTagTest extends NBTTestCase {
 		assertEquals(1.234567981019, ct.getDouble("name", 1.234567981019), 0.5e-12f);
 		assertEquals("hello world", ct.getString("name", "hello world"));
 	}
+
+	public void testPutGetFloatArrayAsTagList() {
+		CompoundTag tag = new CompoundTag();
+		float[] values = new float[] {-1.1f, 0f, 1.1f};
+		tag.putFloatArrayAsTagList("name", values);
+		assertTrue(tag.containsKey("name"));
+		assertArrayEquals(values, tag.getFloatTagListAsArray("name"), 1e-5f);
+
+		tag.putFloatArrayAsTagList("name", new float[0]);
+		assertTrue(tag.containsKey("name"));
+		assertEquals(0, tag.getFloatTagListAsArray("name").length);
+
+		tag.putFloatArrayAsTagList("name", null);  // should remove tag
+		assertFalse(tag.containsKey("name"));
+	}
+
+	public void testPutGetDoubleArrayAsTagList() {
+		CompoundTag tag = new CompoundTag();
+		double[] values = new double[] {-1.1f, 0f, 1.1f};
+		tag.putDoubleArrayAsTagList("name", values);
+		assertTrue(tag.containsKey("name"));
+		assertArrayEquals(values, tag.getDoubleTagListAsArray("name"), 1e-5f);
+
+		tag.putDoubleArrayAsTagList("name", new double[0]);
+		assertTrue(tag.containsKey("name"));
+		assertEquals(0, tag.getDoubleTagListAsArray("name").length);
+
+		tag.putDoubleArrayAsTagList("name", null);  // should remove tag
+		assertFalse(tag.containsKey("name"));
+	}
 }

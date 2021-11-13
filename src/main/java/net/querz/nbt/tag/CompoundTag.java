@@ -1,11 +1,6 @@
 package net.querz.nbt.tag;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 import net.querz.io.MaxDepthIO;
@@ -245,6 +240,38 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return t == null ? LongArrayTag.ZERO_VALUE : t.getValue();
 	}
 
+	/**
+	 * Convenience function to get a ListTag&lt;FloatTag&gt; as an array of floats.
+	 * @param key name of the ListTag
+	 * @return null if key does not exist; empty array if key exists but list was empty; array of values otherwise
+	 */
+	public float[] getFloatTagListAsArray(String key) {
+		ListTag<FloatTag> t = getListTagAutoCast(key);
+		if (t == null) return null;
+		List<FloatTag> floatTagList = t.getValue();
+		float[] floats = new float[floatTagList.size()];
+		for (int i = 0; i < floats.length; i++) {
+			floats[i] = floatTagList.get(i).asFloat();
+		}
+		return floats;
+	}
+
+	/**
+	 * Convenience function to get a ListTag&lt;DoubleTag&gt; as an array of doubles.
+	 * @param key name of the ListTag
+	 * @return null if key does not exist; empty array if key exists but list was empty; array of values otherwise
+	 */
+	public double[] getDoubleTagListAsArray(String key) {
+		ListTag<DoubleTag> t = getListTagAutoCast(key);
+		if (t == null) return null;
+		List<DoubleTag> doubleTagList = t.getValue();
+		double[] doubles = new double[doubleTagList.size()];
+		for (int i = 0; i < doubles.length; i++) {
+			doubles[i] = doubleTagList.get(i).asDouble();
+		}
+		return doubles;
+	}
+
 	public Tag<?> put(String key, Tag<?> tag) {
 		return getValue().put(Objects.requireNonNull(key), Objects.requireNonNull(tag));
 	}
@@ -298,6 +325,44 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 
 	public Tag<?> putLongArray(String key, long[] value) {
 		return put(key, new LongArrayTag(value));
+	}
+
+	/**
+	 * Convenience function to set a ListTag&lt;FloatTag&gt; from an array. If values is null then
+	 * the specified key is REMOVED. Provide an empty array to indicate that an empty ListTag is desired.
+	 * @param key name of ListTag
+	 * @param values values to set
+	 * @return new ListTag, or null if values was null
+	 */
+	public Tag<?> putFloatArrayAsTagList(String key, float[] values) {
+		if (values == null) {
+			remove(key);
+			return null;
+		}
+		ListTag<FloatTag> listTag = new ListTag<>(FloatTag.class, values.length);
+		for (float v : values) {
+			listTag.addFloat(v);
+		}
+		return put(key, listTag);
+	}
+
+	/**
+	 * Convenience function to set a ListTag&lt;DoubleTag&gt; from an array. If values is null then
+	 * the specified key is REMOVED. Provide an empty array to indicate that an empty ListTag is desired.
+	 * @param key name of ListTag
+	 * @param values values to set
+	 * @return new ListTag, or null if values was null
+	 */
+	public Tag<?> putDoubleArrayAsTagList(String key, double[] values) {
+		if (values == null) {
+			remove(key);
+			return null;
+		}
+		ListTag<DoubleTag> listTag = new ListTag<>(DoubleTag.class, values.length);
+		for (double v : values) {
+			listTag.addDouble(v);
+		}
+		return put(key, listTag);
 	}
 
 	@Override
