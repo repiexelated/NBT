@@ -21,6 +21,16 @@ public class PoiRecordTest extends TestCase {
         assertEquals(1777, record.getZ());
     }
 
+    public void testCopyConstructor() {
+        CompoundTag tag = makeTag(3, "minecraft:test", 1_234_679, 315, -8_546_776);
+        PoiRecord recordA = new PoiRecord(tag);
+        PoiRecord recordB = new PoiRecord(recordA);
+        assertEquals(recordA, recordB);
+        assertEquals(recordA.getFreeTickets(), recordB.getFreeTickets());
+        assertEquals(recordA.getHandle(), recordB.getHandle());
+        assertNotSame(recordA.getHandle(), recordB.getHandle());
+    }
+
     public void testUpdateHandle() {
         CompoundTag tag = makeTag(0, "minecraft:test", 1_234_679, 315, -8_546_776);
         PoiRecord record = new PoiRecord(tag);
