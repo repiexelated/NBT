@@ -93,12 +93,20 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		return defaultDataVersion;
 	}
 
+	public DataVersion getDefaultChunkDataVersionEnum() {
+		return DataVersion.bestFor(defaultDataVersion);
+	}
+
 	/**
 	 * Set chunk version which will be used when automatically creating new chunks
 	 * and for chunks created by {@link #createChunk()}.
 	 */
 	public void setDefaultChunkDataVersion(int defaultDataVersion) {
 		this.defaultDataVersion = defaultDataVersion;
+	}
+
+	public void setDefaultChunkDataVersion(DataVersion defaultDataVersion) {
+		this.defaultDataVersion = defaultDataVersion.id();
 	}
 
 	/**
