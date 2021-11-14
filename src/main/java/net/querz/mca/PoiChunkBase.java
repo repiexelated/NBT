@@ -60,6 +60,22 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
         }
     }
 
+    // TODO: support chunk moves
+    @Override
+    public boolean moveChunkImplemented() {
+        return false;
+    }
+
+    @Override
+    public boolean moveChunkHasFullVersionSupport() {
+        return false;
+    }
+
+    @Override
+    public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Called from {@link #initReferences(long)}. Exists to provide a hook for custom implementations to override to
      * add support for modded poi's, etc. without having to implement {@link #initReferences(long)} logic fully.

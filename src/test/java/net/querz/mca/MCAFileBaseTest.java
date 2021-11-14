@@ -7,6 +7,7 @@ import java.util.Objects;
 // TODO: implement abstract test pattern for MCAFileBase & refactor MCAFileTest like mad
 public class MCAFileBaseTest extends MCATestCase {
 
+    // TODO: scan resources folder and auto-run this test for each mca file and type so we don't need to update tests every time we add a new test region file.
     /**
      * Reads an mca file, writes it, reads it back in, verifies that the NBT of the first non-empty chunk is identical
      * between the reads and that the data versions are correct and that MCAUtil.readAuto returned the correct type.
@@ -29,6 +30,9 @@ public class MCAFileBaseTest extends MCATestCase {
         assertEquals(expectedDataVersion.id(), mcaB.getDefaultChunkDataVersion());
         assertEquals(expectedDataVersion, chunkB.getDataVersionEnum());
 
+        assertEquals(chunkA.getLastMCAUpdate(), chunkB.getLastMCAUpdate());
         assertEquals(chunkA.data, chunkB.data);
     }
+
+    public void testNullTest() { }
 }

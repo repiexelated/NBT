@@ -1,8 +1,5 @@
 package net.querz.mca;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
-
 public class EntitiesMCAFile extends MCAFileBase<EntitiesChunk> {
     public EntitiesMCAFile(int regionX, int regionZ) {
         super(regionX, regionZ);

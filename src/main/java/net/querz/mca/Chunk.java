@@ -29,6 +29,21 @@ public class Chunk extends RegionChunkBase<Section> {
 		super(data, loadFlags);
 	}
 
+	@Override
+	public boolean moveChunkImplemented() {
+		return false;
+	}
+
+	@Override
+	public boolean moveChunkHasFullVersionSupport() {
+		return false;
+	}
+
+	@Override
+	public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
+		throw new UnsupportedOperationException();
+	}
+
 
 	@Override
 	protected Section createSection(CompoundTag section, int dataVersion, long loadFlags) {

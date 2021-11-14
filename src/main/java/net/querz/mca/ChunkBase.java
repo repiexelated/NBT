@@ -29,7 +29,12 @@ import static net.querz.mca.LoadFlags.RAW;
  * </p>
  */
 public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
+	public static final int NO_CHUNK_COORD_SENTINEL = Integer.MIN_VALUE;
 	protected int dataVersion;
+	// TODO: refactor region chunks to support these fields
+	protected int chunkX = NO_CHUNK_COORD_SENTINEL;
+	protected int chunkZ = NO_CHUNK_COORD_SENTINEL;
+
 	protected boolean partial;
 	protected boolean raw;
 	protected int lastMCAUpdate;
@@ -45,7 +50,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	 * class def, within this method instead. Implementers should never need to call this method themselves
 	 * as ChunkBase will always call it, even from the default constructor.</p>
 	 */
-	protected void initMembers() { };
+	protected void initMembers() { }
 
 	protected ChunkBase() {
 		dataVersion = DataVersion.latest().id();
@@ -113,6 +118,57 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	public void setDataVersion(int dataVersion) {
 		this.dataVersion = Math.max(0, dataVersion);
 	}
+
+	/**
+	 * Gets this chunk's chunk-x coordinate. Returns {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
+	 */
+	public int getChunkX() {
+		return chunkX;
+	}
+
+	/**
+	 * Gets this chunk's chunk-z coordinate. Returns {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
+	 */
+	public int getChunkZ() {
+		return chunkZ;
+	}
+
+
+	/**
+	 * Indicates if this chunk implementation supports calling {@link #moveChunk(int, int, boolean)}.
+	 * @return false if {@link #moveChunk(int, int, boolean)} is not implemented (calling it will always throw).
+	 */
+	public abstract boolean moveChunkImplemented();
+
+	/**
+	 * Indicates if the current chunk can be be moved with confidence or not. If this function returns false
+	 * and {@link #moveChunkImplemented()} returns true then you must use {@code moveChunk(x, z, true)} to attempt
+	 * a best effort move.
+	 */
+	public abstract boolean moveChunkHasFullVersionSupport();
+
+	/**
+	 * Attempts to update all tags that use absolute positions within this chunk.
+	 * If {@code force = true} the result of calling this function cannot be guaranteed to be complete and
+	 * may still throw {@link UnsupportedOperationException}.
+	 * @param newChunkX new chunk-x
+	 * @param newChunkZ new chunk-z
+	 * @param force true to ignore the guidance of {@link #moveChunkHasFullVersionSupport()} and make a best effort
+	 *              anyway.
+	 * @return true if any data was changed as a result of this call
+	 * @throws UnsupportedOperationException thrown if this chunk implementation doest support moves, or moves
+	 * for this chunks version (possibly even if force = true).
+	 */
+	public abstract boolean moveChunk(int newChunkX, int newChunkZ, boolean force);
+
+	/**
+	 * Calls {@code moveChunk(newChunkX, newChunkZ, false);}
+	 * @see #moveChunk(int, int, boolean)
+	 */
+	public boolean moveChunk(int newChunkX, int newChunkZ) {
+		return moveChunk(newChunkX, newChunkZ, false);
+	}
+
 
 	/**
 	 * Serializes this chunk to a <code>RandomAccessFile</code>.
