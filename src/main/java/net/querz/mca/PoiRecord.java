@@ -26,7 +26,7 @@ import java.util.Objects;
  * POI mca has evolved to include locations of other block types to optimize game performance - such as improving
  * nether portal lag by storing portal block locations in the poi files so the game doesn't need to scan every block
  * in every chunk until it finds a destination portal.
- * </p><p>At time of writing, 1.17.1, this class exposes all poi record fields. For now, there is no support for
+ * </p><p>At time of writing, 1.14 to 1.17.1, this class exposes all poi record fields. For now, there is no support for
  * reading or storing extra fields which this class does not wrap.</p>
  * <p>POI types As of 1.17
  * <ul>
@@ -135,7 +135,7 @@ public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
 
     private String validateType(String type) {
         if (type == null || type.isEmpty()) {
-            throw new IllegalArgumentException("poi type must not be null");
+            throw new IllegalArgumentException("poi type must not be null or empty");
         }
         return type;
     }
