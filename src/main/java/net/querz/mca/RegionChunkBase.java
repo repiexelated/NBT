@@ -55,7 +55,15 @@ public abstract class RegionChunkBase<T extends RegionSectionBase> extends Secti
 		inhabitedTime = level.getLong("InhabitedTime");
 		lastUpdate = level.getLong("LastUpdate");
 		if ((loadFlags & BIOMES) != 0) {
-			biomes = level.getIntArray("Biomes");
+			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
+				biomes = level.getIntArray("Biomes");
+			} else {
+				byte[] byteBiomes = level.getByteArray("Biomes");
+				biomes = new int[byteBiomes.length];
+				for (int i = 0; i < biomes.length; i++) {
+					biomes[i] = byteBiomes[i];
+				}
+			}
 			if (biomes.length == 0) biomes = null;
 		}
 		if ((loadFlags & HEIGHTMAPS) != 0) {
@@ -527,7 +535,16 @@ public abstract class RegionChunkBase<T extends RegionSectionBase> extends Secti
 				throw new IllegalStateException(
 						String.format("Biomes array must be %d bytes for version %d, array size is %d",
 								requiredSize, dataVersion, biomes.length));
-			level.putIntArray("Biomes", biomes);
+
+			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
+				level.putIntArray("Biomes", biomes);
+			} else {
+				byte[] byteBiomes = new byte[biomes.length];
+				for (int i = 0; i < biomes.length; i++) {
+					byteBiomes[i] = (byte) biomes[i];
+				}
+				level.putByteArray("Biomes", byteBiomes);
+			}
 		}
 		level.putIfNotNull("Heightmaps", heightMaps);
 		level.putIfNotNull("CarvingMasks", carvingMasks);
