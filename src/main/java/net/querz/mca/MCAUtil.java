@@ -298,6 +298,26 @@ public final class MCAUtil {
 	public static int chunkToBlock(int chunk) {
 		return chunk << 4;
 	}
+
+	/**
+	 * Turns an absolute block coordinate into a chunk relative one [0..15]
+	 * @param block The absolute block coordinate.
+	 * @return Block coordinate relative to its chunk.
+	 */
+	public static int blockAbsoluteToChunkRelative(int block) {
+		return block & 0xF;
+	}
+
+	/**
+	 * Turns an absolute block coordinate into a chunk relative one [0..16)
+	 * @param block The absolute block coordinate.
+	 * @return Block coordinate relative to its chunk.
+	 */
+	public static double blockAbsoluteToChunkRelative(double block) {
+		double bin = block % 16;
+		return bin >= 0 ? bin : 16 + bin;
+	}
+
 	//</editor-fold>
 
 	/**

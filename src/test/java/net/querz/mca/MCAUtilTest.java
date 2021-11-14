@@ -44,6 +44,24 @@ public class MCAUtilTest extends MCATestCase {
 		assertEquals(-32, MCAUtil.chunkToBlock(-2));
 	}
 
+	public void testBlockAbsoluteToChunkRelative_int() {
+		assertEquals(0, MCAUtil.blockAbsoluteToChunkRelative(0));
+		assertEquals(0, MCAUtil.blockAbsoluteToChunkRelative(16 * 81));
+		assertEquals(15, MCAUtil.blockAbsoluteToChunkRelative(16 * 81 - 1));
+		assertEquals(0, MCAUtil.blockAbsoluteToChunkRelative(-16 * 81));
+		assertEquals(15, MCAUtil.blockAbsoluteToChunkRelative(-16 * 81 - 1));
+		assertEquals(1, MCAUtil.blockAbsoluteToChunkRelative(-16 * 81 + 1));
+	}
+
+	public void testBlockAbsoluteToChunkRelative_double() {
+		assertEquals(0.0, MCAUtil.blockAbsoluteToChunkRelative(0.0), 1e-10);
+		assertEquals(16 - 1e-6, MCAUtil.blockAbsoluteToChunkRelative(-1e-6), 1e-10);
+		assertEquals(3.4567, MCAUtil.blockAbsoluteToChunkRelative(16 * 81 + 3.4567), 1e-10);
+		assertEquals(16 - 3.4567, MCAUtil.blockAbsoluteToChunkRelative(16 * 81 - 3.4567), 1e-10);
+		assertEquals(16 - 3.4567, MCAUtil.blockAbsoluteToChunkRelative(-16 * 81 - 3.4567), 1e-10);
+		assertEquals(3.4567, MCAUtil.blockAbsoluteToChunkRelative(-16 * 81 + 3.4567), 1e-10);
+	}
+
 	public void testCreateNameFromLocation() {
 		assertEquals("r.0.0.mca", MCAUtil.createNameFromBlockLocation(0, 0));
 		assertEquals("r.0.0.mca", MCAUtil.createNameFromBlockLocation(511, 511));
