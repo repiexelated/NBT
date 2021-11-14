@@ -113,7 +113,6 @@ public abstract class NBTTestCase extends TestCase {
 		return null;
 	}
 
-
 	protected void assertThrowsIllegalArgumentException(ExceptionRunnable<IllegalArgumentException> r) {
 		assertThrowsException(r, IllegalArgumentException.class);
 	}
@@ -130,7 +129,7 @@ public abstract class NBTTestCase extends TestCase {
 			if (printStackTrace) {
 				ex.printStackTrace();
 			}
-			TestCase.assertEquals(ex.getClass(), e);
+			TestCase.assertEquals(e, ex.getClass());
 		}
 	}
 
