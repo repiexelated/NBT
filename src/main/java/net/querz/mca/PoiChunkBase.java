@@ -9,6 +9,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import static net.querz.mca.LoadFlags.*;
 
+/**
+ * Provides all the basic functionality necessary for this type of chunk with abstraction hooks
+ * making it easy to extend this class and modify the factory behavior of {@link MCAUtil} to create
+ * instances of your custom class.
+ */
 public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implements Collection<T> {
     // private to preserve the ability to change how records are stored to optimize lookups later
     private List<T> records;
