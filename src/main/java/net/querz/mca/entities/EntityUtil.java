@@ -61,12 +61,33 @@ public class EntityUtil {
     }
 
     /**
+     * Removes all UUID value tags from the given tag (for all possible tag names across all version).
+     * @param tag Tag to modify.
+     * @return Given tag.
+     */
+    public static CompoundTag removeUuid(CompoundTag tag) {
+        tag.remove("UUID");
+        tag.remove("UUIDMost");
+        tag.remove("UUIDLeast");
+        return tag;
+    }
+
+    /**
      * Normalizes the given yaw to be in the range [0..360) by removing excessive rotations.
      */
     public static float normalizeYaw(float yaw) {
         yaw = yaw % 360;
         if (yaw < 0) yaw += 360;
         return yaw;
+    }
+
+    /**
+     * Normalizes the given yaw to be in the range [0..360) by removing excessive rotations.
+     */
+    public static float normalizeYaw(double yaw) {
+        yaw = yaw % 360;
+        if (yaw < 0) yaw += 360;
+        return (float) yaw;
     }
 
     /**
