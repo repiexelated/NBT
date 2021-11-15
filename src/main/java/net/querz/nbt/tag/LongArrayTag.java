@@ -1,6 +1,7 @@
 package net.querz.nbt.tag;
 
 import java.util.Arrays;
+import java.util.stream.LongStream;
 
 public class LongArrayTag extends ArrayTag<long[]> implements Comparable<LongArrayTag> {
 
@@ -38,5 +39,9 @@ public class LongArrayTag extends ArrayTag<long[]> implements Comparable<LongArr
 	@Override
 	public LongArrayTag clone() {
 		return new LongArrayTag(Arrays.copyOf(getValue(), length()));
+	}
+
+	public LongStream stream() {
+		return Arrays.stream(getValue());
 	}
 }

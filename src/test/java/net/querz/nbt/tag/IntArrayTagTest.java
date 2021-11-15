@@ -61,4 +61,10 @@ public class IntArrayTagTest extends NBTTestCase {
 		assertTrue(0 > t4.compareTo(t));
 		assertThrowsRuntimeException(() -> t.compareTo(null), NullPointerException.class);
 	}
+
+	public void testStream() {
+		IntArrayTag tag = new IntArrayTag(new int[] {12, 7, 42, -69, 148, -187876});
+		assertEquals(-187876, tag.stream().min().getAsInt());
+		assertEquals(148, tag.stream().max().getAsInt());
+	}
 }

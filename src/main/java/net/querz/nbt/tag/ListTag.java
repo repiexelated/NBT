@@ -1,12 +1,8 @@
 package net.querz.nbt.tag;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import net.querz.io.MaxDepthIO;
 
@@ -127,8 +123,17 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	}
 
 	@Override
+	public Spliterator<T> spliterator() {
+		return getValue().spliterator();
+	}
+
+	@Override
 	public void forEach(Consumer<? super T> action) {
 		getValue().forEach(action);
+	}
+
+	public Stream<T> stream() {
+		return getValue().stream();
 	}
 
 	public T set(int index, T t) {

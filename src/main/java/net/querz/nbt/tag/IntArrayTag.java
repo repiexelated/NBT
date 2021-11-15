@@ -1,6 +1,7 @@
 package net.querz.nbt.tag;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 public class IntArrayTag extends ArrayTag<int[]> implements Comparable<IntArrayTag> {
 
@@ -38,5 +39,9 @@ public class IntArrayTag extends ArrayTag<int[]> implements Comparable<IntArrayT
 	@Override
 	public IntArrayTag clone() {
 		return new IntArrayTag(Arrays.copyOf(getValue(), length()));
+	}
+
+	public IntStream stream() {
+		return Arrays.stream(getValue());
 	}
 }

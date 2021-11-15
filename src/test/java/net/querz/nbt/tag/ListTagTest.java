@@ -6,6 +6,8 @@ import net.querz.NBTTestCase;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.stream.Collectors;
+
 import static org.junit.Assert.assertNotEquals;
 
 public class ListTagTest extends NBTTestCase {
@@ -348,5 +350,21 @@ public class ListTagTest extends NBTTestCase {
 		la.addLongArray(new long[] {Long.MIN_VALUE, 0, Long.MAX_VALUE});
 		assertEquals(1, la.size());
 		assertTrue(Arrays.equals(new long[] {Long.MIN_VALUE, 0, Long.MAX_VALUE}, la.get(0).getValue()));
+	}
+
+	public void testStream() {
+		ListTag<StringTag> tag = new ListTag<>(StringTag.class);
+		tag.addString("A");
+		tag.addString("quick");
+		tag.addString("brown");
+		tag.addString("fox");
+		tag.addString("jumps");
+		tag.addString("over");
+		tag.addString("the");
+		tag.addString("lazy");
+		tag.addString("dog");
+
+		assertEquals("A quick brown fox jumps over the lazy dog",
+				tag.stream().map(StringTag::getValue).collect(Collectors.joining(" ")));
 	}
 }

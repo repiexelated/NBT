@@ -3,6 +3,7 @@ package net.querz.nbt.tag;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import net.querz.io.MaxDepthIO;
 
@@ -67,6 +68,15 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	@Override
 	public Iterator<Map.Entry<String, Tag<?>>> iterator() {
 		return entrySet().iterator();
+	}
+
+	@Override
+	public Spliterator<Map.Entry<String, Tag<?>>> spliterator() {
+		return entrySet().spliterator();
+	}
+
+	public Stream<Map.Entry<String, Tag<?>>> stream() {
+		return getValue().entrySet().stream();
 	}
 
 	public void forEach(BiConsumer<String, Tag<?>> action) {

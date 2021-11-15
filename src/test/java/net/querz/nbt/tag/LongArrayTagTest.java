@@ -61,4 +61,10 @@ public class LongArrayTagTest extends NBTTestCase {
 		assertTrue(0 > t4.compareTo(t));
 		assertThrowsRuntimeException(() -> t.compareTo(null), NullPointerException.class);
 	}
+
+	public void testStream() {
+		LongArrayTag tag = new LongArrayTag(new long[] {12, 7, 42, -69, 148, -1878769999999L});
+		assertEquals(-1878769999999L, tag.stream().min().getAsLong());
+		assertEquals(148, tag.stream().max().getAsLong());
+	}
 }

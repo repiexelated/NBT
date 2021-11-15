@@ -4,6 +4,7 @@ import net.querz.io.MaxDepthReachedException;
 import net.querz.NBTTestCase;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -361,6 +362,13 @@ public class CompoundTagTest extends NBTTestCase {
 			assertNotNull(v);
 		});
 		assertEquals(3, ct.size());
+	}
+
+	public void testStream() {
+		CompoundTag ct = createCompoundTag();
+		List<String> keys = ct.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+		assertEquals(ct.size(), keys.size());
+		assertTrue(keys.containsAll(Arrays.asList("b", "str", "list")));
 	}
 
 	public void testPutIfNotNull() {
