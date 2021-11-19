@@ -275,4 +275,14 @@ public enum DataVersion {
             return versionB < id && id <= versionA;
         }
     }
+
+    /**
+     * Throws {@link UnsupportedVersionChangeException} if {@link #isCrossedByTransition(int, int)}
+     * were to return true for the given arguments.
+     */
+    public void throwUnsupportedVersionChangeIfCrossed(int versionA, int versionB) {
+        if (isCrossedByTransition(versionA, versionB)) {
+            throw new UnsupportedVersionChangeException(this, versionA, versionB);
+        }
+    }
 }

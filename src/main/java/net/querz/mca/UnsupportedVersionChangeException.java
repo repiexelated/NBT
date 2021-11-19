@@ -9,6 +9,11 @@ public class UnsupportedVersionChangeException extends IllegalArgumentException 
         super();
     }
 
+    public UnsupportedVersionChangeException(DataVersion criticalCrossing, int fromVersion, int toVersion) {
+        super(String.format("Migrating data version from %d to %d not supported because it crosses %s",
+                fromVersion, toVersion, criticalCrossing));
+    }
+
     public UnsupportedVersionChangeException(String message) {
         super(message);
     }

@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import static net.querz.mca.DataVersion.*;
 
-public class DataVersionTest extends TestCase {
+public class DataVersionTest extends MCATestCase {
     private static final Pattern ALLOWED_ENUM_DESCRIPTION_PATTERN = Pattern.compile("^(?:FINAL|\\d{2}w\\d{2}[a-z]|(?:CT|XS|PRE|RC)\\d+|)");
     public void testEnumNamesMatchVersionInformation() {
         for (DataVersion dv : values()) {
@@ -75,5 +75,11 @@ public class DataVersionTest extends TestCase {
 
         assertTrue(JAVA_1_15_19W36A.isCrossedByTransition(JAVA_1_14_4.id(), JAVA_1_16_0.id()));
         assertTrue(JAVA_1_15_19W36A.isCrossedByTransition(JAVA_1_16_0.id(), JAVA_1_14_4.id()));
+    }
+
+    public void testThrowUnsupportedVersionChangeIfCrossed() {
+        assertThrowsException(() -> JAVA_1_15_19W36A.throwUnsupportedVersionChangeIfCrossed(JAVA_1_14_4.id(), JAVA_1_16_0.id()),
+                UnsupportedVersionChangeException.class);
+        assertThrowsNoException(() -> JAVA_1_15_19W36A.throwUnsupportedVersionChangeIfCrossed(JAVA_1_15_19W36A.id(), JAVA_1_15_19W36A.id()));
     }
 }
