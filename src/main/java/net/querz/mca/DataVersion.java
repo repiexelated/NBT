@@ -37,21 +37,23 @@ public enum DataVersion {
     JAVA_1_13_1(1628, 13, 1),
     JAVA_1_13_2(1631, 13, 2),
 
-    // poi/r.X.Z.mca files introduced
+    /** /poi/r.X.Z.mca files introduced */
     JAVA_1_14_0(1952, 14, 0),
     JAVA_1_14_1(1957, 14, 1),
     JAVA_1_14_2(1963, 14, 2),
     JAVA_1_14_3(1968, 14, 3),
     JAVA_1_14_4(1976, 14, 4),
 
-    // 3D Biomes added. Biomes array in the  Level tag for each chunk changed
-    // to contain 1024 integers instead of 256 see {@link Chunk}
+    /**
+     * 3D Biomes added. Biomes array in the  Level tag for each chunk changed
+     * to contain 1024 integers instead of 256 see {@link Chunk}
+     */
     JAVA_1_15_19W36A(2203, 15, -1, "19w36a"),
     JAVA_1_15_0(2225, 15, 0),
     JAVA_1_15_1(2227, 15, 1),
     JAVA_1_15_2(2230, 15, 2),
 
-    // block pallet packing changed in this version - see {@link Section}
+    /** Block pallet packing changed in this version - see {@link Section} */
     JAVA_1_16_20W17A(2529, 16, -1, "20w17a"),
     JAVA_1_16_0(2566, 16, 0),
     JAVA_1_16_1(2567, 16, 1),
@@ -60,34 +62,47 @@ public enum DataVersion {
     JAVA_1_16_4(2584, 16, 4),
     JAVA_1_16_5(2586, 16, 5),
 
-    // entities/r.X.Z.mca files introduced
-    // entities no longer inside region/r.X.Z.mca - except in un-migrated chunks of course
+    /**
+     * /entities/r.X.Z.mca files introduced.
+     * Entities no longer inside region/r.X.Z.mca - except in un-migrated chunks of course.
+     * <p>https://www.minecraft.net/en-us/article/minecraft-snapshot-20w45a</p>
+     */
+    JAVA_1_17_20W45A(2681, 17, -1, "20w45a"),
+
     JAVA_1_17_0(2724, 17, 0),
     JAVA_1_17_1(2730, 17, 1),
 
     // fist experimental 1.18 build
     JAVA_1_18_XS1(2825, 18, -1, "XS1"),
 
-    // https://www.minecraft.net/en-us/article/minecraft-snapshot-21w39a
-    // Level.Sections[].BlockStates & Level.Sections[].Palette have moved to a container structure in Level.Sections[].block_states
-    // Level.Biomes are now paletted and live in a similar container structure in Level.Sections[].biomes
-    // Level.CarvingMasks[] is now long[] instead of byte[]
+    /**
+     * https://www.minecraft.net/en-us/article/minecraft-snapshot-21w39a
+     * <ul>
+     * <li>Level.Sections[].BlockStates & Level.Sections[].Palette have moved to a container structure in Level.Sections[].block_states
+     * <li>Level.Biomes are now paletted and live in a similar container structure in Level.Sections[].biomes
+     * <li>Level.CarvingMasks[] is now long[] instead of byte[]
+     * </ul>
+     */
     JAVA_1_18_21W39A(2836, 18, -1, "21w39a"),
 
-    // https://www.minecraft.net/en-us/article/minecraft-snapshot-21w43a
-    // Removed chunk’s Level and moved everything it contained up
-    // Chunk’s Level.Entities has moved to entities
-    // Chunk’s Level.TileEntities has moved to block_entities
-    // Chunk’s Level.TileTicks and Level.ToBeTicked have moved to block_ticks
-    // Chunk’s Level.LiquidTicks and Level.LiquidsToBeTicked have moved to fluid_ticks
-    // Chunk’s Level.Sections has moved to sections
-    // Chunk’s Level.Structures has moved to structures
-    // Chunk’s Level.Structures.Starts has moved to structures.starts
-    // Chunk’s Level.Sections[].BlockStates and Level.Sections[].Palette have moved to a container structure in sections[].block_states
-    // Chunk’s Level.Biomes are now paletted and live in a similar container structure in sections[].biomes
-    // Added yPos the minimum section y position in the chunk
-    // Added below_zero_retrogen containing data to support below zero generation
-    // Added blending_data containing data to support blending new world generation with existing chunks
+    /**
+     * https://www.minecraft.net/en-us/article/minecraft-snapshot-21w43a
+     * <ul>
+     * <li>Removed chunk’s Level and moved everything it contained up
+     * <li>Chunk’s Level.Entities has moved to entities -- WTF, when are entities still put in region chunks?
+     * <li>Chunk’s Level.TileEntities has moved to block_entities
+     * <li>Chunk’s Level.TileTicks and Level.ToBeTicked have moved to block_ticks
+     * <li>Chunk’s Level.LiquidTicks and Level.LiquidsToBeTicked have moved to fluid_ticks
+     * <li>Chunk’s Level.Sections has moved to sections
+     * <li>Chunk’s Level.Structures has moved to structures
+     * <li>Chunk’s Level.Structures.Starts has moved to structures.starts
+     * <li>Chunk’s Level.Sections[].BlockStates and Level.Sections[].Palette have moved to a container structure in sections[].block_states
+     * <li>Chunk’s Level.Biomes are now paletted and live in a similar container structure in sections[].biomes
+     * <li>Added yPos the minimum section y position in the chunk
+     * <li>Added below_zero_retrogen containing data to support below zero generation
+     * <li>Added blending_data containing data to support blending new world generation with existing chunks
+     * </ul>
+     */
     JAVA_1_18_21W43A(2844, 18, -1, "21w43a"),
     JAVA_1_18_PRE1(2847, 18, -1, "PRE1");
 
@@ -145,21 +160,6 @@ public enum DataVersion {
             this.str = name();
         }
     }
-
-//    private void checkEnumName() {
-//        if (id != 0) {
-//            StringBuilder sb = new StringBuilder("JAVA_1_");
-//            sb.append(minor).append('_');
-//            if (isFullRelease) {
-//                sb.append(patch);
-//            } else {
-//                sb.append(buildDescription.toUpperCase());
-//            }
-//            if (!name().equals(sb.toString())) {
-//                throw new IllegalArgumentException(String.format("Expected enum name to be '%s' but was '%s'", sb, name()));
-//            }
-//        }
-//    }
 
     public int id() {
         return id;
@@ -245,5 +245,34 @@ public enum DataVersion {
     @Override
     public String toString() {
         return str;
+    }
+
+    /**
+     * Indicates if this version would be crossed by the transition between versionA and versionB.
+     * This is useful for determining if a data upgrade or downgrade would be required to support
+     * changing from versionA to versionB. The order of A and B don't matter.
+     *
+     * <p>When using this function, call it on the data version in which a change exists. For
+     * example if you need to know if changing from A to B would require changing to/from 3D
+     * biomes then use {@code JAVA_1_15_19W36A.isCrossedByTransition(A, B)} as
+     * {@link #JAVA_1_15_19W36A} is the version which added 3D biomes.</p>
+     *
+     * <p>In short, if this function returns true then the act of changing data versions from A
+     * to B can be said to "cross" this version which is an indication that such a change should
+     * either be considered illegal or that upgrade/downgrade action is required.</p>
+     *
+     * @param versionA older or newer data version than B
+     * @param versionB older or newer data version than A
+     * @return true if chaining from version A to version B, or form B to A, would result in
+     * crossing this version. This version is considered to be crossed if {@code A != B} and
+     * {@code min(A, B) < this.id <= max(A, B)}
+     */
+    public boolean isCrossedByTransition(int versionA, int versionB) {
+        if (versionA == versionB) return false;
+        if (versionA < versionB) {
+            return versionA < id && id <= versionB;
+        } else {
+            return versionB < id && id <= versionA;
+        }
     }
 }
