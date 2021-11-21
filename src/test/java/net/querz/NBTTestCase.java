@@ -1,6 +1,7 @@
 package net.querz;
 
 import junit.framework.AssertionFailedError;
+import junit.framework.ComparisonFailure;
 import junit.framework.TestCase;
 import net.querz.nbt.io.NBTDeserializer;
 import net.querz.nbt.io.NBTSerializer;
@@ -117,20 +118,27 @@ public abstract class NBTTestCase extends TestCase {
 		assertThrowsException(r, IllegalArgumentException.class);
 	}
 
-	protected <E extends Exception> void assertThrowsException(ExceptionRunnable<E> r, Class<? extends Exception> e) {
-		assertThrowsException(r, e, false);
+	protected void assertThrowsUnsupportedOperationException(ExceptionRunnable<IllegalArgumentException> r) {
+		assertThrowsException(r, UnsupportedOperationException.class);
 	}
 
-	protected <E extends Exception> void assertThrowsException(ExceptionRunnable<E> r, Class<? extends Exception> e, boolean printStackTrace) {
+	protected <E extends Exception> void assertThrowsException(ExceptionRunnable<E> r, Class<? extends Exception> e) {
 		try {
 			r.run();
 			TestCase.fail();
 		} catch (Exception ex) {
-			if (printStackTrace) {
-				ex.printStackTrace();
+			if (!e.equals(ex.getClass())) {
+				throw new WrongExceptionThrownException(e, ex);
 			}
-			TestCase.assertEquals(e, ex.getClass());
 		}
+	}
+
+	/**
+	 * @deprecated replaced by improved {@link #assertThrowsException(ExceptionRunnable, Class)}
+	 */
+	@Deprecated
+	protected <E extends Exception> void assertThrowsException(ExceptionRunnable<E> r, Class<? extends Exception> e, boolean printStackTrace) {
+		assertThrowsException(r, e);
 	}
 
 	protected <E extends Exception> void assertThrowsNoException(ExceptionRunnable<E> r) {
@@ -143,18 +151,28 @@ public abstract class NBTTestCase extends TestCase {
 	}
 
 	protected <T, E extends Exception> void assertThrowsException(ExceptionSupplier<T, E> r, Class<? extends Exception> e) {
-		assertThrowsException(r, e, false);
-	}
-
-	protected <T, E extends Exception> void assertThrowsException(ExceptionSupplier<T, E> r, Class<? extends Exception> e, boolean printStackTrace) {
 		try {
 			r.run();
 			TestCase.fail();
 		} catch (Exception ex) {
-			if (printStackTrace) {
-				ex.printStackTrace();
+			if (!e.equals(ex.getClass())) {
+				throw new WrongExceptionThrownException(e, ex);
 			}
-			TestCase.assertEquals(ex.getClass(), e);
+		}
+	}
+
+	/**
+	 * @deprecated replaced by improved {@link #assertThrowsException(ExceptionSupplier, Class)}
+	 */
+	@Deprecated
+	protected <T, E extends Exception> void assertThrowsException(ExceptionSupplier<T, E> r, Class<? extends Exception> e, boolean printStackTrace) {
+		assertThrowsException(r, e);
+	}
+
+	private static class WrongExceptionThrownException extends ComparisonFailure {
+		public WrongExceptionThrownException(Class<? extends Exception> expectedType, Exception actual) {
+			super("", expectedType.getTypeName(), actual.getClass().getTypeName());
+			this.setStackTrace(actual.getStackTrace());
 		}
 	}
 
@@ -174,19 +192,22 @@ public abstract class NBTTestCase extends TestCase {
 	}
 
 	protected void assertThrowsRuntimeException(Runnable r, Class<? extends Exception> e) {
-		assertThrowsRuntimeException(r, e, false);
-	}
-
-	protected void assertThrowsRuntimeException(Runnable r, Class<? extends Exception> e, boolean printStackTrace) {
 		try {
 			r.run();
 			TestCase.fail();
 		} catch (Exception ex) {
-			if (printStackTrace) {
-				ex.printStackTrace();
+			if (!e.equals(ex.getClass())) {
+				throw new WrongExceptionThrownException(e, ex);
 			}
-			TestCase.assertEquals(e, ex.getClass());
 		}
+	}
+
+	/**
+	 * @deprecated replaced by improved {@link #assertThrowsRuntimeException(Runnable, Class)}
+	 */
+	@Deprecated
+	protected void assertThrowsRuntimeException(Runnable r, Class<? extends Exception> e, boolean printStackTrace) {
+		assertThrowsRuntimeException(r, e);
 	}
 
 	protected void assertThrowsRuntimeException(Runnable r, boolean printStackTrace) {
