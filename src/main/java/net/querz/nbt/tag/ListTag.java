@@ -97,6 +97,10 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return getValue().size();
 	}
 
+	public boolean isEmpty() {
+		return getValue().isEmpty();
+	}
+
 	public T remove(int index) {
 		return getValue().remove(index);
 	}

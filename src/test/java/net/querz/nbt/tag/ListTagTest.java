@@ -25,6 +25,15 @@ public class ListTagTest extends NBTTestCase {
 		return bl;
 	}
 
+	public void testIsEmpty() {
+		ListTag<IntTag> tag = new ListTag<>(IntTag.class);
+		assertTrue(tag.isEmpty());
+		tag.addInt(1);
+		assertFalse(tag.isEmpty());
+		tag.clear();
+		assertTrue(tag.isEmpty());
+	}
+
 	public void testStringConversion() {
 		ListTag<ByteTag> bl = createListTag();
 		assertTrue(3 == bl.size());
