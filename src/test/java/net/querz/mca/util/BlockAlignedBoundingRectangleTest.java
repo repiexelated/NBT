@@ -2,6 +2,7 @@ package net.querz.mca.util;
 
 import junit.framework.TestCase;
 import net.querz.util.BlockAlignedBoundingRectangle;
+import net.querz.util.IntPointXZ;
 
 public class BlockAlignedBoundingRectangleTest extends TestCase {
 
@@ -33,6 +34,17 @@ public class BlockAlignedBoundingRectangleTest extends TestCase {
         assertTrue(cbr.contains(31, -16));
         assertFalse(cbr.contains(32, -16));
         assertFalse(cbr.contains(31, -17));
+    }
+
+    public void testContains_IntPointXZ() {
+        BlockAlignedBoundingRectangle cbr = new BlockAlignedBoundingRectangle(0, 0, 16);
+        assertTrue(cbr.contains(new IntPointXZ(8, 8)));
+        assertTrue(cbr.contains(new IntPointXZ(0, 0)));
+        assertTrue(cbr.contains(new IntPointXZ(15, 15)));
+        assertFalse(cbr.contains(new IntPointXZ(-1, 7)));
+        assertFalse(cbr.contains(new IntPointXZ(16, 7)));
+        assertFalse(cbr.contains(new IntPointXZ(7, -1)));
+        assertFalse(cbr.contains(new IntPointXZ(7, 16)));
     }
 
     public void testContains_double() {

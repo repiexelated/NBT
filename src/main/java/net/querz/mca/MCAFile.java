@@ -1,18 +1,12 @@
 package net.querz.mca;
 
 import net.querz.nbt.tag.CompoundTag;
-import net.querz.nbt.tag.Tag;
-
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
- * Represents a REGION data mca file.
+ * Represents a Terrain data mca file (one that lives in the /region folder). This class should be named
+ * TerrainMCAFile - but its name remains unchanged for backward compatibility with existing library usage.
+ * Prior to MC 1.14 /region/*.mca files where the only ones that existed, 1.14 introduced /poi/*.mca
+ * and 1.17 added /entities/*.mca
  */
 public class MCAFile extends MCAFileBase<Chunk> implements Iterable<Chunk> {
 	/**
@@ -56,7 +50,7 @@ public class MCAFile extends MCAFileBase<Chunk> implements Iterable<Chunk> {
 	 */
 	@Override
 	public Chunk createChunk() {
-		return Chunk.newChunk(defaultDataVersion);
+		return Chunk.newChunk(getDefaultChunkDataVersion());
 	}
 
 	/**

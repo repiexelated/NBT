@@ -2,6 +2,10 @@ package net.querz.mca.entities;
 
 import net.querz.nbt.tag.CompoundTag;
 
+/**
+ * The default {@link EntityCreator} which creates {@link EntityBaseImpl} that can represent any, and all, entities
+ * in vanilla Minecraft MCA files.
+ */
 public class DefaultEntityCreator implements EntityCreator<EntityBase> {
 
     /** @see EntityCreator#create(String, CompoundTag, int) */

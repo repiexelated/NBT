@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * An abstract representation of an mca file.
+ * An abstract representation of an mca (aka "region") file.
  */
 public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 

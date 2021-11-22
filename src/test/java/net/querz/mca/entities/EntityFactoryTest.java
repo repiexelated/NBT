@@ -3,7 +3,9 @@ package net.querz.mca.entities;
 import net.querz.mca.DataVersion;
 import net.querz.mca.MCATestCase;
 import net.querz.nbt.tag.CompoundTag;
+import net.querz.nbt.tag.ListTag;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class EntityFactoryTest extends MCATestCase {
@@ -14,17 +16,23 @@ public class EntityFactoryTest extends MCATestCase {
         final EntityCreatorStub creator;
 
         public EntityStub(EntityCreatorStub creator, String givenNormalizedId, CompoundTag data, int dataVersion) {
-            super(dataVersion);
+            super(data, dataVersion);
             this.creator = creator;
             this.givenNormalizedId = givenNormalizedId;
-            this.data = data;
             this.dataVersion = dataVersion;
+        }
+
+        public EntityStub(String id, int dataVersion) {
+            super(dataVersion, id, 0, 0, 0);
+            this.creator = null;
+            this.givenNormalizedId = null;
         }
     }
 
     private static class EntityCreatorStub implements EntityCreator<EntityStub> {
         final String name;
         boolean returnNull;
+        boolean violateIdContract;
         RuntimeException throwMe;
         public EntityCreatorStub(String name) {
             this.name = name;
@@ -33,7 +41,12 @@ public class EntityFactoryTest extends MCATestCase {
         @Override
         public EntityStub create(String normalizedId, CompoundTag tag, int dataVersion) {
             if (throwMe != null) throw throwMe;
-            return returnNull ? null : new EntityStub(this, normalizedId, tag, dataVersion);
+            if (returnNull) return null;
+            EntityStub entity = new EntityStub(this, normalizedId, tag, dataVersion);
+            if (violateIdContract) {
+                entity.id = null;
+            }
+            return entity;
         }
 
         @Override
@@ -45,17 +58,22 @@ public class EntityFactoryTest extends MCATestCase {
 
     final EntityCreatorStub defaultedCreator = new EntityCreatorStub("TEST DEFAULT CREATOR");
 
-    // TODO: IDK why @Before isn't working, resolve that and run this as @Before someday
-    public void reset() {
-        // Test should not rely on defaults put in place for user convenience!
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
         EntityFactory.clearCreators();
         EntityFactory.clearEntityIdRemap();
         EntityFactory.setDefaultEntityCreator(defaultedCreator);
-//        System.out.println("RUNNING BEFORE");
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        super.tearDown();
+        EntityFactory.clearCreators();
+        EntityFactory.resetEntityIdRemap();
     }
 
     public void testNormalizeId() {
-        reset();
         assertThrowsIllegalArgumentException(() -> EntityFactory.normalizeId(null));
         assertThrowsNoException(() -> EntityFactory.normalizeId("not_null"));
         assertThrowsIllegalArgumentException(() -> EntityFactory.normalizeId("minecraft:"));
@@ -65,7 +83,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testNormalizeAndRemapId() {
-        reset();
         assertThrowsIllegalArgumentException(() -> EntityFactory.normalizeAndRemapId(null));
         assertThrowsNoException(() -> EntityFactory.normalizeAndRemapId("not_null"));
         assertThrowsIllegalArgumentException(() -> EntityFactory.normalizeAndRemapId("minecraft:"));
@@ -77,12 +94,10 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testDefaultCreatorNotNull() {
-        reset();
         assertNotNull(EntityFactory.getDefaultEntityCreator());
     }
 
     public void testSetDefaultCreator() {
-        reset();
         assertNotNull(EntityFactory.getDefaultEntityCreator());
         assertThrowsIllegalArgumentException(() -> EntityFactory.setDefaultEntityCreator(null));
         EntityCreator<?> ec = new EntityCreatorStub(getName());
@@ -91,7 +106,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testRegisterCreator_basic() {
-        reset();
         EntityCreator<?> ec = new EntityCreatorStub(getName());
         assertNull(EntityFactory.getCreatorById("FOO"));
         EntityFactory.registerCreator(ec, "foo");
@@ -100,7 +114,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testRegisterCreator_multiple() {
-        reset();
         EntityCreator<?> ec = new EntityCreatorStub(getName());
         EntityFactory.registerCreator(ec, "foo", "minecraft:bar");
         assertSame(ec, EntityFactory.getCreatorById("FOO"));
@@ -109,14 +122,12 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testRegisterCreator_throwsOnNullId() {
-        reset();
         EntityCreator<?> ec = new EntityCreatorStub(getName());
         assertThrowsIllegalArgumentException(() -> EntityFactory.registerCreator(ec, (String) null));
         assertThrowsIllegalArgumentException(() -> EntityFactory.registerCreator(ec, "foo", null, "minecraft:bar"));
     }
 
     public void testRegisterCreator_afterRegisteringRemapping() {
-        reset();
         EntityCreator<?> fooEc = new EntityCreatorStub(getName());
         EntityFactory.registerIdRemap("bar", "foo");
         EntityFactory.registerIdRemap("baz", "foo");
@@ -128,7 +139,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testRegisteringRemapping_afterRegisterCreator() {
-        reset();
         EntityCreator<?> fooEc = new EntityCreatorStub(getName());
         EntityFactory.registerCreator(fooEc, "foo");
         EntityFactory.registerIdRemap("bar", "foo");
@@ -140,7 +150,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testReverseIdRemap() {
-        reset();
         List<String> rev = EntityFactory.reverseIdRemap("foo");
         assertNotNull(rev);
         assertTrue(rev.isEmpty());
@@ -165,7 +174,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testGetRegisteredCreatorIdKeys() {
-        reset();
         assertTrue(EntityFactory.getRegisteredCreatorIdKeys().isEmpty());
         EntityFactory.registerCreator(new EntityCreatorStub("A"), "FOO", "BAR");
         EntityFactory.registerCreator(new EntityCreatorStub("B"), "ZOO");
@@ -176,7 +184,6 @@ public class EntityFactoryTest extends MCATestCase {
     }
 
     public void testCreate() {
-        reset();
         CompoundTag tag = new CompoundTag();
         tag.putString("id", "whatever");
         EntityStub entityStub = EntityFactory.createAutoCast(tag, DataVersion.latest().id());
@@ -215,11 +222,50 @@ public class EntityFactoryTest extends MCATestCase {
         assertSame(tag, entityStub.getHandle());
     }
 
+    public void testToListTag() {
+        List<EntityStub> entities = new ArrayList<>();
+        entities.add(new EntityStub("frank", DataVersion.latest().id()));
+        entities.add(new EntityStub("sam", DataVersion.latest().id()));
+        ListTag<CompoundTag> eTag = EntityFactory.toListTag(entities);
+        assertEquals(2, eTag.size());
+        assertEquals("frank", eTag.get(0).getString("id"));
+
+        entities.clear();
+        EntityStub bubba = new EntityStub("bubba", DataVersion.latest().id());
+        entities.add(bubba);
+        assertSame(eTag, EntityFactory.toListTag(entities, eTag));
+        assertEquals(1, eTag.size());
+        assertEquals("bubba", eTag.get(0).getString("id"));
+
+        entities.add(bubba);
+        assertThrowsIllegalArgumentException(() -> EntityFactory.toListTag(entities));
+    }
+
     public void testCreate_throwsIllegalEntityTagException_whenCreatorReturnsNull() {
-        reset();
         CompoundTag tag = new CompoundTag();
         tag.putString("id", "whatever");
         defaultedCreator.returnNull = true;
-        assertThrowsException(() -> EntityFactory.createAutoCast(tag, DataVersion.latest().id()), IllegalEntityTagException.class);
+        assertThrowsException(() -> EntityFactory.createAutoCast(tag, DataVersion.latest().id()),
+                IllegalEntityTagException.class);
+    }
+
+    public void testCreate_throwsIllegalEntityTagException_whenCreatorThrows() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("id", "whatever");
+        defaultedCreator.throwMe = new NullPointerException();
+        try {
+            EntityFactory.createAutoCast(tag, DataVersion.latest().id());
+            fail();
+        } catch (IllegalEntityTagException ex) {
+            assertSame(tag, ex.getTag());
+        }
+    }
+
+    public void testCreate_throwsIllegalStateException_whenCreatorReturnsEntityWithoutId() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("id", "whatever");
+        defaultedCreator.violateIdContract = true;
+        assertThrowsException(() -> EntityFactory.createAutoCast(tag, DataVersion.latest().id()),
+                IllegalStateException.class);
     }
 }

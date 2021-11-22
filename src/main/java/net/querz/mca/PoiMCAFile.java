@@ -27,8 +27,7 @@ public class PoiMCAFile extends MCAFileBase<PoiChunk> {
 
     @Override
     public PoiChunk createChunk() {
-        PoiChunk chunk = new PoiChunk();
-        chunk.setDataVersion(getDefaultChunkDataVersion());
+        PoiChunk chunk = new PoiChunk(getDefaultChunkDataVersion());
         return chunk;
     }
 }

@@ -3,6 +3,9 @@ package net.querz.mca.entities;
 
 import net.querz.nbt.tag.CompoundTag;
 
+/**
+ * Intended for use by {@link EntityFactory} to create custom entity classes when parsing NBT tags.
+ */
 @FunctionalInterface
 public interface EntityCreator<T extends EntityBase> {
 

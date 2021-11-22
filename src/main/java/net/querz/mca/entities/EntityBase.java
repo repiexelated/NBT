@@ -5,12 +5,16 @@ import net.querz.mca.MCAUtil;
 import net.querz.mca.TagWrapper;
 import net.querz.util.ArgValidator;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Extremely basic entity interface to allow users of this library to extend {@link EntitiesMCAFile} and
- * rewire {@link MCAUtil} for easy integration with existing code.
+ * Extremely basic, but complete, entity interface to allow users of this library to extend {@link EntitiesMCAFile}
+ * and rewire {@link MCAUtil} for easy integration with existing code.
+ * @see EntityBaseImpl
  */
 public interface EntityBase extends TagWrapper {
     short AIR_UNSET = Short.MIN_VALUE;
@@ -349,6 +353,16 @@ public interface EntityBase extends TagWrapper {
     /** @see #getPassengers() */
     void setPassengers(List<EntityBase> passengers);
 
+    default void setPassengers(EntityBase... passengers) {
+        if (passengers == null || passengers.length == 0 || (passengers.length == 1 && passengers[0] == null)) {
+            clearPassengers();
+            return;
+        }
+        List<EntityBase> list = new ArrayList<>(passengers.length);
+        list.addAll(Arrays.asList(passengers));
+        setPassengers(list);
+    }
+
     /**
      * Adds a passenger, initializing the passenger list if necessary
      * @param passenger non-null passenger
@@ -372,4 +386,8 @@ public interface EntityBase extends TagWrapper {
 
     /** @see #getScoreboardTags() */
     void setScoreboardTags(List<String> scoreboardTags);
+
+    default boolean hasScoreboardTags() {
+        return getPassengers() != null && !getPassengers().isEmpty();
+    }
 }

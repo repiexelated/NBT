@@ -3,12 +3,18 @@ package net.querz.mca;
 import net.querz.nbt.tag.CompoundTag;
 
 /**
- * Represents a REGION data mca chunk. Region chunks are composed of a set of {@link Section} where any empty/null
+ * Represents a TERRAIN data mca chunk (from mca files that come from the /region save folder).
+ * Terrain chunks are composed of a set of {@link Section} where any empty/null
  * section is filled with air blocks by the game. When altering existing chunks for MC 1.14+, be sure to have read and
  * understood the documentation on {@link PoiRecord} to avoid problems with villagers, nether portal linking,
  * lodestones, bees, and probably more as Minecraft continues to evolve.
+ *
+ * <p><i>It is my (Ross / Ens) hope that in the future this class can be repurposed to serve as an abstraction
+ * layer over all the various chunk types (terrain, poi, entity - at the time of writing) and that it
+ * can take care of keeping them all in sync. But I've already put a lot of time into this library and need
+ * to return to other things so for now that goal must remain unrealized.</i></p>
  */
-public class Chunk extends RegionChunkBase<Section> {
+public class Chunk extends TerrainChunkBase<Section> {
 	/**
 	 * The default chunk data version used when no custom version is supplied.
 	 * @deprecated Use {@code DataVersion.latest().id()} instead.
@@ -18,6 +24,12 @@ public class Chunk extends RegionChunkBase<Section> {
 
 	@Deprecated
 	protected Chunk(int lastMCAUpdate) {
+		super(DEFAULT_DATA_VERSION);
+		setLastMCAUpdate(lastMCAUpdate);
+	}
+
+	protected Chunk(int dataVersion, int lastMCAUpdate) {
+		super(dataVersion);
 		setLastMCAUpdate(lastMCAUpdate);
 	}
 
@@ -80,6 +92,7 @@ public class Chunk extends RegionChunkBase<Section> {
 		Chunk c = new Chunk(0);
 		c.dataVersion = dataVersion;
 		c.data = new CompoundTag();
+		// TODO(1.18): update for 1.18 needed
 		c.data.put("Level", new CompoundTag());
 		c.status = "mobs_spawned";
 		return c;

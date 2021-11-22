@@ -3,9 +3,11 @@ package net.querz.mca;
 import net.querz.nbt.tag.CompoundTag;
 
 /**
- * Represents a REGION data chunk section.
+ * Represents a Terrain data chunk section. This class should be named TerrainSection - but its name remains
+ * unchanged for backward compatibility with existing library usage. See notes on {@link Chunk} for possible
+ * future repurposing ideas.
  */
-public class Section extends RegionSectionBase {
+public class Section extends TerrainSectionBase {
 
 	public Section(CompoundTag sectionRoot, int dataVersion) {
 		super(sectionRoot, dataVersion);

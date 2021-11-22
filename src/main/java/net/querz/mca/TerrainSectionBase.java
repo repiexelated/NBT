@@ -12,7 +12,13 @@ import java.util.stream.StreamSupport;
 import static net.querz.mca.DataVersion.JAVA_1_16_20W17A;
 import static net.querz.mca.LoadFlags.*;
 
-public abstract class RegionSectionBase extends SectionBase<RegionSectionBase> {
+/**
+ * Provides the base for all terrain section classes.
+ * <p>
+ * TODO: in 1.18+ ({@link DataVersion#JAVA_1_18_21W43A} specifically) biomes were paletted and moved into terrain sections
+ * </p>
+ */
+public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase> {
 
 	protected Map<String, List<PaletteIndex>> valueIndexedPalette = new HashMap<>();
 	protected ListTag<CompoundTag> palette;
@@ -32,11 +38,11 @@ public abstract class RegionSectionBase extends SectionBase<RegionSectionBase> {
 		return new byte[2048];
 	}
 
-	public RegionSectionBase(CompoundTag sectionRoot, int dataVersion) {
+	public TerrainSectionBase(CompoundTag sectionRoot, int dataVersion) {
 		this(sectionRoot, dataVersion, ALL_DATA);
 	}
 
-	public RegionSectionBase(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
+	public TerrainSectionBase(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
 		super(sectionRoot, dataVersion);
 		if (dataVersion <= 0) {
 			throw new IllegalArgumentException("Invalid data version - must be GT 0");
@@ -67,7 +73,7 @@ public abstract class RegionSectionBase extends SectionBase<RegionSectionBase> {
 		}
 	}
 
-	public RegionSectionBase(int dataVersion) {
+	public TerrainSectionBase(int dataVersion) {
 		super(dataVersion);
 		blockLight = createBlockLightBuffer();
 		blockStates = createBlockStates();
@@ -154,10 +160,10 @@ public abstract class RegionSectionBase extends SectionBase<RegionSectionBase> {
 	 * @param cleanup When <code>true</code>, it will force a cleanup the palette of this section.
 	 *                This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
 	 *                Recalculating the Palette should only be executed once right before saving the Section to file.
-	 * @return True if {@link RegionSectionBase#cleanupPaletteAndBlockStates()} was run as a result of this call.
-	 * 		Note that it is possible that {@link RegionSectionBase#cleanupPaletteAndBlockStates()} needed to be called even if
+	 * @return True if {@link TerrainSectionBase#cleanupPaletteAndBlockStates()} was run as a result of this call.
+	 * 		Note that it is possible that {@link TerrainSectionBase#cleanupPaletteAndBlockStates()} needed to be called even if
 	 * 		the {@code cleanup} argument was {@code false}. In summary if the last call made to this function returns
-	 * 		{@code true} you can skip the call to {@link RegionSectionBase#cleanupPaletteAndBlockStates()}.
+	 * 		{@code true} you can skip the call to {@link TerrainSectionBase#cleanupPaletteAndBlockStates()}.
 	 */
 	public boolean setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
 		assurePalette();
@@ -464,13 +470,13 @@ public abstract class RegionSectionBase extends SectionBase<RegionSectionBase> {
 
 	protected static class BlockStateIteratorImpl implements BlockStateIterator {
 
-		private final RegionSectionBase section;
+		private final TerrainSectionBase section;
 		private final int sectionWorldY;
 		private int currentIndex;
 		private CompoundTag currentTag;
 		private boolean dirty;
 
-		public BlockStateIteratorImpl(RegionSectionBase section) {
+		public BlockStateIteratorImpl(TerrainSectionBase section) {
 			this.section = section;
 			this.sectionWorldY = section.getHeight() * 16;
 			currentIndex = -1;

@@ -6,6 +6,9 @@ import net.querz.util.ArgValidator;
 
 import java.util.*;
 
+/**
+ * Collection of helper methods for working with entity NBT data.
+ */
 public class EntityUtil {
 
     public static final UUID ZERO_UUID = new UUID(0, 0);

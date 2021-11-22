@@ -4,7 +4,13 @@ import net.querz.nbt.tag.CompoundTag;
 
 public class PoiChunk extends PoiChunkBase<PoiRecord>{
 
-    protected PoiChunk() { }
+    protected PoiChunk(int dataVersion) {
+        super(dataVersion);
+    }
+
+    public PoiChunk(int dataVersion, int chunkX, int chunkZ) {
+        super(dataVersion, chunkX, chunkZ);
+    }
 
     public PoiChunk(CompoundTag data) {
         super(data);

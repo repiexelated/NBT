@@ -9,12 +9,12 @@ import static net.querz.mca.DataVersion.JAVA_1_15_19W36A;
 import static net.querz.mca.LoadFlags.*;
 
 /**
- * Represents a REGION data mca chunk. Region chunks are composed of a set of {@link Section} where any empty/null
+ * Represents a Terrain data mca chunk. Terrain chunks are composed of a set of {@link Section} where any empty/null
  * section is filled with air blocks by the game. When altering existing chunks for MC 1.14+, be sure to have read and
  * understood the documentation on {@link PoiRecord} to avoid problems with villagers, nether portal linking,
  * lodestones, bees, and probably more as Minecraft continues to evolve.
  */
-public abstract class RegionChunkBase<T extends RegionSectionBase> extends SectionedChunkBase<T> {
+public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends SectionedChunkBase<T> {
 
 	protected long lastUpdate;
 	protected long inhabitedTime;
@@ -32,17 +32,19 @@ public abstract class RegionChunkBase<T extends RegionSectionBase> extends Secti
 	protected String status;
 	protected CompoundTag structures;
 
-	protected RegionChunkBase() { }
+	protected TerrainChunkBase(int dataVersion) {
+		super(dataVersion);
+	}
 
 	/**
-	 * Create a new chunk based on raw base data from a region file.
+	 * Create a new chunk based on raw base data from a Terrain region file.
 	 * @param data The raw base data to be used.
 	 */
-	public RegionChunkBase(CompoundTag data) {
+	public TerrainChunkBase(CompoundTag data) {
 		super(data);
 	}
 
-	public RegionChunkBase(CompoundTag data, long loadFlags) {
+	public TerrainChunkBase(CompoundTag data, long loadFlags) {
 		super(data, loadFlags);
 	}
 
@@ -360,7 +362,7 @@ public abstract class RegionChunkBase<T extends RegionSectionBase> extends Secti
 	}
 
 	/**
-	 * @return The entities of this chunk.
+	 * @return The entities of this chunk. May be null.
 	 */
 	public ListTag<CompoundTag> getEntities() {
 		return entities;

@@ -5,8 +5,8 @@ import net.querz.nbt.tag.CompoundTag;
 public class PoiChunkTest extends PoiChunkBaseTest<PoiRecord, PoiChunk> {
 
     @Override
-    protected PoiChunk createChunk() {
-        return new PoiChunk();
+    protected PoiChunk createChunk(DataVersion dataVersion) {
+        return new PoiChunk(dataVersion.id());
     }
 
     @Override

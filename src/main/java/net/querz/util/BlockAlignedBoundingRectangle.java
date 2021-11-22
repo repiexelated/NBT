@@ -45,6 +45,10 @@ public class BlockAlignedBoundingRectangle {
         return minX <= x && x < maxX && minZ <= z && z < maxZ;
     }
 
+    public boolean contains(IntPointXZ xz) {
+        return contains(xz.getX(), xz.getZ());
+    }
+
     public boolean contains(double x, double z) {
         return minXd <= x && x < maxXd && minZd <= z && z < maxZd;
     }

@@ -3,9 +3,9 @@ package net.querz.mca;
 import net.querz.nbt.tag.CompoundTag;
 
 /**
- * Represents a REGION data mca file.
+ * Represents a TERRAIN data mca file (those that live in the /region folder).
  */
-public class RegionMCAFileBase extends MCAFileBase<Chunk> implements Iterable<Chunk> {
+public class TerrainMCAFileBase extends MCAFileBase<Chunk> implements Iterable<Chunk> {
 	/**
 	 * The default chunk data version used when no custom version is supplied.
 	 * <p>Deprecated: use {@code DataVersion.latest().id()} instead.
@@ -16,21 +16,21 @@ public class RegionMCAFileBase extends MCAFileBase<Chunk> implements Iterable<Ch
 	/**
 	 * {@inheritDoc}
 	 */
-	public RegionMCAFileBase(int regionX, int regionZ) {
+	public TerrainMCAFileBase(int regionX, int regionZ) {
 		super(regionX, regionZ);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public RegionMCAFileBase(int regionX, int regionZ, int defaultDataVersion) {
+	public TerrainMCAFileBase(int regionX, int regionZ, int defaultDataVersion) {
 		super(regionX, regionZ, defaultDataVersion);
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public RegionMCAFileBase(int regionX, int regionZ, DataVersion defaultDataVersion) {
+	public TerrainMCAFileBase(int regionX, int regionZ, DataVersion defaultDataVersion) {
 		super(regionX, regionZ, defaultDataVersion);
 	}
 

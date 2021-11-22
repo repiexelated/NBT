@@ -10,10 +10,11 @@ import java.util.Comparator;
  * List of significant MC versions and MCA data versions.
  * Non-full release versions are intended for use in data handling logic.
  * The set of non-full release versions is not, and does not need to be, the complete set of all versions - only those
- * which introduce changes to the MCA data structure are useful.
+ * which introduce changes to the MCA data structure are useful. BUT - we humans do love completeness so
+ * the list might be made complete some day and completeness would be useful for map viewers / editors.
  */
 public enum DataVersion {
-    // Kept in ASC order
+    // Kept in ASC order (unit test enforced)
     UNKNOWN(0, 0, 0),
     JAVA_1_9_0(169, 9, 0),
     JAVA_1_9_1(175, 9, 1),
@@ -104,7 +105,11 @@ public enum DataVersion {
      * </ul>
      */
     JAVA_1_18_21W43A(2844, 18, -1, "21w43a"),
-    JAVA_1_18_PRE1(2847, 18, -1, "PRE1");
+    JAVA_1_18_PRE1(2847, 18, -1, "PRE1"),
+    JAVA_1_18_PRE2(2848, 18, -1, "PRE2"),
+    JAVA_1_18_PRE3(2849, 18, -1, "PRE3"),
+    JAVA_1_18_PRE4(2850, 18, -1, "PRE4"),
+    JAVA_1_18_PRE5(2851, 18, -1, "PRE5");
 
 
     private static final int[] ids;
@@ -132,8 +137,8 @@ public enum DataVersion {
      * @param id data version
      * @param minor minor version
      * @param patch patch number, LT0 to indicate this data version is not a full release version
-     * @param buildDescription Suggested convention: <ul>
-     *                         <li>NULL for full release</li>
+     * @param buildDescription Suggested convention (unit test enforced): <ul>
+     *                         <li>NULL (given value ignored) for full release</li>
      *                         <li>CT# for combat tests (e.g. CT6, CT6b)</li>
      *                         <li>XS# for experimental snapshots(e.g. XS1, XS2)</li>
      *                         <li>YYwWWz for weekly builds (e.g. 21w37a, 21w37b)</li>
@@ -220,7 +225,7 @@ public enum DataVersion {
 
     /**
      * TRUE as of 1.17
-     * Entities were pulled out of region .mca files into their own .mca files. E.g. 'entities/r.0.0.mca'
+     * Entities were pulled out of terrain 'region/r.X.Z.mca' files into their own .mca files. E.g. 'entities/r.0.0.mca'
      */
     public boolean hasEntitiesMca() {
         return minor >= 17;
@@ -266,6 +271,7 @@ public enum DataVersion {
      * @return true if chaining from version A to version B, or form B to A, would result in
      * crossing this version. This version is considered to be crossed if {@code A != B} and
      * {@code min(A, B) < this.id <= max(A, B)}
+     * @see #throwUnsupportedVersionChangeIfCrossed(int, int)
      */
     public boolean isCrossedByTransition(int versionA, int versionB) {
         if (versionA == versionB) return false;

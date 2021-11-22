@@ -9,9 +9,33 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-// TODO: update passenger locations when own xyz changed to maintain relative locations
-// TODO: guard against passenger infinite recursion - well I guess NBT max depth will also catch it but still
+/**
+ * Provides a rich default implementation of {@link EntityBase} that exposes all properties of all
+ * entities in vanilla Minecraft and behaves in an intelligent way, making it easier to manipulate them.
+ * <p>
+ *     <b>Features worth special note</b>
+ *     <ul>
+ *         <li>{@link #generateNewUuid()} - generates a new uuid for this entity and all mounted passengers,
+ *              and their passengers, and so on.</li>
+ *         <li>{@link #setPosition(double, double, double)}, {@link #setX(double)}, {@link #setY(double)},
+ *              {@link #setZ(double)}, {@link #movePosition(double, double, double)} -
+ *              cascade relative position changes to all passengers, and their passengers, and so on.</li>
+ *         <li>{@link #setMotion(double, double, double)}, {@link #setMotionDX(double)}, {@link #setMotionDY(double)},
+ *              {@link #setMotionDZ(double)} - cascade changes to passengers, and their passengers, and so on.</li>
+ *         <li>{@link #addPassenger(EntityBase)} - sets the new passengers motion to match their mount and if
+ *              the passenger has no valid position set, updates it to match their mount as well.</li>
+ *         <li>{@link #setRotationYaw(float)} and {@link #setRotationPitch(float)} - automatically and intelligently
+ *         keep values in range, [0..360) and [-90..90] respectively. These functions DO NOT affect passengers.</li>
+ *         <li>{@link #getFacingCardinalAngle()} and {@link #setFacingCardinalAngle(float)} -
+ *              convenience functions where north is 0 deg, east is 90 deg, south is 180 deg, and west is 270 deg.
+ *              These functions are just wrappers around {@link #getRotationYaw()} and {@link #setRotationYaw(float)}
+ *              that perform the simple 180 deg rotation for you - because working with yaw angles is nonsensical.
+ *         </li>
+ *     </ul>
+ * </p>
+ */
 public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
+
 
     protected CompoundTag data;
     protected int dataVersion;
@@ -39,6 +63,7 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
     protected double z = Double.NaN;
     protected float yaw;
     protected float pitch;
+    // motion
     protected double dx;
     protected double dy;
     protected double dz;
@@ -96,7 +121,7 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
         // need to call update handle to make copying passengers clean and tidy
         this.data = other.updateHandle().clone();
         this.dataVersion = other.dataVersion;
-        this.id = other.id;
+        this.id = ArgValidator.requireNotEmpty(other.id);
         this.uuid = null;
         this.portalCooldown = other.portalCooldown;
         this.fallDistance = other.fallDistance;
@@ -598,7 +623,19 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
     /** {@inheritDoc} */
     @Override
     public void setPassengers(List<EntityBase> passengers) {
-        this.passengers = passengers;
+        if (passengers != null && !passengers.isEmpty()) {
+            for (EntityBase passenger : passengers) {
+                if (passenger != null) {
+                    passenger.setMotion(dx, dy, dz);
+                    if (!passenger.isPositionValid()) {
+                        passenger.setPosition(x, y, z);
+                    }
+                }
+            }
+            this.passengers = passengers;
+        } else {
+            clearPassengers();
+        }
     }
 
     /**
@@ -608,6 +645,8 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
      * then its position will be set to be the same as this entities position (which only helps if this entity
      * satisfies {@link #isPositionValid()}).</p>
      * <p>Also sets passenger motion to match this entities motion.</p>
+     * @throws IndexOutOfBoundsException if {@link #setPassengers(List)} was given a list wrapped array
+     * @throws UnsupportedOperationException if {@link #setPassengers(List)} was given an unmodifiable list
      */
     @Override
     public void addPassenger(EntityBase passenger) {
@@ -638,7 +677,7 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
     /** {@inheritDoc} */
     @Override
     public void setScoreboardTags(List<String> scoreboardTags) {
-        this.scoreboardTags= scoreboardTags;
+        this.scoreboardTags = scoreboardTags;
     }
 
     // </editor-fold>
@@ -649,29 +688,43 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
         return data;
     }
 
-    /** {@inheritDoc} */
+    /**
+     *  {@inheritDoc}
+     *  <p>If this tag is being saved into a chunk the caller is responsible for checking the
+     *  result of {@link #isPositionValid()} - this method will simply leave out the "Pos"
+     *  tag if {@link #isPositionValid()} would return false.</p>
+     *  <p>If the uuid is not defined on this entity when this method is called, a random uuid
+     *  will be generated and set.</p>
+     */
     @Override
     public CompoundTag updateHandle() {
         // TODO: restrict field outputs to be version appropriate - there's no harm in extra fields but might as well
         //       be clean about it.
-
-        // TODO: at some point prefixing with "minecraft:" became preferred, find that version and match behavior
-        //       likewise strip that prefix for previous versions
-        data.putString("id", ArgValidator.requireValue(id, "id"));
+        data.putString("id", ArgValidator.requireNotEmpty(id, "id"));
         if (uuid == null || EntityUtil.ZERO_UUID.equals(uuid)) {
             uuid = UUID.randomUUID();
         }
         EntityUtil.setUuid(dataVersion, data, uuid);
 
-        if (!isPositionValid()) {
-            throw new IllegalStateException("X, Y, or Z is non-finite or was not set");
+        if (isPositionValid()) {
+            data.putDoubleArrayAsTagList("Pos", x, y, z);
+        } else {
+            // For passengers... it's probably OK to not require a position and for sake of this being an
+            // abstraction / wrapper layer - we'll allow it to provide wider use case support and make
+            // caller responsible ensuring valid usage.
+            data.remove("Pos");
         }
-        data.putDoubleArrayAsTagList("Pos", x, y, z);
+
         if (isRotationValid()) {
             data.putFloatArrayAsTagList("Rotation", yaw, pitch);
+        } else {
+            data.remove("Rotation");
         }
+
         if (isMotionValid()) {
             data.putDoubleArrayAsTagList("Motion", dx, dy, dz);
+        } else {
+            data.remove("Motion");
         }
 
         if (air != EntityBase.AIR_UNSET) {
@@ -682,7 +735,10 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
 
         if (customName != null && !customName.isEmpty()) {
             data.putString("CustomName", customName);
+        } else {
+            data.remove("CustomName");
         }
+
         if (isCustomNameVisible || data.containsKey("CustomNameVisible")) {
             data.putBoolean("CustomNameVisible", isCustomNameVisible);
         }
@@ -716,7 +772,9 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
         if (passengers != null && !passengers.isEmpty()) {
             ListTag<CompoundTag> passengersTag = new ListTag<>(CompoundTag.class, passengers.size());
             for (EntityBase passenger : passengers) {
-                passengersTag.add(passenger.updateHandle());
+                if (passenger != null) {
+                    passengersTag.add(passenger.updateHandle());
+                }
             }
             data.put("Passengers", passengersTag);
         } else {
@@ -733,5 +791,10 @@ public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
     @Override
     public EntityBaseImpl clone() {
         return new EntityBaseImpl(this);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s %.2f %.2f %.2f", id, x, y, z);
     }
 }

@@ -20,8 +20,10 @@ public abstract class PoiChunkBaseTest<RT extends PoiRecord, T extends PoiChunkB
     protected abstract RT createPoiRecord(int x, int y, int z, String type);
 
     @Override
-    protected CompoundTag createTag(int dataVersion) {
-        final CompoundTag tag = super.createTag(dataVersion);
+    protected CompoundTag createTag(int dataVersion, int chunkX, int chunkZ) {
+        final CompoundTag tag = super.createTag(dataVersion, chunkX, chunkZ);
+        // annoyingly poi chunks don't record their chunk XZ
+
         final CompoundTag sectionContainerTag = new CompoundTag();
         CompoundTag sectionTag;
         ListTag<CompoundTag> recordsListTag;
@@ -70,7 +72,7 @@ public abstract class PoiChunkBaseTest<RT extends PoiRecord, T extends PoiChunkB
     }
 
     @Override
-    protected void validateAllDataConstructor(T chunk) {
+    protected void validateAllDataConstructor(T chunk, int expectedChunkX, int expectedChunkZ) {
         assertTrue(chunk.isPoiSectionValid(0));
         assertFalse(chunk.isPoiSectionValid(2));
         assertTrue(chunk.isPoiSectionValid(3));
@@ -114,7 +116,7 @@ public abstract class PoiChunkBaseTest<RT extends PoiRecord, T extends PoiChunkB
             countRemoved.set(recordsRemovedTag.size());
         });
         assertTrue(countRemoved.get() > 0);
-        assertEquals(createFilledChunk(DEFAULT_TEST_VERSION).size() - countRemoved.get(), chunk.size());
+        assertEquals(createFilledChunk(-65, -42, DEFAULT_TEST_VERSION).size() - countRemoved.get(), chunk.size());
     }
 
     public void testAdd() {
@@ -416,7 +418,7 @@ public abstract class PoiChunkBaseTest<RT extends PoiRecord, T extends PoiChunkB
     }
 
     public void testTypeFilteredIterator() {
-        T chunk = createFilledChunk(DEFAULT_TEST_VERSION);
+        T chunk = createFilledChunk(-65, -42, DEFAULT_TEST_VERSION);
         final int originalSize = chunk.size();
         Iterator<RT> iter = chunk.iterator("minecraft:nether_portal");
         assertNotNull(iter);
@@ -434,8 +436,8 @@ public abstract class PoiChunkBaseTest<RT extends PoiRecord, T extends PoiChunkB
 
     public void testUpdateHandle() {
         // identity
-        CompoundTag expectedTag = createTag(DEFAULT_TEST_VERSION.id());
-        T chunk = createFilledChunk(DEFAULT_TEST_VERSION);
+        CompoundTag expectedTag = createTag(DEFAULT_TEST_VERSION.id(), -65, -42);
+        T chunk = createFilledChunk(-65, -42, DEFAULT_TEST_VERSION);
         chunk.getHandle().clear();
         assertEquals(expectedTag, chunk.updateHandle());
 

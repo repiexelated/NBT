@@ -12,7 +12,8 @@ import static net.querz.mca.LoadFlags.ALL_DATA;
 import static net.querz.mca.LoadFlags.RAW;
 
 /**
- * Abstraction for the base of all chunk types which represent chunks composed of sub-chunks {@link SectionBase}.
+ * Abstraction for the base of all chunk types. Not all chunks types are sectioned, that layer comes further up
+ * the hierarchy.
  * <p>
  *     <b>Cautionary note to implementors - DO NOT USE INLINE MEMBER INITIALIZATION IN YOUR CLASSES</b><br/>
  *     Define all member initialization in {@link #initMembers()} or be very confused!
@@ -29,12 +30,12 @@ import static net.querz.mca.LoadFlags.RAW;
  * </p>
  */
 public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
+
 	public static final int NO_CHUNK_COORD_SENTINEL = Integer.MIN_VALUE;
+
 	protected int dataVersion;
-	// TODO: refactor region chunks to support these fields
 	protected int chunkX = NO_CHUNK_COORD_SENTINEL;
 	protected int chunkZ = NO_CHUNK_COORD_SENTINEL;
-
 	protected boolean partial;
 	protected boolean raw;
 	protected int lastMCAUpdate;
@@ -42,19 +43,28 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	/**
 	 * Due to how Java initializes objects and how this class hierarchy is setup it is ill advised to use inline member
-	 * initialization because {@link #initReferences0(long)} may be called before members are initialized which WILL
+	 * initialization because {@link #initReferences(long)} will be called before members are initialized which WILL
 	 * result in very confusing {@link NullPointerException}'s being thrown from within {@link #initReferences(long)}.
 	 * This is not a problem that can be solved by moving initialization into your constructors, because you must call
 	 * the super constructor as the first line of your child constructor!
 	 * <p>So, to get around this hurdle, perform all member initialization you would normally inline in your
 	 * class def, within this method instead. Implementers should never need to call this method themselves
-	 * as ChunkBase will always call it, even from the default constructor.</p>
+	 * as ChunkBase will always call it, even from the default constructor. Remember to call {@code super();}
+	 * from your default constructors to maintain this behavior.</p>
 	 */
 	protected void initMembers() { }
 
-	protected ChunkBase() {
-		dataVersion = DataVersion.latest().id();
-		lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
+	protected ChunkBase(int dataVersion) {
+		this.dataVersion = dataVersion;
+		this.lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
+		initMembers();
+	}
+
+	public ChunkBase(int dataVersion, int chunkX, int chunkZ) {
+		this.dataVersion = dataVersion;
+		this.lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
+		this.chunkX = chunkX;
+		this.chunkZ = chunkZ;
 		initMembers();
 	}
 
@@ -121,6 +131,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	/**
 	 * Gets this chunk's chunk-x coordinate. Returns {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
+	 * @see #moveChunk(int, int, boolean)
 	 */
 	public int getChunkX() {
 		return chunkX;
@@ -128,6 +139,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	/**
 	 * Gets this chunk's chunk-z coordinate. Returns {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
+	 * @see #moveChunk(int, int, boolean)
 	 */
 	public int getChunkZ() {
 		return chunkZ;
@@ -149,24 +161,27 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	/**
 	 * Attempts to update all tags that use absolute positions within this chunk.
-	 * If {@code force = true} the result of calling this function cannot be guaranteed to be complete and
+	 * <p>Call {@link #moveChunkImplemented()} to check if this implementation supports chunk relocation. Also
+	 * check the result of {@link #moveChunkHasFullVersionSupport()} to get an idea of the level of support
+	 * this implementation has for the current chunk.
+	 * <p>If {@code force = true} the result of calling this function cannot be guaranteed to be complete and
 	 * may still throw {@link UnsupportedOperationException}.
-	 * @param newChunkX new chunk-x
-	 * @param newChunkZ new chunk-z
+	 * @param chunkX new absolute chunk-x
+	 * @param chunkZ new absolute chunk-z
 	 * @param force true to ignore the guidance of {@link #moveChunkHasFullVersionSupport()} and make a best effort
 	 *              anyway.
 	 * @return true if any data was changed as a result of this call
 	 * @throws UnsupportedOperationException thrown if this chunk implementation doest support moves, or moves
 	 * for this chunks version (possibly even if force = true).
 	 */
-	public abstract boolean moveChunk(int newChunkX, int newChunkZ, boolean force);
+	public abstract boolean moveChunk(int chunkX, int chunkZ, boolean force);
 
 	/**
 	 * Calls {@code moveChunk(newChunkX, newChunkZ, false);}
 	 * @see #moveChunk(int, int, boolean)
 	 */
-	public boolean moveChunk(int newChunkX, int newChunkZ) {
-		return moveChunk(newChunkX, newChunkZ, false);
+	public boolean moveChunk(int chunkX, int chunkZ) {
+		return moveChunk(chunkX, chunkZ, false);
 	}
 
 
@@ -241,9 +256,24 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 		this.lastMCAUpdate = lastMCAUpdate;
 	}
 
+	/**
+	 * @throws UnsupportedOperationException thrown if raw is true
+	 */
 	protected void checkRaw() {
 		if (raw) {
-			throw new UnsupportedOperationException("cannot update field when working with raw data");
+			throw new UnsupportedOperationException("Cannot update field when working with raw data");
+		}
+	}
+
+	protected void checkPartial() {
+		if (data == null) {
+			throw new UnsupportedOperationException("Chunk was only partially loaded due to LoadFlags used");
+		}
+	}
+
+	protected void checkChunkXZ() {
+		if (chunkX == NO_CHUNK_COORD_SENTINEL || chunkZ == NO_CHUNK_COORD_SENTINEL) {
+			throw new UnsupportedOperationException("This chunk doesn't know its XZ location");
 		}
 	}
 

@@ -8,30 +8,25 @@ import java.util.function.Consumer;
 
 import static net.querz.mca.DataVersion.*;
 
+// TODO: test non-CompoundTag ctors and getHandle() / updateHandle()
 /**
  * All implementors of {@link ChunkBaseTest} should create a test which inherits this one and add
  * tests to cover any additional functionality added by that concretion.
  */
 public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
-    protected abstract T createChunk();
+    protected abstract T createChunk(DataVersion dataVersion);
     protected abstract T createChunk(CompoundTag tag);
     protected abstract T createChunk(CompoundTag tag, long loadData);
-
-    protected T createChunk(DataVersion dataVersion) {
-        T chunk = createChunk();
-        chunk.setDataVersion(dataVersion);
-        return chunk;
-    }
 
     /**
      * helper equivalent to {@code createChunk(createTag(dataVersion.id()))}
      */
-    final protected T createFilledChunk(DataVersion dataVersion) {
-        return createChunk(createTag(dataVersion.id()));
+    final protected T createFilledChunk(int chunkX, int chunkZ, DataVersion dataVersion) {
+        return createChunk(createTag(dataVersion.id(), chunkX, chunkZ));
     }
 
     public void testChunkBase_defaultConstructor() {
-        T chunk = createChunk();
+        T chunk = createChunk(DataVersion.latest());
         int now = (int)(System.currentTimeMillis() / 1000);
         assertEquals(DataVersion.latest().id(), chunk.getDataVersion());
         assertEquals(DataVersion.latest(), chunk.getDataVersionEnum());
@@ -39,13 +34,13 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     }
 
     public void testLastMcaUpdated() {
-        T chunk = createChunk();
+        T chunk = createChunk(DataVersion.latest());
         chunk.setLastMCAUpdate(1747522);
         assertEquals(1747522, chunk.getLastMCAUpdate());
     }
 
     public void testDataVersion() {
-        T chunk = createChunk(createTag(JAVA_1_16_0.id()));
+        T chunk = createChunk(createTag(JAVA_1_16_0.id(), 0, 0));
         assertEquals(JAVA_1_16_0.id(), chunk.getDataVersion());
         assertEquals(JAVA_1_16_0, chunk.getDataVersionEnum());
         chunk.setDataVersion(JAVA_1_16_1.id());
@@ -59,13 +54,13 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     /**
      * @param dataVersion set as "DataVersion" in returned tag IFF GT 0
      */
-    protected CompoundTag createTag(int dataVersion) {
+    protected CompoundTag createTag(int dataVersion, int chunkX, int chunkZ) {
         CompoundTag tag = new CompoundTag();
         if (dataVersion > 0) tag.putInt("DataVersion", dataVersion);
         return tag;
     }
 
-    protected abstract void validateAllDataConstructor(T chunk);
+    protected abstract void validateAllDataConstructor(T chunk, int expectedChunkX, int expectedChunkZ);
 
     protected void validateTagRequired(DataVersion dataVersion, String tagName) {
         validateTagRequired(dataVersion, tag -> tag.remove(tagName));
@@ -73,7 +68,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
 
     protected void validateTagRequired(DataVersion dataVersion, Consumer<CompoundTag> tagRemover) {
         assertThrowsException(() -> {
-            CompoundTag tag = createTag(dataVersion.id());
+            CompoundTag tag = createTag(dataVersion.id(), 0, 0);
             assertNotNull(tag);
             tagRemover.accept(tag);
             createChunk(tag, LoadFlags.ALL_DATA);
@@ -93,7 +88,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     protected T validateTagNotRequired(DataVersion dataVersion, Consumer<CompoundTag> tagRemover) {
         Mutable<T> out = new Mutable<>();
         assertThrowsNoException(() -> {
-            CompoundTag tag = createTag(dataVersion.id());
+            CompoundTag tag = createTag(dataVersion.id(), 0, 0);
             assertNotNull(tag);
             tagRemover.accept(tag);
             out.set(createChunk(tag, LoadFlags.ALL_DATA));
@@ -102,7 +97,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     }
 
     final public void testConstructor_allData() {
-        CompoundTag tag = createTag(DataVersion.JAVA_1_17_1.id());
+        CompoundTag tag = createTag(DataVersion.JAVA_1_17_1.id(), -4, 7);
         assertNotNull(tag);
         T chunk = createChunk(tag, LoadFlags.ALL_DATA);
         assertEquals(DataVersion.JAVA_1_17_1.id(), chunk.getDataVersion());
@@ -110,11 +105,11 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
         assertFalse(chunk.partial);
         assertFalse(chunk.raw);
         assertSame(tag, chunk.getHandle());
-        validateAllDataConstructor(chunk);
+        validateAllDataConstructor(chunk, -4, 7);
     }
 
     final public void testConstructor_raw() {
-        CompoundTag tag = createTag(DataVersion.JAVA_1_16_5.id());
+        CompoundTag tag = createTag(DataVersion.JAVA_1_16_5.id(), 0, 0);
         assertNotNull(tag);
         T chunk = createChunk(tag, LoadFlags.RAW);
         assertEquals(DataVersion.JAVA_1_16_5.id(), chunk.getDataVersion());
@@ -126,16 +121,14 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     }
 
     public void testConstructor_allData_throwsIfDataVersionNotFound() {
-        CompoundTag tag = createTag(-1);
+        CompoundTag tag = createTag(-1, 0, 0);
         assertNotNull(tag);
         assertThrowsException(() -> createChunk(tag, LoadFlags.ALL_DATA), IllegalArgumentException.class);
     }
 
     public void testConstructor_raw_noThrowIfDataVersionNotFound() {
-        CompoundTag tag = createTag(-1);
+        CompoundTag tag = createTag(-1, 0, 0);
         assertNotNull(tag);
         assertThrowsNoException(() -> createChunk(tag, LoadFlags.RAW));
     }
-
-
 }

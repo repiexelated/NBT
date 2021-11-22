@@ -32,6 +32,14 @@ public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
         return minZ | (z & 0xF);
     }
 
+    public IntPointXZ relocate(IntPointXZ xz) {
+        return new IntPointXZ(minX | (xz.getX() & 0xF), minZ | (xz.getZ() & 0xF));
+    }
+
+    public IntPointXZ relocate(int x, int z) {
+        return new IntPointXZ(minX | (x & 0xF), minZ | (z & 0xF));
+    }
+
     /**
      * Calculates a new absolute X such that the given absolute X is inside this chunk
      * at the same relative location as the given X was relative to its source chunk.

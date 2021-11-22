@@ -5,8 +5,7 @@ import net.querz.mca.MCATestCase;
 import net.querz.nbt.tag.CompoundTag;
 import static org.junit.Assert.*;
 
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.*;
 
 public class EntityBaseImplTest extends MCATestCase {
 
@@ -202,71 +201,66 @@ public class EntityBaseImplTest extends MCATestCase {
 
     // <editor-fold desc="Update Handle Tests" defaultstate="collapsed">
 
-    public void testUpdateHandle_validPositionRequired() {
+    public void testUpdateHandle_positionTagNotOutputUnlessRotationIsValid() {
         EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
-        assertThrowsException(entity::updateHandle, IllegalStateException.class);
+
+        assertFalse(entity.updateHandle().containsKey("Pos"));
+
+        entity.setPosition(1, 2, 3);
+        assertTrue(entity.updateHandle().containsKey("Pos"));
+
         entity.setPosition(0, 0, Double.NaN);
-        assertThrowsException(entity::updateHandle, IllegalStateException.class);
+        assertFalse(entity.updateHandle().containsKey("Pos"));
+
         entity.setPosition(0, Double.NaN, 0);
-        assertThrowsException(entity::updateHandle, IllegalStateException.class);
+        assertFalse(entity.updateHandle().containsKey("Pos"));
+
         entity.setPosition(Double.NaN, 0, 0);
-        assertThrowsException(entity::updateHandle, IllegalStateException.class);
-        entity.setPosition(0, 0, 0);
-        assertThrowsNoException(entity::updateHandle);
+        assertFalse(entity.updateHandle().containsKey("Pos"));
     }
 
     public void testUpdateHandle_rotationTagNotOutputUnlessRotationIsValid() {
         EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
         entity.setRotation(0, Float.NaN);
-        CompoundTag tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Rotation"));
+        assertFalse(entity.updateHandle().containsKey("Rotation"));
 
         entity.setRotation(Float.NaN, 0);
-        tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Rotation"));
+        assertFalse(entity.updateHandle().containsKey("Rotation"));
 
         entity.setRotation(0, 0);
-        tag = entity.updateHandle();
-        assertTrue(tag.containsKey("Rotation"));
+        assertTrue(entity.updateHandle().containsKey("Rotation"));
     }
 
     public void testUpdateHandle_motionTagNotOutputUnlessMotionIsValid() {
         EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
         entity.setMotion(0, 0, Double.NaN);
-        CompoundTag tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Motion"));
+        assertFalse(entity.updateHandle().containsKey("Motion"));
 
-        entity.setMotion(0, Double.NaN, 0);tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Motion"));
+        entity.setMotion(0, Double.NaN, 0);
+        assertFalse(entity.updateHandle().containsKey("Motion"));
 
         entity.setMotion(Double.NaN, 0, 0);
-        tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Motion"));
+        assertFalse(entity.updateHandle().containsKey("Motion"));
 
         entity.setMotion(0, 0, 0);
-        tag = entity.updateHandle();
-        assertTrue(tag.containsKey("Motion"));
+        assertTrue(entity.updateHandle().containsKey("Motion"));
     }
 
     public void testUpdateHandle_airTagNotOutputWhenAirUnset() {
         EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
-        CompoundTag tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Air"));
+        assertFalse(entity.updateHandle().containsKey("Air"));
 
         entity.setAir((short) 500);
-        tag = entity.updateHandle();
-        assertTrue(tag.containsKey("Air"));
+        assertTrue(entity.updateHandle().containsKey("Air"));
 
         entity.setAir(EntityBase.AIR_UNSET);
-        tag = entity.updateHandle();
-        assertFalse(tag.containsKey("Air"));
+        assertFalse(entity.updateHandle().containsKey("Air"));
     }
 
     public void testUpdateHandle_uuidGeneratedWhenUnset() {
         EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
         assertNull(entity.getUuid());
-        CompoundTag tag = entity.updateHandle();
-        assertTrue(tag.containsKey("UUID"));
+        assertTrue( entity.updateHandle().containsKey("UUID"));
         assertNotNull(entity.getUuid());
     }
 
@@ -331,7 +325,6 @@ public class EntityBaseImplTest extends MCATestCase {
         assertNull(entity.getPassengers());
     }
 
-
     public void testPassengers_addPassengerSetsRiderPositionIfUnset() {
         EntityBaseImpl spider = new EntityBaseImpl(DataVersion.latest().id(), "spider", 42.743, 68, -96.23);
         spider.setMotion(0.1, -0.05, 0.008);
@@ -347,6 +340,62 @@ public class EntityBaseImplTest extends MCATestCase {
         assertEquals(0.1, skeleton.getMotionDX(), 1e-8);
         assertEquals(-0.05, skeleton.getMotionDY(), 1e-8);
         assertEquals(0.008, skeleton.getMotionDZ(), 1e-8);
+    }
+
+    public void testSetPassengers_syncsPassengerPosition() {
+        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
+        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        boat.setPosition(12.34, -14.5, 626.989);
+        boat.setPassengers(pig, cow);
+        assertPositionEquals(boat, 12.34, -14.5, 626.989);
+        assertPositionEquals(pig, 12.34, -14.5, 626.989);
+        assertPositionEquals(cow, 12.34, -14.5, 626.989);
+    }
+
+    public void testSetPassengers_syncsPassengerMotion() {
+        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
+        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        boat.setMotion(0.1, -0.12, -0.03);
+        boat.setPassengers(pig, cow);
+        assertMotionEquals(boat, 0.1, -0.12, -0.03);
+        assertMotionEquals(pig, 0.1, -0.12, -0.03);
+        assertMotionEquals(cow, 0.1, -0.12, -0.03);
+    }
+
+    public void testSetPassengers_null_clearsPassengers() {
+        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
+        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        assertFalse(boat.hasPassengers());
+
+        boat.setPassengers(pig, cow);
+        assertTrue(boat.hasPassengers());
+        assertNotNull(boat.getPassengers());
+        assertEquals(2, boat.getPassengers().size());
+
+        boat.setPassengers((EntityBase) null);
+        assertFalse(boat.hasPassengers());
+        assertNull(boat.getPassengers());
+
+        boat.setPassengers(pig, cow);
+        boat.setPassengers((List<EntityBase>) null);
+        assertFalse(boat.hasPassengers());
+        assertNull(boat.getPassengers());
+    }
+
+    public void testSetPassengers_emptyList_clearsPassengers() {
+        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
+        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+
+        boat.setPassengers(pig, cow);
+        assertTrue(boat.hasPassengers());
+
+        boat.setPassengers(new ArrayList<>());
+        assertFalse(boat.hasPassengers());
+        assertNull(boat.getPassengers());
     }
 
     // </editor-fold>
@@ -643,8 +692,7 @@ public class EntityBaseImplTest extends MCATestCase {
 
     // <editor-fold desc="Motion Tests" defaultstate="collapsed">
 
-
-    public void testMotion_basic() {
+    public void testSetMotion_basic() {
         EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
         assertMotionEquals(pig, 0, 0, 0);
         pig.setMotion(0.1, -0.12, -0.03);
@@ -673,6 +721,56 @@ public class EntityBaseImplTest extends MCATestCase {
         assertTrue(pig.isMotionValid());
     }
 
+    public void testSetMotion_withPassengers() {
+        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
+        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        boat.setPassengers(pig, cow);
+        assertMotionEquals(boat, 0, 0, 0);
+        assertMotionEquals(pig, 0, 0, 0);
+        assertMotionEquals(cow, 0, 0, 0);
+
+        boat.setMotionDX(1);
+        assertMotionEquals(boat, 1, 0, 0);
+        assertMotionEquals(pig, 1, 0, 0);
+        assertMotionEquals(cow, 1, 0, 0);
+
+        boat.setMotionDY(2);
+        assertMotionEquals(boat, 1, 2, 0);
+        assertMotionEquals(pig, 1, 2, 0);
+        assertMotionEquals(cow, 1, 2, 0);
+
+        boat.setMotionDZ(-3);
+        assertMotionEquals(boat, 1, 2, -3);
+        assertMotionEquals(pig, 1, 2, -3);
+        assertMotionEquals(cow, 1, 2, -3);
+
+        assertTrue(boat.isMotionValid());
+        assertTrue(pig.isMotionValid());
+        assertTrue(cow.isMotionValid());
+        boat.setMotionDX(Double.NaN);
+        assertFalse(boat.isMotionValid());
+        assertFalse(pig.isMotionValid());
+        assertFalse(cow.isMotionValid());
+
+        boat.setMotionDX(0);
+        boat.setMotionDY(Double.POSITIVE_INFINITY);
+        assertFalse(boat.isMotionValid());
+        assertFalse(pig.isMotionValid());
+        assertFalse(cow.isMotionValid());
+
+        boat.setMotionDY(0);
+        boat.setMotionDZ(Double.NEGATIVE_INFINITY);
+        assertFalse(boat.isMotionValid());
+        assertFalse(pig.isMotionValid());
+        assertFalse(cow.isMotionValid());
+
+        boat.setMotionDZ(0);
+        assertTrue(boat.isMotionValid());
+        assertTrue(pig.isMotionValid());
+        assertTrue(cow.isMotionValid());
+    }
+
     public void testAddPassenger_syncsPassengerMotion() {
         EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
         EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
@@ -689,6 +787,7 @@ public class EntityBaseImplTest extends MCATestCase {
         assertMotionEquals(chicken, 0.1, 0.2, 0.3);
         assertMotionEquals(zombie, 0.1, 0.2, 0.3);
     }
+
     // </editor-fold>
 
     public void testGenerateNewUuid() {

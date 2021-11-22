@@ -2,6 +2,8 @@ package net.querz.mca;
 
 import junit.framework.TestCase;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static net.querz.mca.DataVersion.*;
@@ -21,6 +23,25 @@ public class DataVersionTest extends MCATestCase {
                 assertEquals(sb.toString(), dv.name());
                 assertTrue("Build description of " + dv.name() + " does not follow convention!",
                         ALLOWED_ENUM_DESCRIPTION_PATTERN.matcher(dv.getBuildDescription()).matches());
+            }
+        }
+    }
+
+    public void testEnumDataVersionCollisions() {
+        Set<Integer> seen = new HashSet<>();
+        for (DataVersion dv : values()) {
+            if (dv.id() != 0) {
+                assertTrue("duplicate data version " + dv.id(), seen.add(dv.id()));
+            }
+        }
+    }
+
+    public void testEnumDataVersionsIncreasingOrder() {
+        int last = 0;
+        for (DataVersion dv : values()) {
+            if (dv.id() != 0) {
+                assertTrue(dv.toString() + " is out of order", dv.id() > last);
+                last = dv.id();
             }
         }
     }

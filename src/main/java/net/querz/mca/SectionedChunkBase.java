@@ -14,7 +14,9 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 	private final TreeMap<Integer, T> sections = new TreeMap<>();
 	private final Map<T, Integer> sectionHeightLookup = new HashMap<>();
 
-	protected SectionedChunkBase() { }
+	protected SectionedChunkBase(int dataVersion) {
+		super(dataVersion);
+	}
 
 	/**
 	 * Create a new chunk based on raw base data from a region file.

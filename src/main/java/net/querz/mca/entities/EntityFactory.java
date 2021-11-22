@@ -1,24 +1,42 @@
 package net.querz.mca.entities;
 
 import net.querz.nbt.tag.CompoundTag;
+import net.querz.nbt.tag.ListTag;
 import net.querz.util.ArgValidator;
+import net.querz.util.IdentityHelper;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Provides a way to customize entity data deserialization.
+ * Provides a way to customize entity data deserialization. Used by {@link net.querz.mca.EntitiesChunkBase}
+ * to provide users with {@link EntityBase} objects to work with instead of having to work with raw NBT data.
+ * This factory can be configured to produce any custom class that implements {@link EntityBase}.
+ * <p>Further customization is possible by also configuring the mca file creator factory methods found in
+ * {@link net.querz.mca.MCAUtil}, specifically the {@link net.querz.mca.MCAUtil#MCA_CREATORS} map</p>
  */
 public class EntityFactory {
     private EntityFactory() { }
 
-    // TODO: Implement "creator ai" solution which is composed of a list of predicates that, when there is no
-    //       creator in ENTITY_CREATORS_BY_ID for an entity id, are given the nbt tag one after the other and
-    //       once a predicate returns a creator instance, that creator is learned for that id (put in
-    //       ENTITY_CREATORS_BY_ID) and used from that point on. This will provide a self maintaining solution
-    //       that will, for example, be able to work for all mobs in all future versions by checking for mob-only
-    //       tags without having to maintain the list of all mobs. For efficiency it's probably wise to associate
-    //       the default creator when no predicate provides a creator to use.
+    // TODO: Implement "creator ai" solution to learn which creators make the "best" entity instances for
+    //  any given entity id.
+    //  Strategy Idea:
+    //      Creator Nomination - given a data tag and returns null if uninterested, or a creator instance which
+    //          can be used (doesn't have to be "the best" creator - just one capable).
+    //      Creator Selection - each nominated creator is asked to create an entity from the tag.
+    //          It is expected that all entity types have a common inheritance ancestor and that all
+    //          created entity types exist on a linear inheritance path such that there is only one entity E
+    //          which is the most distant from Object and no entity falls outside the direct line of inheritance
+    //          between E and Object.
+    //      Association - register the highest quality creator for the entity id that started it all.
+    //          If no creators were nominated then the default creator is registered for that id,
+    //          for performance reasons.
+    //  Variation:
+    //      If Creator Selection produces entity types which do not all fall on a single inheritance line, or if
+    //      this variation is simply preferred, consider making CreatorNomination objects themselves comparable
+    //      - though probably not via the Comparable interface - but perhaps via a Comparator which can be user
+    //      supplied. In fact the Creator Selection phase described previously could simply be one such Comparator
+    //      and the registered default creator can simply "always" be in the running.
 
     /**
      * This map controls the factory creation behavior, keys are entity id's (such as "pig").
@@ -215,18 +233,36 @@ public class EntityFactory {
      * @param dataVersion chunk data version to pass along to the creator
      * @return new entity object; never null
      * @throws IllegalEntityTagException if the creator failed to create an instance
+     * or threw any other type of exception. Note that the offending tag is captured by this exception type.
+     * @throws IllegalStateException if the entity produced by the creator does not have an ID
      */
     public static EntityBase create(CompoundTag tag, int dataVersion) {
         if (tag == null) throw new IllegalArgumentException("tag must not be null");
-        String idNorm = normalizeId(tag.getString("id", null));
+        String idRaw = tag.getString("id", null);
+        String idNorm = normalizeId(idRaw);
         String idPreferredNorm = ID_REMAP.getOrDefault(idNorm, idNorm);
         EntityCreator<?> creator = ENTITY_CREATORS_BY_ID.getOrDefault(idNorm, DEFAULT_ENTITY_CREATOR);
-        EntityBase entity = creator.create(idPreferredNorm, tag, dataVersion);
+        EntityBase entity;
+        try {
+            entity = creator.create(idPreferredNorm, tag, dataVersion);
+        } catch (IllegalEntityTagException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new IllegalEntityTagException(tag, ex);
+        }
         if (entity == null) {
-            throw new IllegalEntityTagException(String.format(
+            throw new IllegalEntityTagException(tag, String.format(
                     "creator %s for %s returned null (it should throw IllegalEntityTagException itself, but didn't)",
                     creator.getClass().getSimpleName(),
                     idNorm));
+        }
+        if (entity.getId() == null) {
+            throw new IllegalStateException(String.format(
+                    "Creator '%s' messed up! Normalized ID used was '%s' created from id '%s' read from nbt "
+                    + "but entity produced by creator did not set an id!",
+                    creator.getClass().getSimpleName(),
+                    idNorm,
+                    idRaw));
         }
         return entity;
     }
@@ -240,5 +276,37 @@ public class EntityFactory {
     @SuppressWarnings("unchecked")
     public static <T extends EntityBase> T createAutoCast(CompoundTag tag, int dataVersion) {
         return (T) create(tag, dataVersion);
+    }
+
+    /**
+     * Convenience function to populate, or create then populate, a {@code ListTag<CompoundTag>} given a
+     * {@code List<EntityBase>}.
+     * 
+     * @param entities List of entities. This list must not contain the same entity instance multiple times.
+     * @param entitiesTag Optional, if provided this ListTag is cleared then filled with Compound tags from the
+     *                    given entities. If this argument is null, then a new ListTag will be created and populated.
+     * @return The given entitiesTag or a new ListTag if entitiesTag was null
+     * @throws IllegalArgumentException Thrown if entities contains the same EntityBase instance more than once.
+     */
+    public static <T extends EntityBase> ListTag<CompoundTag> toListTag(List<T> entities, ListTag<CompoundTag> entitiesTag) {
+        Set<IdentityHelper<T>> seen = new HashSet<>();
+        if (entitiesTag == null) entitiesTag = new ListTag<>(CompoundTag.class, entities.size());
+        else entitiesTag.clear();
+        for (T entity : entities) {
+            if (seen.add(IdentityHelper.of(entity))) {
+                entitiesTag.add(entity.updateHandle());
+            } else {
+                throw new IllegalArgumentException("entities list contained the same entity multiple times");
+            }
+        }
+        return entitiesTag;
+    }
+
+    /**
+     * Convenience function to create then populate a {@code ListTag<CompoundTag>} given a {@code List<EntityBase>}.
+     * @see #toListTag(List, ListTag)
+     */
+    public static <T extends EntityBase> ListTag<CompoundTag> toListTag(List<T> entities) {
+        return toListTag(entities, null);
     }
 }

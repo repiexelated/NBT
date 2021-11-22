@@ -1,10 +1,13 @@
 package net.querz.mca;
 
+import net.querz.util.IntPointXZ;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,7 +44,7 @@ public final class MCAUtil {
 		MCA_CREATORS.put("entities", EntitiesMCAFile::new);
 	}
 
-	//<editor-fold desc="Legacy Readers" defaultstate="collapsed">
+	//<editor-fold desc="Legacy 'read' Readers" defaultstate="collapsed">
 	/**
 	 * @see MCAUtil#read(File)
 	 * @param file The file to read the data from.
@@ -95,9 +98,77 @@ public final class MCAUtil {
 			return mcaFile;
 		}
 	}
+
+	//</editor-fold>
+
+	//<editor-fold desc="POI MCA Readers (/poi/r.X.Z.mca files added in MC 1.14)">
+
+	public static PoiMCAFile readPoi(String file) throws IOException {
+		return readPoi(new File(file), LoadFlags.ALL_DATA);
+	}
+
+	public static PoiMCAFile readPoi(Path file) throws IOException {
+		return readPoi(file.toFile(),  LoadFlags.ALL_DATA);
+	}
+
+	public static PoiMCAFile readPoi(File file) throws IOException {
+		return readPoi(file,  LoadFlags.ALL_DATA);
+	}
+
+	public static PoiMCAFile readPoi(String file, long loadFlags) throws IOException {
+		return readPoi(new File(file), loadFlags);
+	}
+
+	public static PoiMCAFile readPoi(Path file, long loadFlags) throws IOException {
+		return readPoi(file.toFile(), loadFlags);
+	}
+
+	public static PoiMCAFile readPoi(File file, long loadFlags) throws IOException {
+		IntPointXZ xz = regionXZFromFileName(file.getName());
+		PoiMCAFile mcaFile = new PoiMCAFile(xz.getX(), xz.getZ());
+		try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+			mcaFile.deserialize(raf, loadFlags);
+			return mcaFile;
+		}
+	}
+
+	//</editor-fold>
+
+	//<editor-fold desc="Entities MCA Readers (/entities/r.X.Z.mca files added in MC 1.17)">
+
+	public static EntitiesMCAFile readEntities(String file) throws IOException {
+		return readEntities(new File(file), LoadFlags.ALL_DATA);
+	}
+
+	public static EntitiesMCAFile readEntities(Path file) throws IOException {
+		return readEntities(file.toFile(),  LoadFlags.ALL_DATA);
+	}
+
+	public static EntitiesMCAFile readEntities(File file) throws IOException {
+		return readEntities(file,  LoadFlags.ALL_DATA);
+	}
+
+	public static EntitiesMCAFile readEntities(String file, long loadFlags) throws IOException {
+		return readEntities(new File(file), loadFlags);
+	}
+
+	public static EntitiesMCAFile readEntities(Path file, long loadFlags) throws IOException {
+		return readEntities(file.toFile(), loadFlags);
+	}
+
+	public static EntitiesMCAFile readEntities(File file, long loadFlags) throws IOException {
+		IntPointXZ xz = regionXZFromFileName(file.getName());
+		EntitiesMCAFile mcaFile = new EntitiesMCAFile(xz.getX(), xz.getZ());
+		try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+			mcaFile.deserialize(raf, loadFlags);
+			return mcaFile;
+		}
+	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="Auto MCA Readers">
+
 	/**
 	 * @see MCAUtil#readAuto(File)
 	 * @param file The file to read the data from.
@@ -143,9 +214,11 @@ public final class MCAUtil {
 			return mcaFile;
 		}
 	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="Writers">
+
 	/**
 	 * Calls {@link MCAUtil#write(MCAFileBase, File, boolean)} without changing the timestamps.
 	 * @see MCAUtil#write(MCAFileBase, File, boolean)
@@ -208,9 +281,11 @@ public final class MCAUtil {
 		}
 		return chunks;
 	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="Region File Name Generators">
+
 	/**
 	 * Turns the chunks coordinates into region coordinates and calls
 	 * {@link MCAUtil#createNameFromRegionLocation(int, int)}
@@ -242,9 +317,11 @@ public final class MCAUtil {
 	public static String createNameFromRegionLocation(int regionX, int regionZ) {
 		return "r." + regionX + "." + regionZ + ".mca";
 	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="Coordinate Helpers">
+
 	/**
 	 * Turns a block coordinate value into a chunk coordinate value.
 	 * @param block The block coordinate value.
@@ -327,14 +404,18 @@ public final class MCAUtil {
 	 */
 	@Deprecated
 	public static MCAFile newMCAFile(File file) {
-		final Matcher m = mcaFilePattern.matcher(file.getName());
-		if (!m.find()) {
-			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): "
-					+ file.getName());
-		}
-		return new MCAFile(Integer.parseInt(m.group("regionX")), Integer.parseInt(m.group("regionZ")));
+		IntPointXZ xz = regionXZFromFileName(file.getName());
+		return new MCAFile(xz.getX(), xz.getZ());
 	}
 
+	public static IntPointXZ regionXZFromFileName(String name) {
+		final Matcher m = mcaFilePattern.matcher(name);
+		if (!m.find()) {
+			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): "
+					+ name);
+		}
+		return new IntPointXZ(Integer.parseInt(m.group("regionX")), Integer.parseInt(m.group("regionZ")));
+	}
 
 	private static void throwCannotDetermineMcaType(Exception cause) {
 		throw new IllegalArgumentException(
@@ -375,6 +456,20 @@ public final class MCAUtil {
 	 *   // unsupported type / don't care about this type, etc.
 	 * }}</pre>
 	 *
+	 * @see #autoMCAFile(String, Path)
+	 */
+	public static <T extends MCAFileBase<?>> T autoMCAFile(Path path) {
+		return autoMCAFile(path.getParent().getFileName().toString(), path);
+	}
+
+	/**
+	 * Creates and initializes a new {@link MCAFileBase} implementation. The actual type returned is determined by
+	 * the value of useCreatorName, {@link #autoMCAFile(Path)} determines this value from the file path.
+	 * However it is sometimes useful to force which creator to used, for example when reading an old region mca file
+	 * with the new feature rich {@link EntitiesMCAFile}. For a list of valid creator names query the keys of
+	 * {@link #MCA_CREATORS} - the default list contains "region", "poi", and "entities".
+	 *
+	 * @param useCreatorName creator name to use to read the given file
 	 * @param path The file does not need to exist but the given path must have at least 2 parts.
 	 *             Required parts: "mca_type/mca_file"
 	 *             where mca_type (such as "region", "poi", "entities") is used to determine which
@@ -388,12 +483,10 @@ public final class MCAUtil {
 	 * @throws NullPointerException Thrown when a custom creator did not produce a result.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends MCAFileBase<?>> T autoMCAFile(Path path) {
+	public static <T extends MCAFileBase<?>> T autoMCAFile(String useCreatorName, Path path) {
 		BiFunction<Integer, Integer, MCAFileBase<?>> creator = null;
-		String creatorName = null;
 		try {
-			creatorName = path.getParent().getFileName().toString();
-			creator = MCA_CREATORS.get(creatorName);
+			creator = MCA_CREATORS.get(useCreatorName);
 			if (creator == null) throwCannotDetermineMcaType(null);
 		} catch (Exception ex) {
 			throwCannotDetermineMcaType(ex);
@@ -406,7 +499,7 @@ public final class MCAUtil {
 		final int z = Integer.parseInt(m.group("regionZ"));
 		T mcaFile = (T) creator.apply(x, z);
 		if (mcaFile == null) {
-			throw new NullPointerException("Creator for " + creatorName + " did not produce a result for " + path);
+			throw new NullPointerException("Creator for " + useCreatorName + " did not produce a result for " + path);
 		}
 		return mcaFile;
 	}
