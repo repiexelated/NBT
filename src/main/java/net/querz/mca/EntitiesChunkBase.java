@@ -40,10 +40,6 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
         super(dataVersion);
     }
 
-    public EntitiesChunkBase(int dataVersion, int chunkX, int chunkZ) {
-        super(dataVersion, chunkX, chunkZ);
-    }
-
     public EntitiesChunkBase(CompoundTag data) {
         super(data);
     }
@@ -162,7 +158,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
      * The given tag is also set as the entities tag in the underlying CompoundTag handle in the version appropriate
      * location. I.e. calling this method or modifying the tag passed after calling this method will affect the
      * value returned by {@link #getHandle()}.
-     * <p><b>Raw mode behavior: supported!</b><br />
+     * <p><b>Raw mode behavior: supported!</b><br>
      * Sets the given tag in the held nbt data handle in its version correct place. Does not make calling
      * {@link #getEntitiesTag()} or {@link #getEntities()} legal for chunks loaded in raw mode.
      * </p>

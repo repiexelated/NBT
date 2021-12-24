@@ -52,6 +52,8 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NBTTestCase {
     }
 
     /**
+     * Must be overridden to support chunkX chunkZ because different chunks store this information differently
+     * (or not at all).
      * @param dataVersion set as "DataVersion" in returned tag IFF GT 0
      */
     protected CompoundTag createTag(int dataVersion, int chunkX, int chunkZ) {

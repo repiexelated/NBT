@@ -32,7 +32,6 @@ import java.util.stream.StreamSupport;
  *              that perform the simple 180 deg rotation for you - because working with yaw angles is nonsensical.
  *         </li>
  *     </ul>
- * </p>
  */
 public class EntityBaseImpl implements EntityBase, VersionedDataContainer {
 

@@ -22,22 +22,38 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
     int currentIndex();
 
     /**
-     * @return Current chunk x within region (in range 0-31)
+     * Note this value is calculated from the iterators position and is therefore known even if the chunk is null.
+     *
+     * @return Current chunk x within region in range [0-31]
      */
     int currentX();
 
     /**
-     * @return Current chunk z within region (in range 0-31)
+     * Note this value is calculated from the iterators position and is therefore known even if the chunk is null.
+     *
+     * @return Current chunk z within region in range [0-31]
      */
     int currentZ();
 
     /**
-     * @return Current chunk x in world coordinates (not block coordinates)
+     * Note this value is calculated from the iterators position not read from {@link ChunkBase#getChunkX()} and is
+     * therefore known even if the chunk is null. If the chunk is not null and there is a mismatch between this
+     * value and that returned by {@link ChunkBase#getChunkX()} then the chunk is "out of place" and should be
+     * moved / corrected.
+     *
+     * @return Current chunk x in absolute coordinates (not block coordinates).
+     * @see ChunkBase#moveChunk(int, int)
      */
-    int currentWorldX();
+    int currentAbsoluteX();
 
     /**
-     * @return Current chunk z in world coordinates (not block coordinates)
+     * Note this value is calculated from the iterators position not read from {@link ChunkBase#getChunkZ()} and is
+     * therefore known even if the chunk is null. If the chunk is not null and there is a mismatch between this
+     * value and that returned by {@link ChunkBase#getChunkZ()} then the chunk is "out of place" and should be
+     * moved / corrected.
+     *
+     * @return Current chunk z in absolute coordinates (not block coordinates)
+     * @see ChunkBase#moveChunk(int, int)
      */
-    int currentWorldZ();
+    int currentAbsoluteZ();
 }

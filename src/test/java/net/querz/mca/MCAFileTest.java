@@ -569,8 +569,8 @@ public class MCAFileTest extends MCATestCase {
 				assertEquals(i, iter.currentIndex());
 				assertEquals(x, iter.currentX());
 				assertEquals(z, iter.currentZ());
-				assertEquals(wx, iter.currentWorldX());
-				assertEquals(wz, iter.currentWorldZ());
+				assertEquals(wx, iter.currentAbsoluteX());
+				assertEquals(wz, iter.currentAbsoluteZ());
 				if (x == populatedX && z == populatedZ) {
 					assertNotNull(chunk);
 				} else {

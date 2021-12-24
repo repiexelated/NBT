@@ -1,6 +1,8 @@
 package net.querz.mca;
 
 
+import net.querz.util.IntPointXZ;
+
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Array;
@@ -172,13 +174,23 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 	 * @param raf The {@code RandomAccessFile} to read from.
 	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
 	 * @param timestamp The timestamp when this chunk was last updated as a UNIX timestamp.
+	 * @param chunkAbsXZ Absolute chunk XZ coord as calculated from region location and chunk index.
 	 * @return Deserialized chunk.
 	 * @throws IOException if something went wrong during deserialization.
 	 */
-	protected T deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp) throws IOException {
+	protected T deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp, IntPointXZ chunkAbsXZ) throws IOException {
 		T chunk = createChunk();
 		chunk.setLastMCAUpdate(timestamp);
+		chunk.chunkX = chunkAbsXZ.getX();
+		chunk.chunkZ = chunkAbsXZ.getZ();
 		chunk.deserialize(raf, loadFlags);
+		// I'm going to leave this as an "idea" for now
+//		if (!chunkAbsXZ.equals(chunk.getChunkX(), chunk.getChunkZ())) {
+//			// this would be a good place for a logger warning
+//			if (chunk.moveChunkImplemented() && chunk.moveChunkHasFullVersionSupport()) {
+//				chunk.moveChunk(chunkAbsXZ.getX(), chunkAbsXZ.getZ());
+//			}
+//		}
 		return chunk;
 	}
 
@@ -204,6 +216,7 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		chunks = (T[]) Array.newInstance(chunkClass(), 1024);
 		minDataVersion = Integer.MAX_VALUE;
 		maxDataVersion = Integer.MIN_VALUE;
+		final IntPointXZ chunkOffsetXZ = new IntPointXZ(regionX * 32, regionZ * 32);
 		for (int i = 0; i < 1024; i++) {
 			raf.seek(i * 4);
 			int offset = raf.read() << 16;
@@ -215,7 +228,8 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 			raf.seek(4096 + i * 4);
 			int timestamp = raf.readInt();
 			raf.seek(4096L * offset + 4); //+4: skip data size
-			T chunk = deserializeChunk(raf, loadFlags, timestamp);
+			T chunk = deserializeChunk(raf, loadFlags, timestamp,
+					getRelativeChunkXZ(i).multiply(chunkOffsetXZ));
 			chunks[i] = chunk;
 			if (chunk != null && chunk.hasDataVersion()) {
 				if (chunk.getDataVersion() < minDataVersion) {
@@ -316,6 +330,8 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		if (chunks == null) {
 			chunks = (T[]) Array.newInstance(chunkClass(), 1024);
 		}
+		// TODO: figure out how best to sync chunk abs xz
+//		getRelativeChunkXZ(index).add(regionX * 32, regionZ * 32);
 		chunks[index] = chunk;
 	}
 
@@ -387,7 +403,18 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		return ((chunkZ & 0x1F) << 5) | (chunkX & 0x1F);
 	}
 
-	protected void checkIndex(int index) {
+	/**
+	 * Calculates the relative x z of a chunk within the current region given an index.
+	 *
+	 * @param index index of chunk in range [0..1024)
+	 * @return x z location of the chunk in region relative coordinates where x and z each range [0..32)
+	 */
+	public static IntPointXZ getRelativeChunkXZ(int index) {
+		checkIndex(index);
+		return new IntPointXZ(index & 0x1F, index >> 5);
+	}
+
+	protected static void checkIndex(int index) {
 		if (index < 0 || index > 1023) {
 			throw new IndexOutOfBoundsException();
 		}
@@ -458,12 +485,12 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		}
 
 		@Override
-		public int currentWorldX() {
+		public int currentAbsoluteX() {
 			return currentX() + owner.getRegionX() * 32;
 		}
 
 		@Override
-		public int currentWorldZ() {
+		public int currentAbsoluteZ() {
 			return currentZ() + owner.getRegionZ() * 32;
 		}
 	}

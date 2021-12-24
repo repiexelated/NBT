@@ -89,4 +89,8 @@ public class IntPointXZ {
         final IntPointXZ o = (IntPointXZ) other;
         return this.x == o.x && this.z == o.z;
     }
+
+    public boolean equals(int x, int z) {
+        return this.x == x && this.z == z;
+    }
 }

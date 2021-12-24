@@ -15,7 +15,7 @@ import static net.querz.mca.LoadFlags.RAW;
  * Abstraction for the base of all chunk types. Not all chunks types are sectioned, that layer comes further up
  * the hierarchy.
  * <p>
- *     <b>Cautionary note to implementors - DO NOT USE INLINE MEMBER INITIALIZATION IN YOUR CLASSES</b><br/>
+ *     <b>Cautionary note to implementors - DO NOT USE INLINE MEMBER INITIALIZATION IN YOUR CLASSES</b><br>
  *     Define all member initialization in {@link #initMembers()} or be very confused!
  * </p><p>
  *     Due to how Java initializes objects, this base class will call {@link #initReferences(long)} before any inline
@@ -57,14 +57,6 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	protected ChunkBase(int dataVersion) {
 		this.dataVersion = dataVersion;
 		this.lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
-		initMembers();
-	}
-
-	public ChunkBase(int dataVersion, int chunkX, int chunkZ) {
-		this.dataVersion = dataVersion;
-		this.lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
-		this.chunkX = chunkX;
-		this.chunkZ = chunkZ;
 		initMembers();
 	}
 

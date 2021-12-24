@@ -1,5 +1,7 @@
 package net.querz.mca;
 
+import net.querz.util.IntPointXZ;
+
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -34,5 +36,13 @@ public class MCAFileBaseTest extends MCATestCase {
         assertEquals(chunkA.data, chunkB.data);
     }
 
-    public void testNullTest() { }
+    public void testGetRelativeChunkXZ() {
+        // few enough iterations to just be lazy and do an exhaustive test
+        for (int i = 0; i < 1024; i++) {
+            IntPointXZ xz = MCAFileBase.getRelativeChunkXZ(i);
+            assertEquals(i, MCAFileBase.getChunkIndex(xz.getX(), xz.getZ()));
+        }
+        assertThrowsException(() -> MCAFileBase.getRelativeChunkXZ(-1), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> MCAFileBase.getRelativeChunkXZ(1024), IndexOutOfBoundsException.class);
+    }
 }

@@ -19,7 +19,7 @@ import java.util.Objects;
  *     All of the options, other than calculating poi state yourself, will trigger Minecraft to re-calculate poi records
  *     without causing errant behavior. The worst thing you can do is to do nothing - Minecraft will eventually notice
  *     but it may cause "strange behavior" and various WTF's until the game sorts itself out.
- * </p><p><b>About this class</b><br/>
+ * <p><b>About this class</b><br>
  * A record as found in POI MCA files (points of interest). Hashable and equatable, but does not consider
  * {@code freeTickets} in those operations as that field is largely MC internal state. POI mca files were added in
  * MC 1.14 to improve villager performance and only contained locations of blocks villagers interacted with. Over time
@@ -53,8 +53,8 @@ import java.util.Objects;
  *     <li>minecraft:lodestone <i>- block: lodestone</i></li>
  *     <li>minecraft:lightning_rod <i>- block: lightning_rod</i></li>
  * </ul>
- * </p>
- * <br />
+ *
+ * <br>
  * <b>What are "Tickets"?</b>
  * <p>
  *     Tickets are only used for blocks/poi's (points of interest) which villagers interact with. Internally
@@ -74,7 +74,6 @@ import java.util.Objects;
  *         <li>{@link #getFreeTickets()} equals the count of all villagers who have stored the poi location in their
  *         "brain" subtracted from the max tickets for that poi type</li>
  *     </ul>
- * </p>
  */
 public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
     protected String type;

@@ -17,10 +17,6 @@ public class EntitiesChunk extends EntitiesChunkBase<EntityBase> {
         super(dataVersion);
     }
 
-    public EntitiesChunk(int dataVersion, int chunkX, int chunkZ) {
-        super(dataVersion, chunkX, chunkZ);
-    }
-
     public EntitiesChunk(CompoundTag data) {
         super(data);
     }

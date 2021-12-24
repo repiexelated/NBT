@@ -29,10 +29,6 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
         super(dataVersion);
     }
 
-    public PoiChunkBase(int dataVersion, int chunkX, int chunkZ) {
-        super(dataVersion, chunkX, chunkZ);
-    }
-
     public PoiChunkBase(CompoundTag data) {
         super(data);
     }
