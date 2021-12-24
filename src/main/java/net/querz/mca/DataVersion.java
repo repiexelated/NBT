@@ -55,7 +55,7 @@ public enum DataVersion {
     JAVA_1_15_2(2230, 15, 2),
 
     /** Block pallet packing changed in this version - see {@link Section} */
-    JAVA_1_16_20W17A(2529, 16, -1, "20w17a"),
+    JAVA_1_16_20W17A(2529, 16, 0, "20w17a"),
     JAVA_1_16_0(2566, 16, 0),
     JAVA_1_16_1(2567, 16, 1),
     JAVA_1_16_2(2578, 16, 2),
@@ -68,29 +68,29 @@ public enum DataVersion {
      * Entities no longer inside region/r.X.Z.mca - except in un-migrated chunks of course.
      * <p>https://www.minecraft.net/en-us/article/minecraft-snapshot-20w45a</p>
      */
-    JAVA_1_17_20W45A(2681, 17, -1, "20w45a"),
+    JAVA_1_17_20W45A(2681, 17, 0, "20w45a"),
 
     JAVA_1_17_0(2724, 17, 0),
     JAVA_1_17_1(2730, 17, 1),
 
     // fist experimental 1.18 build
-    JAVA_1_18_XS1(2825, 18, -1, "XS1"),
+    JAVA_1_18_XS1(2825, 18, 0, "XS1"),
 
     /**
      * https://www.minecraft.net/en-us/article/minecraft-snapshot-21w39a
      * <ul>
-     * <li>Level.Sections[].BlockStates & Level.Sections[].Palette have moved to a container structure in Level.Sections[].block_states
+     * <li>Level.Sections[].BlockStates &amp; Level.Sections[].Palette have moved to a container structure in Level.Sections[].block_states
      * <li>Level.Biomes are now paletted and live in a similar container structure in Level.Sections[].biomes
      * <li>Level.CarvingMasks[] is now long[] instead of byte[]
      * </ul>
      */
-    JAVA_1_18_21W39A(2836, 18, -1, "21w39a"),
+    JAVA_1_18_21W39A(2836, 18, 0, "21w39a"),
 
     /**
      * https://www.minecraft.net/en-us/article/minecraft-snapshot-21w43a
      * <ul>
      * <li>Removed chunk’s Level and moved everything it contained up
-     * <li>Chunk’s Level.Entities has moved to entities -- WTF, when are entities still put in region chunks?
+     * <li>Chunk’s Level.Entities has moved to entities -- entities are stored in the terrain region file during chunk generation
      * <li>Chunk’s Level.TileEntities has moved to block_entities
      * <li>Chunk’s Level.TileTicks and Level.ToBeTicked have moved to block_ticks
      * <li>Chunk’s Level.LiquidTicks and Level.LiquidsToBeTicked have moved to fluid_ticks
@@ -104,12 +104,25 @@ public enum DataVersion {
      * <li>Added blending_data containing data to support blending new world generation with existing chunks
      * </ul>
      */
-    JAVA_1_18_21W43A(2844, 18, -1, "21w43a"),
-    JAVA_1_18_PRE1(2847, 18, -1, "PRE1"),
-    JAVA_1_18_PRE2(2848, 18, -1, "PRE2"),
-    JAVA_1_18_PRE3(2849, 18, -1, "PRE3"),
-    JAVA_1_18_PRE4(2850, 18, -1, "PRE4"),
-    JAVA_1_18_PRE5(2851, 18, -1, "PRE5");
+    JAVA_1_18_21W43A(2844, 18, 0, "21w43a"),
+    JAVA_1_18_PRE1(2847, 18, 0, "PRE1"),
+    JAVA_1_18_PRE2(2848, 18, 0, "PRE2"),
+    JAVA_1_18_PRE3(2849, 18, 0, "PRE3"),
+    JAVA_1_18_PRE4(2850, 18, 0, "PRE4"),
+    JAVA_1_18_PRE5(2851, 18, 0, "PRE5"),
+    JAVA_1_18_PRE6(2853, 18, 0, "PRE6"),
+    JAVA_1_18_PRE7(2854, 18, 0, "PRE7"),
+    JAVA_1_18_PRE8(2855, 18, 0, "PRE8"),
+    JAVA_1_18_RC1(2856, 18, 0, "RC1"),
+    JAVA_1_18_RC2(2857, 18, 0, "RC2"),
+    JAVA_1_18_RC3(2858, 18, 0, "RC3"),
+    JAVA_1_18_RC4(2859, 18, 0, "RC4"),
+    JAVA_1_18_0(2860, 18, 0),
+    JAVA_1_18_1_PRE1(2861, 18, 1, "PRE1"),
+    JAVA_1_18_1_RC1(2862, 18, 1, "RC1"),
+    JAVA_1_18_1_RC2(2863, 18, 1, "RC2"),
+    JAVA_1_18_1_RC3(2864, 18, 1, "RC3"),
+    JAVA_1_18_1(2865, 18, 1);
 
 
     private static final int[] ids;
@@ -146,14 +159,12 @@ public enum DataVersion {
      *                         <li>RC# for release candidates (e.g. RC1, RC2)</li></ul>
      */
     DataVersion(int id, int minor, int patch, String buildDescription) {
-        this.isFullRelease = patch >= 0;
-        if (!isFullRelease && (buildDescription == null || buildDescription.isEmpty()))
+        this.isFullRelease = buildDescription == null || "FINAL".equalsIgnoreCase(buildDescription);
+        if (!isFullRelease && buildDescription.isEmpty())
             throw new IllegalArgumentException("buildDescription required for non-full releases");
-        if (isFullRelease && (buildDescription != null && !buildDescription.isEmpty()))
-            throw new IllegalArgumentException("buildDescription not allowed for full releases");
         this.id = id;
         this.minor = minor;
-        this.patch = isFullRelease ? patch : -1;
+        this.patch = patch;
         this.buildDescription = isFullRelease ? "FINAL" : buildDescription;
         if (minor > 0) {
             StringBuilder sb = new StringBuilder();
@@ -186,7 +197,6 @@ public enum DataVersion {
 
     /**
      * Version format: major.minor.patch
-     * <p>This value will be &lt; 0 if this is not a full release version.</p>
      */
     public int patch() {
         return patch;

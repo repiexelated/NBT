@@ -10,6 +10,7 @@ import static net.querz.mca.DataVersion.*;
 
 public class DataVersionTest extends MCATestCase {
     private static final Pattern ALLOWED_ENUM_DESCRIPTION_PATTERN = Pattern.compile("^(?:FINAL|\\d{2}w\\d{2}[a-z]|(?:CT|XS|PRE|RC)\\d+|)");
+
     public void testEnumNamesMatchVersionInformation() {
         for (DataVersion dv : values()) {
             if (dv.id() != 0) {
@@ -18,6 +19,7 @@ public class DataVersionTest extends MCATestCase {
                 if (dv.isFullRelease()) {
                     sb.append(dv.patch());
                 } else {
+                    if (dv.patch() > 0) sb.append(dv.patch()).append('_');
                     sb.append(dv.getBuildDescription().toUpperCase());
                 }
                 assertEquals(sb.toString(), dv.name());
@@ -78,6 +80,7 @@ public class DataVersionTest extends MCATestCase {
         assertEquals("2730 (1.17.1)", JAVA_1_17_1.toString());
         assertEquals("UNKNOWN", UNKNOWN.toString());
         assertEquals("2529 (1.16 20w17a)", JAVA_1_16_20W17A.toString());
+        assertEquals("2864 (1.18.1 RC3)", JAVA_1_18_1_RC3.toString());
     }
     
     public void testIsCrossedByTransition() {
