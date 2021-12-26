@@ -100,7 +100,7 @@ public class MCAUtilTest extends MCATestCase {
 		assertThrowsException(() -> MCAUtil.write(null, (File) null), NullPointerException.class);
 		assertThrowsException(() -> MCAUtil.write(null, (String) null, false), NullPointerException.class);
 		assertThrowsException(() -> MCAUtil.read("r.a.b.mca"), IllegalArgumentException.class);
-		assertThrowsNoException(() -> new MCAFile(0, 0).serialize(null)); // empty MCAFile will not even attempt to write to file
+		assertThrowsException(() -> new MCAFile(0, 0).serialize(null), IllegalArgumentException.class);
 
 		// test overwriting file
 		MCAFile m = new MCAFile(0, 0);

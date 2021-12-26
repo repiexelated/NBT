@@ -1,6 +1,7 @@
 package net.querz.mca;
 
 
+import net.querz.util.ArgValidator;
 import net.querz.util.IntPointXZ;
 
 import java.io.IOException;
@@ -266,6 +267,7 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 	 * @throws IOException If something went wrong during serialization.
 	 */
 	public int serialize(RandomAccessFile raf, boolean changeLastUpdate) throws IOException {
+		ArgValidator.requireValue(raf, "raf");
 		int globalOffset = 2;
 		int lastWritten = 0;
 		int timestamp = (int) (System.currentTimeMillis() / 1000L);
