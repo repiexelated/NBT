@@ -8,15 +8,28 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Provides a simple mechanism to retrieve, and store, structured data without
+ * having to handle the intermediate tags yourself.
+ * <p>Use simple dot separated names and bracket indexes such as {@code "Level.Section[0].BlockLight"}</p>
+ */
 public class NBTPath {
     private static final NBTPath IDENTITY_PATH = new NBTPath(Collections.emptyList());
 
-    List<Evaluator> evalChain;
+    protected List<Evaluator> evalChain;
 
     protected NBTPath(List<Evaluator> evalChain) {
-        this.evalChain = evalChain;
+        this.evalChain = Collections.unmodifiableList(evalChain);
     }
 
+    /**
+     * Injects "&lt;&gt;" into the string at the specified position optionally wrapping some content as
+     * specified by width.
+     * @param str string to decorate
+     * @param pos position to insert &lt;
+     * @param width how many characters to skip before inserting &gt;
+     * @return modified str
+     */
     static String markLocation(String str, int pos, int width) {
         assert width >= 0;
         if (pos < 0) return "<>" + str;
@@ -27,6 +40,12 @@ public class NBTPath {
         return str.substring(0, pos) + "<" + str.substring(pos, pos + width) + ">" + str.substring(pos + width);
     }
 
+    /**
+     * Creates a new {@link NBTPath} from the given selector string.
+     * @param selector Use dots to separate names/keys and use array notation for indexing {@link ListTag}
+     *                and {@link ArrayTag}'s. Example: {@code "Level.Section[0].BlockLight"}
+     * @return new {@link NBTPath}
+     */
     public static NBTPath of(String selector) {
         if (selector == null || selector.isEmpty() || selector.equals(".")) return IDENTITY_PATH;
         List<Evaluator> evalChain = new ArrayList<>();
@@ -92,6 +111,11 @@ public class NBTPath {
         return makeErrorHint(evalChain.get(atIndex));
     }
 
+    /**
+     * Just like toString except it wraps the specified evaluator in &lt; and &gt;
+     * @param atEvaluator evaluator to wrap
+     * @return modified toString
+     */
     protected String makeErrorHint(Evaluator atEvaluator) {
         StringBuilder sb = new StringBuilder();
         boolean canDot = false;
@@ -107,6 +131,16 @@ public class NBTPath {
         return sb.toString();
     }
 
+    /**
+     * Evaluates this {@link NBTPath} against the provided {@link Tag}. Note that this method may return
+     * {@link Tag}'s, but it may also return a primitive type such as byte/int/long if the leaf in the
+     * path is an index into one of the {@link ArrayTag} types.
+     * @param root tag to begin traversal from.
+     * @param <R> return type - note that if this function returns an unexpected type you will see a
+     *      {@link ClassCastException} thrown at the call site of this method - not from within this method.
+     * @return result or null
+     */
+    @SuppressWarnings("unchecked")
     public <R> R get(Tag<?> root) {
         Object node = root;
         for (Evaluator evaluator : evalChain) {
@@ -117,10 +151,23 @@ public class NBTPath {
         return (R) node;
     }
 
+    /**
+     * Just like {@link #get(Tag)} except auto-castable to a {@link Tag} type. The caller must know the
+     * type which will be returned. Any type errors will result in a {@link ClassCastException} being thrown
+     * at the call site of this method - not from within this method.
+     * @see #get(Tag)
+     */
     public <R extends Tag<?>> R getTag(Tag<?> root) {
         return get(root);
     }
 
+    /**
+     * Gets the value found by this path as a String.
+     * @param root tag to begin traversal from.
+     * @return String value or null if not found (note that a StringTag may be the empty string but never contain null;
+     * therefore null indicates the value was not set).
+     * @throws ClassCastException if the tag exists and was not a {@link StringTag}
+     */
     public String getString(Tag<?> root) {
         Object value = get(root);
         if (value instanceof StringTag) return ((StringTag) value).getValue();
@@ -129,11 +176,24 @@ public class NBTPath {
         throw new ClassCastException("expected string but was " + value.getClass().getTypeName());
     }
 
+    /**
+     * Gets the value found by this path as a boolean. This helper follows the convention that the truthiness of
+     * a tag is FALSE for all cases except a {@link ByteTag} with a positive value.
+     * @param root tag to begin traversal from.
+     * @return truthiness of the tag found by this path (default of false if the tag does not exist or is not a
+     * {@link ByteTag} with a positive value).
+     */
     public boolean getBoolean(Tag<?> root) {
         Object value = get(root);
         return value instanceof ByteTag && ((ByteTag) value).asByte() > 0;
     }
 
+    /**
+     * Gets the value found by this path as a byte. Note that this method can be used on any {@link NumberTag},
+     * {@link ArrayTag}, not just {@link ByteTag}'s.
+     * @param root tag to begin traversal from.
+     * @return value cast to a byte
+     */
     public byte getByte(Tag<?> root) {
         Object value = get(root);
         if (value instanceof NumberTag) {
@@ -143,6 +203,12 @@ public class NBTPath {
         return (byte) value;
     }
 
+    /**
+     * Gets the value found by this path as a short. Note that this method can be used on any {@link NumberTag},
+     * {@link ArrayTag}, not just {@link ShortTag}'s.
+     * @param root tag to begin traversal from.
+     * @return value cast to a short
+     */
     public short getShort(Tag<?> root) {
         Object value = get(root);
         if (value instanceof NumberTag) {
@@ -152,6 +218,12 @@ public class NBTPath {
         return (short) value;
     }
 
+    /**
+     * Gets the value found by this path as an int. Note that this method can be used on any {@link NumberTag},
+     * {@link ArrayTag}, not just {@link IntTag}'s.
+     * @param root tag to begin traversal from.
+     * @return value cast to an int
+     */
     public int getInt(Tag<?> root) {
         Object value = get(root);
         if (value instanceof NumberTag) {
@@ -161,6 +233,12 @@ public class NBTPath {
         return (int) value;
     }
 
+    /**
+     * Gets the value found by this path as a long. Note that this method can be used on any {@link NumberTag},
+     * {@link ArrayTag}, not just {@link LongTag}'s.
+     * @param root tag to begin traversal from.
+     * @return value cast to a long
+     */
     public long getLong(Tag<?> root) {
         Object value = get(root);
         if (value instanceof NumberTag) {
@@ -170,6 +248,12 @@ public class NBTPath {
         return (long) value;
     }
 
+    /**
+     * Gets the value found by this path as a float. Note that this method can be used on any {@link NumberTag},
+     * {@link ArrayTag}, not just {@link FloatTag}'s.
+     * @param root tag to begin traversal from.
+     * @return value cast to a float
+     */
     public float getFloat(Tag<?> root) {
         Object value = get(root);
         if (value instanceof NumberTag) {
@@ -179,6 +263,12 @@ public class NBTPath {
         return (float) value;
     }
 
+    /**
+     * Gets the value found by this path as a double. Note that this method can be used on any {@link NumberTag},
+     * {@link ArrayTag}, not just {@link DoubleTag}'s.
+     * @param root tag to begin traversal from.
+     * @return value cast to a double
+     */
     public double getDouble(Tag<?> root) {
         Object value = get(root);
         if (value instanceof NumberTag) {
@@ -188,6 +278,9 @@ public class NBTPath {
         return (double) value;
     }
 
+    /**
+     * @see #putTag(Tag, Tag, boolean)
+     */
     public <T extends Tag<?>> T putTag(Tag<?> root, Tag<?> value) {
         return putTag(root, value, false);
     }
@@ -238,7 +331,13 @@ public class NBTPath {
         return (T) node;
     }
 
-
+    /**
+     * Gets the size, or length, of the tag at this path.
+     * @param root root tag to evaluate this path from
+     * @return size/length of tag if exists, 0 if the tag doesn't exist.
+     * @throws IllegalArgumentException if the type of tag found by this path doesn't have a reasonable size/length
+     * property - such as a {@link DoubleTag}.
+     */
     public int size(Tag<?> root) {
         Tag<?> tag = getTag(root);
         if (tag instanceof CompoundTag) {
