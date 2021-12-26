@@ -415,7 +415,11 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	public String valueToString(int maxDepth) {
 		StringBuilder sb = new StringBuilder("{");
 		boolean first = true;
-		for (Map.Entry<String, Tag<?>> e : getValue().entrySet()) {
+		Iterator<Map.Entry<String, Tag<?>>> iter = getValue().entrySet().stream()
+				.sorted(Map.Entry.comparingByKey())
+				.iterator();
+		while (iter.hasNext()) {
+			Map.Entry<String, Tag<?>> e = iter.next();
 			sb.append(first ? "" : ",")
 					.append(escapeString(e.getKey(), false)).append(":")
 					.append(e.getValue().toString(decrementMaxDepth(maxDepth)));
