@@ -273,6 +273,10 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 		int chunkXOffset = MCAUtil.regionToChunk(regionX);
 		int chunkZOffset = MCAUtil.regionToChunk(regionZ);
 
+		// ensure that the mca header tables always exist
+		raf.seek(0x2000 - 4);
+		raf.writeInt(0);
+
 		if (chunks == null) {
 			return 0;
 		}

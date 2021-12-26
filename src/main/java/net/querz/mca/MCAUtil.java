@@ -270,12 +270,21 @@ public final class MCAUtil {
 		File to = file;
 		if (file.exists()) {
 			to = File.createTempFile(to.getName(), null);
+			to.deleteOnExit();  // attempt to make sure the temp file is cleaned up if we fail before we move it
 		}
 		int chunks;
 		try (RandomAccessFile raf = new RandomAccessFile(to, "rw")) {
 			chunks = mcaFile.serialize(raf, changeLastUpdate);
 		}
 
+		// TODO(bug): This logic is flawed - why would we ever want an empty region file?
+		// 		Why only produce an empty region file if it didn't exist before?
+		//		Shouldn't trying to write an empty region file be an error case the caller should know about?
+		//		Should the (existing) region file be DELETED if we try to write an empty one?
+		// Proposal: always write to a temp file, if chunks is empty we throw a custom NoChunksWrittenIOException
+		//		and leave the original alone. NoChunksWrittenIOException could be fully file aware and provide
+		//		a utility function to delete the destination file - but this is a non-standard offering for exceptions,
+		//		though it might make things cleaner for the caller.
 		if (chunks > 0 && to != file) {
 			Files.move(to.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
