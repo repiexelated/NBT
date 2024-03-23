@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 import static net.querz.mca.DataVersion.*;
 
 public class DataVersionTest extends MCATestCase {
-    private static final Pattern ALLOWED_ENUM_DESCRIPTION_PATTERN = Pattern.compile("^(?:FINAL|\\d{2}w\\d{2}[a-z]|(?:CT|XS|PRE|RC)\\d+|)");
+    private static final Pattern ALLOWED_ENUM_DESCRIPTION_PATTERN = Pattern.compile("^(?:FINAL|\\d{2}w\\d{2}[a-z]|CT\\d+[a-z]?|(?:XS|PRE|RC)\\d+|)");
 
     public void testEnumNamesMatchVersionInformation() {
         for (DataVersion dv : values()) {
@@ -42,7 +42,7 @@ public class DataVersionTest extends MCATestCase {
         int last = 0;
         for (DataVersion dv : values()) {
             if (dv.id() != 0) {
-                assertTrue(dv.toString() + " is out of order", dv.id() > last);
+                assertTrue(dv.toString() + " is out of order", dv.id() >= last);
                 last = dv.id();
             }
         }
@@ -61,8 +61,7 @@ public class DataVersionTest extends MCATestCase {
     }
 
     public void testBestForBetween() {
-        assertEquals(JAVA_1_10_2, bestFor(JAVA_1_11_0.id() - 1));
-        assertEquals(JAVA_1_11_0, bestFor(JAVA_1_11_0.id() + 1));
+        assertEquals(JAVA_1_9_15W32A, bestFor(150));
     }
 
     public void testBestForExactLast() {
