@@ -8,18 +8,12 @@ import net.querz.nbt.io.NBTSerializer;
 import net.querz.nbt.io.NamedTag;
 import net.querz.nbt.tag.Tag;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -258,7 +252,14 @@ public abstract class NBTTestCase extends TestCase {
 	protected File copyResourceToTmp(String resource) {
 		URL resFileURL = getClass().getClassLoader().getResource(resource);
 		TestCase.assertNotNull(resFileURL);
-		File resFile = new File(resFileURL.getFile());
+		String resPath = null;
+		try {
+			resPath = java.net.URLDecoder.decode(resFileURL.getFile(), StandardCharsets.UTF_8.name());
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		File resFile = new File(resPath);
 		File tmpFile = getNewTmpFile(resource);
 		assertThrowsNoException(() -> Files.copy(resFile.toPath(), tmpFile.toPath()));
 		return tmpFile;
