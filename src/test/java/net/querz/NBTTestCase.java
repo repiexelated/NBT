@@ -54,7 +54,14 @@ public abstract class NBTTestCase extends TestCase {
 	protected File getResourceFile(String name) {
 		URL resource = getClass().getClassLoader().getResource(name);
 		assertNotNull(resource);
-		return new File(resource.getFile());
+		String resPath = null;
+		try {
+			resPath = java.net.URLDecoder.decode(resource.getFile(), StandardCharsets.UTF_8.name());
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return new File(resPath);
 	}
 
 	protected Tag<?> deserializeFromFile(String f) {
@@ -250,16 +257,7 @@ public abstract class NBTTestCase extends TestCase {
 	}
 
 	protected File copyResourceToTmp(String resource) {
-		URL resFileURL = getClass().getClassLoader().getResource(resource);
-		TestCase.assertNotNull(resFileURL);
-		String resPath = null;
-		try {
-			resPath = java.net.URLDecoder.decode(resFileURL.getFile(), StandardCharsets.UTF_8.name());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		File resFile = new File(resPath);
+		File resFile = getResourceFile(resource);
 		File tmpFile = getNewTmpFile(resource);
 		assertThrowsNoException(() -> Files.copy(resFile.toPath(), tmpFile.toPath()));
 		return tmpFile;
