@@ -6,7 +6,7 @@ import net.querz.nbt.io.NamedTag;
 import net.querz.nbt.query.NBTPath;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.Tag;
-import net.querz.util.VersionAware;
+import net.querz.mca.util.VersionAware;
 
 import java.io.*;
 import java.util.Objects;

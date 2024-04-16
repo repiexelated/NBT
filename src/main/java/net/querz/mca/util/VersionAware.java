@@ -1,4 +1,4 @@
-package net.querz.util;
+package net.querz.mca.util;
 import java.util.Map;
 import java.util.TreeMap;
 

@@ -5,7 +5,7 @@ import net.querz.mca.entities.EntityBaseImpl;
 import net.querz.mca.entities.EntityFactory;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.ListTag;
-import net.querz.util.ChunkBoundingRectangle;
+import net.querz.mca.util.ChunkBoundingRectangle;
 import org.junit.Assert;
 
 import java.util.ArrayList;

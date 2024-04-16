@@ -22,18 +22,18 @@ import static net.querz.mca.LoadFlags.*;
 public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase> {
 
 	protected Map<String, List<PaletteIndex>> valueIndexedPalette = new HashMap<>();
-	/** Only populated for MC version >= 1.13 */
+	/** Only populated for MC version &gt;= 1.13 */
 	protected ListTag<CompoundTag> blockPalette;
 	protected long[] blockStates;
 	protected byte[] blockLight;
 	protected byte[] skyLight;
-	/** Only populated for MC version < 1.13  - 4096 (16^3) block id's */
+	/** Only populated for MC version &lt; 1.13  - 4096 (16^3) block id's */
 	protected byte[] legacyBlockIds;
-	/** Only populated for MC version < 1.13  - 4096 (16^3) block data values */
+	/** Only populated for MC version &lt; 1.13  - 4096 (16^3) block data values */
 	protected byte[] legacyBlockDataValues;
-	/** Only populated for MC version >= 21w43a (~ 1.18 pre1) */
+	/** Only populated for MC version &gt;= 21w43a (~ 1.18 pre1) */
 	protected ListTag<CompoundTag> biomePalette;
-	/** Only populated for MC version >= 21w43a (~ 1.18 pre1). Long packed biome palette references in 4x4x4 resolution. */
+	/** Only populated for MC version &gt;= 21w43a (~ 1.18 pre1). Long packed biome palette references in 4x4x4 resolution. */
 	protected long[] biomeData;
 
 	public static byte[] createBlockLightBuffer() {

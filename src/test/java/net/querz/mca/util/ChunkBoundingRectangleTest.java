@@ -1,8 +1,7 @@
-package net.querz.util;
+package net.querz.mca.util;
 
 
 import junit.framework.TestCase;
-import net.querz.util.ChunkBoundingRectangle;
 
 public class ChunkBoundingRectangleTest extends TestCase {
 

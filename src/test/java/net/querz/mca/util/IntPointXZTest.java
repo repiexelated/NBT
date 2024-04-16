@@ -1,7 +1,6 @@
-package net.querz.util;
+package net.querz.mca.util;
 
 import junit.framework.TestCase;
-import net.querz.util.IntPointXZ;
 
 public class IntPointXZTest extends TestCase {
 

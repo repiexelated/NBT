@@ -1,4 +1,4 @@
-package net.querz.util;
+package net.querz.mca.util;
 
 public class BlockAlignedBoundingRectangle {
     final int widthXZ;

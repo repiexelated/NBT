@@ -2,7 +2,7 @@ package net.querz.mca;
 
 
 import net.querz.util.ArgValidator;
-import net.querz.util.IntPointXZ;
+import net.querz.mca.util.IntPointXZ;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

@@ -2,18 +2,15 @@ package net.querz.mca;
 
 import net.querz.mca.entities.EntityBase;
 import net.querz.mca.entities.EntityFactory;
-import net.querz.nbt.io.NBTUtil;
 import net.querz.nbt.query.NBTPath;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.DoubleTag;
 import net.querz.nbt.tag.IntArrayTag;
 import net.querz.nbt.tag.ListTag;
 import net.querz.util.ArgValidator;
-import net.querz.util.ChunkBoundingRectangle;
-import net.querz.util.VersionAware;
+import net.querz.mca.util.ChunkBoundingRectangle;
+import net.querz.mca.util.VersionAware;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

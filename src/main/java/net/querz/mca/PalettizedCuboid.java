@@ -89,7 +89,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     /**
      * @param cubeEdgeLength The size of this {@link PalettizedCuboid} will be {@code cubeEdgeLength^3}.
-     *                       The value of {@code cubeEdgeLength is typically 16 or 4.
+     *                       The value of {@code cubeEdgeLength} is typically 16 or 4.
      *                       Must be a power of 2.
      * @param fillWith Required. Value to fill the initial {@link PalettizedCuboid} with.
      *                       The given value is cloned for each entry in the cuboid.
@@ -173,7 +173,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     /**
-     * Length of one edge of the cuboid (ex. 4 for a 4x4x4 cuboid).<br/>
+     * Length of one edge of the cuboid (ex. 4 for a 4x4x4 cuboid).<br>
      * <b>Note: this is a somewhat expensive call as it computes the value with each call using
      * {@link Math#pow(double, double)} and {@link Math#round(double)}.</b>
      */
@@ -490,7 +490,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         return clone;
     }
 
-    /** Serializes this cuboid to a {@link CompoundTag} assuming the latest data version (fine if only working with >= JAVA_1_16_20W17A). */
+    /** Serializes this cuboid to a {@link CompoundTag} assuming the latest data version (fine if only working with &gt;= JAVA_1_16_20W17A). */
     public CompoundTag toCompoundTag() {
         return toCompoundTag(DataVersion.latest().id());
     }

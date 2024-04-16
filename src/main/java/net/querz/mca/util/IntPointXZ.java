@@ -1,4 +1,4 @@
-package net.querz.util;
+package net.querz.mca.util;
 
 /**
  * An immutable Minecraft style 2D point where the dimensions are X and Z.

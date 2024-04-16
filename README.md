@@ -154,18 +154,18 @@ section.cleanupPaletteAndBlockStates();
 ```
 
 ## TODO
-- Make poi structure respect RAW reads and check behavior of LoadData not including poi
-- Add unit tests for entities chunks read RAW and read without ENTITIES LoadData flag
-- Add helper to EntityFactory taking a ListTag<CompoundTag> that returns a list - and its symmetrical counterpart
-- unit test IntPointXZ and IntPointXYZ
-- Update readme
-    - about entities and poi support
-    - working with the entity factory
-    - working with the mca factory
-- Add move region - akin to move chunk
 
 ### 1.18
 - biome pallets moved into section
 
 ### MCA
+- Make poi structure respect RAW reads and check behavior of LoadData not including poi
+- Add unit tests for entities chunks read RAW and read without ENTITIES LoadData flag
+- Add helper to EntityFactory taking a ListTag<CompoundTag> that returns a list - and its symmetrical counterpart
+- unit test IntPointXZ and IntPointXYZ
+- Update readme
+  - about entities and poi support
+  - working with the entity factory
+  - working with the mca factory
+- Add move region - akin to move chunk
 - support "extra" tags for full non-vanilla read/write idempotency support

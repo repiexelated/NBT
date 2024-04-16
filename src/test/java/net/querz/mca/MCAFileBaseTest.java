@@ -1,8 +1,7 @@
 package net.querz.mca;
 
-import net.querz.nbt.io.NBTUtil;
 import net.querz.nbt.tag.CompoundTag;
-import net.querz.util.IntPointXZ;
+import net.querz.mca.util.IntPointXZ;
 
 import java.io.File;
 import java.io.IOException;

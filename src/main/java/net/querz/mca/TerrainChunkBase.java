@@ -2,7 +2,7 @@ package net.querz.mca;
 
 import net.querz.nbt.query.NBTPath;
 import net.querz.nbt.tag.*;
-import net.querz.util.VersionAware;
+import net.querz.mca.util.VersionAware;
 
 import java.util.Arrays;
 
@@ -343,15 +343,15 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	  * Sets a biome id at a specific block.
 	  * The coordinates can be absolute coordinates or relative to the region or chunk.
 	  *
-	  * <h2>data version < JAVA_1_15_19W36A (non-3D biomes)</h2>
+	  * <h2>data version &lt; JAVA_1_15_19W36A (non-3D biomes)</h2>
 	  * The blockY value has no effect and the biome is set for the entire column, filling a cuboid of 1x256x1.
 	  *
-	  * <h2>data version >= JAVA_1_15_19W36A (3D biomes)</h2>
+	  * <h2>data version &gt;= JAVA_1_15_19W36A (3D biomes)</h2>
 	  * 3D biomes occupy a 4x4x4 cuboid so setting the biome for a single block within a cuboid sets it for all
 	  * blocks within the same cuboid.
 	  *
-	  * <h2>data version >= JAVA_1_18_21W39A (palette based 3D biomes)</h2>
-	  * This method is NOT supported for data versions >= JAVA_1_18_21W39A, use
+	  * <h2>data version &gt;= JAVA_1_18_21W39A (palette based 3D biomes)</h2>
+	  * This method is NOT supported for data versions &gt;= JAVA_1_18_21W39A, use
 	  * {@link #setBiomeAt(int, int, int, String)} instead.
 	  *
 	  * @param blockX The x-coordinate of the block column.
