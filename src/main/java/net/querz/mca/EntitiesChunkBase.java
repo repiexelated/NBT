@@ -2,12 +2,18 @@ package net.querz.mca;
 
 import net.querz.mca.entities.EntityBase;
 import net.querz.mca.entities.EntityFactory;
+import net.querz.nbt.io.NBTUtil;
+import net.querz.nbt.query.NBTPath;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.DoubleTag;
+import net.querz.nbt.tag.IntArrayTag;
 import net.querz.nbt.tag.ListTag;
 import net.querz.util.ArgValidator;
 import net.querz.util.ChunkBoundingRectangle;
+import net.querz.util.VersionAware;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -15,16 +21,13 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static net.querz.mca.DataVersion.JAVA_1_17_20W45A;
+
 /**
  * Provides all the basic functionality necessary for this type of chunk with abstraction hooks
  * making it easy to extend this class and modify the factory behavior of {@link MCAUtil} to create
  * instances of your custom class.
- * <p>
- *     It is possible to use this class to load chunk tags from versions prior to the introduction of /entities/*.mca
- *     files (introduced in 1.17). See this classes unit tests for an example, but it's really as simple as
- *     passing the chunk's {@link CompoundTag} to the constructor of a concrete implementation - such as
- *     {@link EntitiesChunk}.
- * </p>
+ *
  * @see EntitiesChunk
  * @see EntityFactory
  * @see MCAUtil#MCA_CREATORS
@@ -35,6 +38,12 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     private List<ET> entities;
     // Not populated if loaded in RAW mode or if load flags did not include ENTITIES
     protected ListTag<CompoundTag> entitiesTag;
+
+    protected static final VersionAware<NBTPath> POSITION_PATH = new VersionAware<NBTPath>()
+            .register(JAVA_1_17_20W45A.id(), NBTPath.of("Position"));
+
+    protected static final VersionAware<NBTPath> ENTITIES_PATH = new VersionAware<NBTPath>()
+            .register(JAVA_1_17_20W45A.id(), NBTPath.of("Entities"));
 
     protected EntitiesChunkBase(int dataVersion) {
         super(dataVersion);
@@ -51,33 +60,21 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     @Override
     protected void initReferences(long loadFlags) {
         // remember: this isn't called when loaded in RAW mode, see base class
-
-        if (dataVersion >= DataVersion.JAVA_1_17_20W45A.id()) {
-            int[] posXZ = data.getIntArray("Position");
-            if (posXZ == null || posXZ.length != 2) {
-                throw new IllegalArgumentException("Position tag missing or invalid");
-            }
-            chunkX = posXZ[0];
-            chunkZ = posXZ[1];
-        } else {
-            // not reading an entities mca file, this must be a pre 1.17 terrain mca file
-            CompoundTag level = data.getCompoundTag("Level");
-            ArgValidator.check(level != null && level.containsKey("xPos") && level.containsKey("zPos"),
-                    "Level/xPos/zPos tag missing");
-            chunkX = level.getInt("xPos", NO_CHUNK_COORD_SENTINEL);
-            chunkZ = level.getInt("zPos", NO_CHUNK_COORD_SENTINEL);
+        if (dataVersion < JAVA_1_17_20W45A.id()) {
+            throw new UnsupportedOperationException(
+                    "This class can only be used to read entities mca files introduced in JAVA_1_17_20W45A");
         }
 
+        int[] posXZ = getTagValue(POSITION_PATH, IntArrayTag::getValue);
+        if (posXZ == null || posXZ.length != 2) {
+            throw new IllegalArgumentException("POSITION tag missing or invalid");
+        }
+        chunkX = posXZ[0];
+        chunkZ = posXZ[1];
+
         if ((loadFlags & LoadFlags.ENTITIES) > 0) {
-            if (dataVersion >= DataVersion.JAVA_1_17_20W45A.id()) {
-                entitiesTag = data.getListTagAutoCast("Entities");
-            } else {
-                // not reading an entities mca file, this must be a region mca file - pre 1.17 chunk
-                if (data.containsKey("Level")) {
-                    entitiesTag = data.getCompoundTag("Level").getListTagAutoCast("Entities");
-                }
-            }
-            ArgValidator.check(entitiesTag != null, "\"Entities\" tag not found");
+            entitiesTag = getTag(ENTITIES_PATH);
+            ArgValidator.check(entitiesTag != null, "ENTITIES tag not found");
             // Don't call initEntities() here, let getEntities do this lazily to keep things lean
         }
     }
@@ -146,6 +143,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     /**
      * Gets the entities nbt tag by reference.
      * Result may be null if chunk was loaded with a LoadFlags that excluded Entities.
+     * If you have called {@link #setEntities(List)} you will need to call {@link #updateHandle()} for the
+     * result of this method to be updated.
      * @throws UnsupportedOperationException if loaded in raw mode
      */
     public ListTag<CompoundTag> getEntitiesTag() {
@@ -176,17 +175,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
 
     protected void setEntitiesTagInternal(ListTag<CompoundTag> entitiesTag) {
         if (data != null) {  // only sync the data tag if we have it - data will be null if chunk was partially loaded
-            if (dataVersion >= DataVersion.JAVA_1_17_20W45A.id()) {
-                data.put("Entities", entitiesTag);
-            } else {
-                // not reading an entities mca file, this must be a region mca file - pre 1.17 chunk
-                CompoundTag levelTag = data.getCompoundTag("Level");
-                if (levelTag == null) {
-                    throw new IllegalStateException("Expected \"Level\" tag to exist in data handle for chunk version " +
-                            getDataVersionEnum().toString());
-                }
-                levelTag.put("Entities", entitiesTag);
-            }
+            setTag(ENTITIES_PATH, entitiesTag);
         }
         if (!raw) {
             this.entitiesTag = entitiesTag;
@@ -315,7 +304,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     /** {@inheritDoc} */
     @Override
     public void setDataVersion(int dataVersion) {
-        DataVersion.JAVA_1_17_20W45A.throwUnsupportedVersionChangeIfCrossed(this.dataVersion, dataVersion);
+        JAVA_1_17_20W45A.throwUnsupportedVersionChangeIfCrossed(this.dataVersion, dataVersion);
         super.setDataVersion(dataVersion);
     }
 
@@ -324,14 +313,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
         checkPartial();
         if (!raw) {
             super.updateHandle();
-            if (dataVersion >= DataVersion.JAVA_1_17_20W45A.id()) {
-                if (chunkX != NO_CHUNK_COORD_SENTINEL && chunkZ != NO_CHUNK_COORD_SENTINEL) {
-                    data.putIntArray("Position", new int[]{chunkX, chunkZ});
-                }
-            } else if (data.containsKey("Level")) {
-                CompoundTag levelTag = data.getCompoundTag("Level");
-                levelTag.putInt("xPos", chunkX);
-                levelTag.putInt("zPos", chunkZ);
+            if (chunkX != NO_CHUNK_COORD_SENTINEL && chunkZ != NO_CHUNK_COORD_SENTINEL) {
+                setTag(POSITION_PATH, new IntArrayTag(new int[]{chunkX, chunkZ}));
             }
 
             // if getEntities() was never called then don't rebuild entitiesTag
@@ -345,6 +328,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                     entitiesTag.add(entity.updateHandle());
                 }
             }
+            setTagIfNotNull(ENTITIES_PATH, entitiesTag);
         }
         return data;
     }

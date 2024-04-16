@@ -30,6 +30,10 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 		super(data, loadFlags);
 	}
 
+	public boolean hasSections() {
+		return !sections.isEmpty();
+	}
+
 	public boolean containsSection(int sectionY) {
 		return sections.containsKey(sectionY);
 	}

@@ -70,32 +70,9 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertThrowsIllegalArgumentException(() -> new EntitiesChunk(tag));
     }
 
-    public void testInitReferences_throwsWhenMissingXPos_MC_LT_1_17() {
+    public void testInitReferences_throwsWhenReadingPre_MC_1_17() {
         CompoundTag tag = createTag(DataVersion.JAVA_1_16_5.id(), 1, 7);
-        assertThrowsNoException(() -> new EntitiesChunk(tag));
-        tag.getCompoundTag("Level").remove("xPos");
-        assertThrowsIllegalArgumentException(() -> new EntitiesChunk(tag));
-    }
-
-    public void testInitReferences_throwsWhenMissingZPos_MC_LT_1_17() {
-        CompoundTag tag = createTag(DataVersion.JAVA_1_16_5.id(), 1, 7);
-        assertThrowsNoException(() -> new EntitiesChunk(tag));
-        tag.getCompoundTag("Level").remove("zPos");
-        assertThrowsIllegalArgumentException(() -> new EntitiesChunk(tag));
-    }
-
-    public void testInitReferences_throwsWhenMissingEntitiesTag_MC_LT_1_17() {
-        CompoundTag tag = createTag(DataVersion.JAVA_1_16_5.id(), 1, 7);
-        assertThrowsNoException(() -> new EntitiesChunk(tag));
-        tag.getCompoundTag("Level").remove("Entities");
-        assertThrowsIllegalArgumentException(() -> new EntitiesChunk(tag));
-    }
-
-    public void testInitReferences_throwsWhenMissingLevelTag_MC_LT_1_17() {
-        CompoundTag tag = createTag(DataVersion.JAVA_1_16_5.id(), 1, 7);
-        assertThrowsNoException(() -> new EntitiesChunk(tag));
-        tag.remove("Level");
-        assertThrowsIllegalArgumentException(() -> new EntitiesChunk(tag));
+        assertThrowsUnsupportedOperationException(() -> new EntitiesChunk(tag));
     }
 
     public void testInitEntities_throwsWhenEntitiesTagIsNull() {
@@ -216,23 +193,6 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertSame(newEntitiesTag, chunk.updateHandle().getListTag("Entities"));  // given ref now put into handle tag
     }
 
-    public void testSetEntitiesTagInternal_MC_LT_1_17_20W45A() {
-        // normal case - chunk data fully loadedv
-        final ListTag<CompoundTag> newEntitiesTag = new ListTag<>(CompoundTag.class);
-        T chunk = createFilledChunk(1, 0, DataVersion.JAVA_1_16_5);
-        assertFalse(chunk.areWrappedEntitiesGenerated());
-        chunk.getEntities();  // trigger lazy initialization
-        assertTrue(chunk.areWrappedEntitiesGenerated());
-        chunk.setEntitiesTagInternal(newEntitiesTag);
-        assertFalse(chunk.areWrappedEntitiesGenerated());  // wrapped entities nuked
-        assertSame(newEntitiesTag, chunk.getEntitiesTag());  // reference changed
-        assertSame(newEntitiesTag, chunk.updateHandle().getCompoundTag("Level").getListTag("Entities"));  // given ref now put into handle tag
-
-        // Throws if the Level tag is missing
-        chunk.getHandle().remove("Level");
-        assertThrowsException(() -> chunk.setEntitiesTagInternal(newEntitiesTag), IllegalStateException.class);
-    }
-
     public void testSetEntitiesTag_valueCannotBeNull() {
         T chunk = createFilledChunk(1, 0, DataVersion.JAVA_1_17_20W45A);
         assertThrowsIllegalArgumentException(() -> chunk.setEntitiesTag(null));
@@ -240,7 +200,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
 
     public void testMoveChunk() {
         // white box testing - let fixEntityLocations tests cover actual entity relocation validation
-        T chunk = createFilledChunk(1, 0, DataVersion.JAVA_1_16_5);
+        T chunk = createFilledChunk(1, 0, DataVersion.JAVA_1_17_1);
         chunk.moveChunk(-2, 3);
         assertEquals(-2, chunk.getChunkX());
         assertEquals(3, chunk.getChunkZ());

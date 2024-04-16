@@ -80,7 +80,7 @@ public class Chunk extends TerrainChunkBase<Section> {
 	}
 
 	/**
-	 * @deprecated Dangerous - assumes latest full release data version defined by {@link DataVersion}
+	 * @deprecated Dangerous - assumes the latest full release data version defined by {@link DataVersion}
 	 * prefer using {@link MCAFileBase#createChunk()} or {@link MCAFileBase#createChunkIfMissing(int, int)}.
 	 */
 	@Deprecated
@@ -89,11 +89,11 @@ public class Chunk extends TerrainChunkBase<Section> {
 	}
 
 	public static Chunk newChunk(int dataVersion) {
-		Chunk c = new Chunk(0);
-		c.dataVersion = dataVersion;
+		Chunk c = new Chunk(dataVersion, 0);
 		c.data = new CompoundTag();
-		// TODO(1.18): update for 1.18 needed
-		c.data.put("Level", new CompoundTag());
+		if (dataVersion < DataVersion.JAVA_1_18_21W39A.id()) {
+			c.data.put("Level", new CompoundTag());
+		}
 		c.status = "mobs_spawned";
 		return c;
 	}

@@ -27,6 +27,10 @@ public class PoiMCAFileTest extends MCAFileBaseTest {
         validateReadWriteParity(DataVersion.JAVA_1_18_PRE1, "1_18_PRE1/poi/r.-2.-3.mca", PoiMCAFile.class);
     }
 
+    public void testMcaReadWriteParity_1_18_1() {
+        validateReadWriteParity(DataVersion.JAVA_1_18_1, "1_18_1/poi/r.0.-2.mca", PoiMCAFile.class);
+    }
+
     public void testPoiMca_1_17_1() {
         PoiMCAFile mca = assertThrowsNoException(() -> MCAUtil.readAuto(copyResourceToTmp("1_17_1/poi/r.-3.-2.mca")));
         PoiChunk chunk = mca.stream().filter(Objects::nonNull).findFirst().orElse(null);

@@ -3,10 +3,14 @@ package net.querz.mca;
 import net.querz.nbt.io.NBTDeserializer;
 import net.querz.nbt.io.NBTSerializer;
 import net.querz.nbt.io.NamedTag;
+import net.querz.nbt.query.NBTPath;
 import net.querz.nbt.tag.CompoundTag;
+import net.querz.nbt.tag.Tag;
+import net.querz.util.VersionAware;
 
 import java.io.*;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static net.querz.mca.LoadFlags.ALL_DATA;
 import static net.querz.mca.LoadFlags.RAW;
@@ -33,6 +37,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	public static final int NO_CHUNK_COORD_SENTINEL = Integer.MIN_VALUE;
 
+	protected final long originalLoadFlags;
 	protected int dataVersion;
 	protected int chunkX = NO_CHUNK_COORD_SENTINEL;
 	protected int chunkZ = NO_CHUNK_COORD_SENTINEL;
@@ -56,6 +61,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	protected ChunkBase(int dataVersion) {
 		this.dataVersion = dataVersion;
+		this.originalLoadFlags = ALL_DATA;
 		this.lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
 		initMembers();
 	}
@@ -75,6 +81,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	 */
 	public ChunkBase(CompoundTag data, long loadFlags) {
 		this.data = data;
+		this.originalLoadFlags = loadFlags;
 		initMembers();
 		initReferences0(loadFlags);
 	}
@@ -288,5 +295,67 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	// to give them the chance to record them.
 	public CompoundTag updateHandle(int xPos, int zPos) {
 		return updateHandle();
+	}
+
+
+	/**
+	 * @param vaPath version aware nbt path
+	 * @param <R> Return Type
+	 * @return tag value, or null if there is none, or if the given vaPath doesn't support the current version
+	 */
+	protected <R extends Tag<?>> R getTag(VersionAware<NBTPath> vaPath) {
+		NBTPath path = vaPath.get(dataVersion);
+		if (path == null) return null;  // not supported by this version
+		return path.getTag(data);
+	}
+
+	/**
+	 * Simple but powerful helper - example usage
+	 * <pre>{@code long myLong = getTagValue(vaPath, LongTag::asLong, 0L);}</pre>
+	 * @param vaPath version aware nbt path
+	 * @param evaluator value provider, given the tag (iff not null)
+	 * @param defaultValue value to return if the tag specified by vaPath does not exist
+	 * @param <TT> Tag Type
+	 * @param <R> Return Type
+	 * @return result of calling evaluator, or defaultValue if the tag didn't exist
+	 */
+	protected <TT extends Tag<?>, R> R getTagValue(VersionAware<NBTPath> vaPath, Function<TT, R> evaluator, R defaultValue) {
+		TT tag = getTag(vaPath);
+		return tag != null ? evaluator.apply(tag) : defaultValue;
+	}
+
+	/**
+	 * @param vaPath version aware nbt path
+	 * @param evaluator value provider, given the tag (iff not null)
+	 * @param <TT> Tag Type
+	 * @param <R> Return Type
+	 * @return result of calling evaluator, or NULL if the tag didn't exist
+	 */
+	protected <TT extends Tag<?>, R> R getTagValue(VersionAware<NBTPath> vaPath, Function<TT, R> evaluator) {
+		return getTagValue(vaPath, evaluator, null);
+	}
+
+	/**
+	 * Sets the given tag, or removes it if null. If tag is not null, parent CompoundTags will be created as-needed.
+	 * If the given vaPath does not support the current data version, then NO ACTION is performed.
+	 * @param vaPath version aware nbt path
+	 * @param tag tag value to set - if null then the value is REMOVED
+	 */
+	protected void setTag(VersionAware<NBTPath> vaPath, Tag<?> tag) {
+		NBTPath path = vaPath.get(dataVersion);
+		if (path == null) return;  // not supported by this version
+		path.putTag(data, tag, tag != null);
+	}
+
+	/**
+	 * Sets the given tag (if it's not null). Creates parent CompoundTags as-needed.
+	 * If the given vaPath does not support the current data version, then NO ACTION is performed.
+	 * @param vaPath version aware nbt path
+	 * @param tag tag value to set - nothing happens if this value is null
+	 */
+	protected void setTagIfNotNull(VersionAware<NBTPath> vaPath, Tag<?> tag) {
+		if (tag != null) {
+			setTag(vaPath, tag);
+		}
 	}
 }

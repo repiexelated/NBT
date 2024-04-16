@@ -9,7 +9,8 @@ import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static net.querz.mca.DataVersion.JAVA_1_16_20W17A;
+// TODO: Unsure when exactly in 1.13 development "Blocks" and "Data" were replaced with block palette.
+import static net.querz.mca.DataVersion.*;
 import static net.querz.mca.LoadFlags.*;
 
 /**
@@ -21,10 +22,19 @@ import static net.querz.mca.LoadFlags.*;
 public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase> {
 
 	protected Map<String, List<PaletteIndex>> valueIndexedPalette = new HashMap<>();
-	protected ListTag<CompoundTag> palette;
-	protected byte[] blockLight;
+	/** Only populated for MC version >= 1.13 */
+	protected ListTag<CompoundTag> blockPalette;
 	protected long[] blockStates;
+	protected byte[] blockLight;
 	protected byte[] skyLight;
+	/** Only populated for MC version < 1.13  - 4096 (16^3) block id's */
+	protected byte[] legacyBlockIds;
+	/** Only populated for MC version < 1.13  - 4096 (16^3) block data values */
+	protected byte[] legacyBlockDataValues;
+	/** Only populated for MC version >= 21w43a (~ 1.18 pre1) */
+	protected ListTag<CompoundTag> biomePalette;
+	/** Only populated for MC version >= 21w43a (~ 1.18 pre1). Long packed biome palette references in 4x4x4 resolution. */
+	protected long[] biomeData;
 
 	public static byte[] createBlockLightBuffer() {
 		return new byte[2048];
@@ -49,14 +59,21 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		}
 		height = sectionRoot.getNumber("Y").byteValue();
 
+		// Block palettes were added in 1.13 - prior to this the "Blocks" ByteArrayTag was used with fixed id's
 		ListTag<?> rawPalette = sectionRoot.getListTag("Palette");
-		if (rawPalette == null) {
-			return;
+		if (rawPalette != null) {
+			blockPalette = rawPalette.asCompoundTagList();
+			for (int i = 0; i < blockPalette.size(); i++) {
+				CompoundTag data = blockPalette.get(i);
+				putValueIndexedPalette(data, i);
+			}
 		}
-		palette = rawPalette.asCompoundTagList();
-		for (int i = 0; i < palette.size(); i++) {
-			CompoundTag data = palette.get(i);
-			putValueIndexedPalette(data, i);
+
+		if (dataVersion <= JAVA_1_12_2.id()) {
+			ByteArrayTag legacyBlockIds = sectionRoot.getByteArrayTag("Blocks");
+			if (legacyBlockIds != null) this.legacyBlockIds = legacyBlockIds.getValue();
+			ByteArrayTag legacyBlockDataValues = sectionRoot.getByteArrayTag("Data");
+			if (legacyBlockDataValues != null) this.legacyBlockDataValues = legacyBlockDataValues.getValue();
 		}
 
 		if ((loadFlags & BLOCK_LIGHTS) != 0) {
@@ -78,10 +95,16 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		blockLight = createBlockLightBuffer();
 		blockStates = createBlockStates();
 		skyLight = createSkyLightBuffer();
-		palette = new ListTag<>(CompoundTag.class);
-		CompoundTag air = new CompoundTag();
-		air.putString("Name", "minecraft:air");
-		palette.add(air);
+
+		if (dataVersion > JAVA_1_12_2.id()) {
+			blockPalette = new ListTag<>(CompoundTag.class);
+			CompoundTag air = new CompoundTag();
+			air.putString("Name", "minecraft:air");
+			blockPalette.add(air);
+		} else {
+			legacyBlockIds = new byte[2048];
+			legacyBlockDataValues = new byte[2048];
+		}
 	}
 
 	private void assureBlockStates() {
@@ -89,7 +112,12 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	}
 
 	private void assurePalette() {
-		if (palette == null) palette = new ListTag<>(CompoundTag.class);
+		if (blockPalette == null) blockPalette = new ListTag<>(CompoundTag.class);
+	}
+
+	private void assureBiomePalette() {
+		if (biomePalette == null) biomePalette = new ListTag<>(CompoundTag.class);
+		if (biomeData == null) biomeData = new long[]{0L}; // default is whole sub chunk is of same biome
 	}
 	
 	void putValueIndexedPalette(CompoundTag data, int index) {
@@ -147,8 +175,8 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	}
 
 	private CompoundTag getBlockStateAt(int index) {
-		int paletteIndex = getPaletteIndex(index);
-		return palette.get(paletteIndex);
+		int paletteIndex = getBlockPaletteIndex(index);
+		return blockPalette.get(paletteIndex);
 	}
 
 	/**
@@ -166,13 +194,15 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	 * 		{@code true} you can skip the call to {@link TerrainSectionBase#cleanupPaletteAndBlockStates()}.
 	 */
 	public boolean setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
+		if (dataVersion <= JAVA_1_12_2.id())
+			throw new UnsupportedOperationException("Non block palette MC versions are unsupported!");
 		assurePalette();
-		int paletteSizeBefore = palette.size();
+		int paletteSizeBefore = blockPalette.size();
 		int paletteIndex = addToPalette(state);
 		//power of 2 --> bits must increase, but only if the palette size changed
 		//otherwise we would attempt to update all blockstates and the entire palette
 		//every time an existing blockstate was added while having 2^x blockstates in the palette
-		if (paletteSizeBefore != palette.size() && (paletteIndex & (paletteIndex - 1)) == 0) {
+		if (paletteSizeBefore != blockPalette.size() && (paletteIndex & (paletteIndex - 1)) == 0) {
 			assureBlockStates();
 			adjustBlockStateBits(null, blockStates);
 			cleanup = true;
@@ -189,10 +219,12 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 
 	/**
 	 * Returns the index of the block data in the palette.
-	 * @param blockStateIndex The index of the block in this section, ranging from 0-4095.
+	 * @param blockStateIndex The index of the block in this section, ranging from 0-4095 (16x16x16).
 	 * @return The index of the block data in the palette.
 	 */
-	public int getPaletteIndex(int blockStateIndex) {
+	public int getBlockPaletteIndex(int blockStateIndex) {
+		if (dataVersion <= JAVA_1_12_2.id())
+			throw new UnsupportedOperationException("Non block palette MC versions are unsupported!");
 		assureBlockStates();
 		int bits = blockStates.length >> 6;
 
@@ -222,6 +254,8 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	 * @param blockStates The block states to be updated.
 	 */
 	public void setPaletteIndex(int blockIndex, int paletteIndex, long[] blockStates) {
+		if (dataVersion <= JAVA_1_12_2.id())
+			throw new UnsupportedOperationException("Non block palette MC versions are unsupported!");
 		Objects.requireNonNull(blockStates, "blockStates must not be null");
 		int bits = blockStates.length >> 6;
 
@@ -244,7 +278,9 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	}
 
 	private void upgradeFromBefore20W17A(final int targetVersion) {
-		int newBits = 32 - Integer.numberOfLeadingZeros(palette.size() - 1);
+		if (dataVersion <= JAVA_1_12_2.id())
+			throw new UnsupportedOperationException("Non block palette MC versions are unsupported!");
+		int newBits = 32 - Integer.numberOfLeadingZeros(blockPalette.size() - 1);
 		newBits = Math.max(newBits, 4);
 		long[] newBlockStates;
 
@@ -252,7 +288,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		newBlockStates = newBits == blockStates.length / 64 ? blockStates : new long[newLength];
 
 		for (int i = 0; i < 4096; i++) {
-			setPaletteIndex(i, getPaletteIndex(i), newBlockStates);
+			setPaletteIndex(i, getBlockPaletteIndex(i), newBlockStates);
 		}
 		this.blockStates = newBlockStates;
 	}
@@ -273,8 +309,8 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	 * Fetches the palette of this Section.
 	 * @return The palette of this Section.
 	 */
-	public ListTag<CompoundTag> getPalette() {
-		return palette;
+	public ListTag<CompoundTag> getBlockPalette() {
+		return blockPalette;
 	}
 
 	int addToPalette(CompoundTag data) {
@@ -282,9 +318,9 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		if ((index = getValueIndexedPalette(data)) != null) {
 			return index.index;
 		}
-		palette.add(data);
-		putValueIndexedPalette(data, palette.size() - 1);
-		return palette.size() - 1;
+		blockPalette.add(data);
+		putValueIndexedPalette(data, blockPalette.size() - 1);
+		return blockPalette.size() - 1;
 	}
 
 	int getBlockIndex(int blockX, int blockY, int blockZ) {
@@ -292,12 +328,14 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	}
 
 	static long updateBits(long n, long m, int i, int j) {
+		// updateBits(blockStates[blockStatesIndex], paletteIndex, startBit, startBit + bits)
 		//replace i to j in n with j - i bits of m
 		long mShifted = i > 0 ? (m & ((1L << j - i) - 1)) << i : (m & ((1L << j - i) - 1)) >>> -i;
 		return ((n & ((j > 63 ? 0 : (~0L << j)) | (i < 0 ? 0 : ((1L << i) - 1L)))) | mShifted);
 	}
 
 	static long bitRange(long value, int from, int to) {
+		// bitRange(blockStates[blockStatesIndex], startBit, startBit + bits)
 		int waste = 64 - to;
 		return (value << waste) >>> (waste + from);
 	}
@@ -308,7 +346,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	 * Recalculating the Palette should only be executed once right before saving the Section to file.
 	 */
 	public void cleanupPaletteAndBlockStates() {
-		if (blockStates != null && palette != null) {
+		if (blockStates != null && blockPalette != null) {
 			Map<Integer, Integer> oldToNewMapping = cleanupPalette();
 			adjustBlockStateBits(oldToNewMapping, blockStates);
 		}
@@ -318,20 +356,21 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		//create index - palette mapping
 		Map<Integer, Integer> allIndices = new HashMap<>();
 		for (int i = 0; i < 4096; i++) {
-			int paletteIndex = getPaletteIndex(i);
+			int paletteIndex = getBlockPaletteIndex(i);
 			allIndices.put(paletteIndex, paletteIndex);
 		}
 		//delete unused blocks from palette
+		// TODO: this is wrong! we can't assume air is index 0! If this was ever true it's not any more.
 		//start at index 1 because we need to keep minecraft:air
 		int index = 1;
 		valueIndexedPalette = new HashMap<>(valueIndexedPalette.size());
-		putValueIndexedPalette(palette.get(0), 0);
-		for (int i = 1; i < palette.size(); i++) {
+		putValueIndexedPalette(blockPalette.get(0), 0);
+		for (int i = 1; i < blockPalette.size(); i++) {
 			if (!allIndices.containsKey(index)) {
-				palette.remove(i);
+				blockPalette.remove(i);
 				i--;
 			} else {
-				putValueIndexedPalette(palette.get(i), i);
+				putValueIndexedPalette(blockPalette.get(i), i);
 				allIndices.put(index, i);
 			}
 			index++;
@@ -345,7 +384,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		//based on the size of the palette. oldToNewMapping can be used to update indices
 		//if the palette had been cleaned up before using MCAFile#cleanupPalette().
 
-		int newBits = 32 - Integer.numberOfLeadingZeros(palette.size() - 1);
+		int newBits = 32 - Integer.numberOfLeadingZeros(blockPalette.size() - 1);
 		newBits = Math.max(newBits, 4);
 
 		long[] newBlockStates;
@@ -358,11 +397,11 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 		}
 		if (oldToNewMapping != null) {
 			for (int i = 0; i < 4096; i++) {
-				setPaletteIndex(i, oldToNewMapping.get(getPaletteIndex(i)), newBlockStates);
+				setPaletteIndex(i, oldToNewMapping.get(getBlockPaletteIndex(i)), newBlockStates);
 			}
 		} else {
 			for (int i = 0; i < 4096; i++) {
-				setPaletteIndex(i, getPaletteIndex(i), newBlockStates);
+				setPaletteIndex(i, getBlockPaletteIndex(i), newBlockStates);
 			}
 		}
 		this.blockStates = newBlockStates;
@@ -429,6 +468,38 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	}
 
 	/**
+	 * Null if MC version &gt; 1.12.2
+	 * See https://minecraft-ids.grahamedgecombe.com/
+	 */
+	public byte[] legacyBlockIds() {
+		return legacyBlockIds;
+	}
+
+	/** unsupported if MC version &gt; 1.12.2 */
+	public TerrainSectionBase setLegacyBlockIds(byte[] legacyBlockIds) {
+		if (dataVersion <= JAVA_1_12_2.id())
+			throw new UnsupportedOperationException("Legacy block id usage was replaced with block palettes in MC 1.13!");
+		this.legacyBlockIds = legacyBlockIds;
+		return this;
+	}
+
+	/**
+	 * Null if MC version &gt; 1.12.2
+	 * See https://minecraft-ids.grahamedgecombe.com/
+	 */
+	public byte[] legacyBlockDataValues() {
+		return legacyBlockDataValues;
+	}
+
+	/** unsupported if MC version &gt; 1.12.2 */
+	public TerrainSectionBase legacyBlockDataValues(byte[] legacyBlockDataValues) {
+		if (dataVersion <= JAVA_1_12_2.id())
+			// TODO: I'm not 100% sure what block "Data" is - this message is making assumptions
+			throw new UnsupportedOperationException("Legacy block data usage was replaced with block palettes in MC 1.13!");
+		this.legacyBlockDataValues = legacyBlockDataValues;
+		return this;
+	}
+	/**
 	 * Updates the raw CompoundTag that this Section is based on.
 	 * @return A reference to the raw CompoundTag this Section is based on
 	 */
@@ -436,8 +507,14 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 	public CompoundTag updateHandle() {
 		checkY(height);
 		data.putByte("Y", (byte) height);
-		if (palette != null) {
-			data.put("Palette", palette);
+		if (legacyBlockIds != null) {
+			data.putByteArray("Blocks", legacyBlockIds);
+		}
+		if (legacyBlockDataValues != null) {
+			data.putByteArray("Data", legacyBlockDataValues);
+		}
+		if (blockPalette != null) {
+			data.put("Palette", blockPalette);
 		}
 		if (blockLight != null) {
 			data.putByteArray("BlockLight", blockLight);

@@ -23,6 +23,7 @@ public class ByteTag extends NumberTag<Byte> implements Comparable<ByteTag> {
 	}
 
 	public boolean asBoolean() {
+		// TODO(bug): MC uses `.asByte() != 0` for truthiness - and asBoolean is valid on all NumberTags (even float and double)
 		return getValue() > 0;
 	}
 

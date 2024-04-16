@@ -1,4 +1,4 @@
-package net.querz.mca.util;
+package net.querz.util;
 
 import junit.framework.TestCase;
 import net.querz.util.BlockAlignedBoundingRectangle;

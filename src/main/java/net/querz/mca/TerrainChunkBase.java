@@ -1,11 +1,12 @@
 package net.querz.mca;
 
-import net.querz.nbt.tag.CompoundTag;
-import net.querz.nbt.tag.ListTag;
+import net.querz.nbt.query.NBTPath;
+import net.querz.nbt.tag.*;
+import net.querz.util.VersionAware;
 
 import java.util.Arrays;
 
-import static net.querz.mca.DataVersion.JAVA_1_15_19W36A;
+import static net.querz.mca.DataVersion.*;
 import static net.querz.mca.LoadFlags.*;
 
 /**
@@ -17,20 +18,138 @@ import static net.querz.mca.LoadFlags.*;
 public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends SectionedChunkBase<T> {
 
 	protected long lastUpdate;
+	protected static final VersionAware<NBTPath> LAST_UPDATE_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.LastUpdate"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("LastUpdate"));
+
 	protected long inhabitedTime;
+	protected static final VersionAware<NBTPath> INHABITED_TIME_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.InhabitedTime"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("InhabitedTime"));
+
 	protected int[] biomes;
+	protected static final VersionAware<NBTPath> BIOMES_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Biomes"))
+			.register(JAVA_1_18_21W39A.id(), null);  // biomes are now paletted and live in a similar container structure in sections[].biomes
+
+	protected IntArrayTag legacyHeightMap;
+	protected static final VersionAware<NBTPath> LEGACY_HEIGHT_MAP_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.HeightMap"));
+
 	protected CompoundTag heightMaps;
+	protected static final VersionAware<NBTPath> HEIGHT_MAPS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Heightmaps"))  // TODO: find when this was introduced - it was sometime before 1.13.0
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("Heightmaps"));
+
+	// TODO(1.18): WTF - change notes say Level.CarvingMasks[] is now long[] instead of byte[] ... but this is a CompoundTag!
 	protected CompoundTag carvingMasks;
-	protected ListTag<CompoundTag> entities;  // never populated for chunk versions >= 2724 (1.17)
+	protected static final VersionAware<NBTPath> CARVING_MASKS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.CarvingMasks"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("CarvingMasks"));
+
+	protected ListTag<CompoundTag> entities;  // usage changed for chunk versions >= 2724 (1.17) after which entities are only stored in terrain chunks during world generation.
+	protected static final VersionAware<NBTPath> ENTITIES_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Entities"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("entities"));
+
 	protected ListTag<CompoundTag> tileEntities;
+	protected static final VersionAware<NBTPath> TILE_ENTITIES_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.TileEntities"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("block_entities"));
+
 	protected ListTag<CompoundTag> tileTicks;
-	protected ListTag<CompoundTag> liquidTicks;
-	protected ListTag<ListTag<?>> lights;
-	protected ListTag<ListTag<?>> liquidsToBeTicked;
+	protected static final VersionAware<NBTPath> TILE_TICKS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.TileTicks"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("block_ticks"));
+
 	protected ListTag<ListTag<?>> toBeTicked;
+	protected static final VersionAware<NBTPath> TO_BE_TICKED_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.ToBeTicked"))
+			.register(JAVA_1_18_21W43A.id(), null);  // unsure when this was removed - but notes on this version say it was also "moved to block_ticks"
+
+	protected ListTag<CompoundTag> liquidTicks;
+	protected static final VersionAware<NBTPath> LIQUID_TICKS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.LiquidTicks"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("fluid_ticks"));
+
+	protected ListTag<ListTag<?>> liquidsToBeTicked;
+	protected static final VersionAware<NBTPath> LIQUIDS_TO_BE_TICKED_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.LiquidsToBeTicked"))
+			.register(JAVA_1_18_21W43A.id(), null);  // unsure when this was removed - but notes on this version say it was also "moved to fluid_ticks"
+
+	protected ListTag<ListTag<?>> lights;
+	protected static final VersionAware<NBTPath> LIGHTS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Lights"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("Lights"));
+
 	protected ListTag<ListTag<?>> postProcessing;
+	protected static final VersionAware<NBTPath> POST_PROCESSING_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.PostProcessing"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("PostProcessing"));
+
 	protected String status;
+	protected static final VersionAware<NBTPath> STATUS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Status"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("Status"));
+
 	protected CompoundTag structures;
+	protected static final VersionAware<NBTPath> STRUCTURES_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Structures"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("structures"));
+
+	// null if the chunk data tag didn't contain a value
+	protected Boolean isLightOn;
+	protected static final VersionAware<NBTPath> IS_LIGHT_ON_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.LightPopulated"))
+			.register(JAVA_1_13_18W06A.id(), NBTPath.of("Level.isLightOn"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("isLightOn"));
+
+	// null if the chunk data tag didn't contain a value
+	protected Boolean isTerrainPopulated;
+	protected static final VersionAware<NBTPath> TERRAIN_POPULATED_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.TerrainPopulated"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("TerrainPopulated"));
+
+	protected Boolean hasLegacyStructureData;
+	protected static final VersionAware<NBTPath> HAS_LEGACY_STRUCTURE_DATA_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.hasLegacyStructureData"));
+
+	protected CompoundTag upgradeData;
+	protected static final VersionAware<NBTPath> UPGRADE_DATA_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.UpgradeData"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("UpgradeData"));
+
+	protected static final VersionAware<NBTPath> SECTIONS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.Sections"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("sections"));
+
+	protected static final VersionAware<NBTPath> X_POS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.xPos"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("xPos"));
+
+	protected static final VersionAware<NBTPath> Z_POS_PATH = new VersionAware<NBTPath>()
+			.register(0, NBTPath.of("Level.zPos"))
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("zPos"));
+
+	// PRIVATE - this field is only used when we didn't load section data, prefer #getYPos() to reading this value
+	/** @since 1.18 */
+	private int yPos;
+	protected static final VersionAware<Integer> DEFAULT_Y_POS = new VersionAware<Integer>()
+			.register(0, 0)
+			.register(JAVA_1_18_XS1.id(), -4);  // IDK if they actually enabled deep worlds here or not...
+	protected static final VersionAware<NBTPath> Y_POS_PATH = new VersionAware<NBTPath>()
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("yPos"));
+
+	/** @since 1.18 */
+	protected CompoundTag belowZeroRetrogen;
+	protected static final VersionAware<NBTPath> BELOW_ZERO_RETROGEN_PATH = new VersionAware<NBTPath>()
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("below_zero_retrogen"));
+
+	/** @since 1.18 */
+	protected CompoundTag blendingData;
+	protected static final VersionAware<NBTPath> BLENDING_DATA_PATH = new VersionAware<NBTPath>()
+			.register(JAVA_1_18_21W43A.id(), NBTPath.of("blending_data"));
+
 
 	protected TerrainChunkBase(int dataVersion) {
 		super(dataVersion);
@@ -49,64 +168,98 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	}
 
 	@Override
+	protected void initMembers() {
+		// give this a reasonable default... better than nothing...
+		yPos = DEFAULT_Y_POS.get(dataVersion);
+	}
+
+	@Override
 	protected void initReferences(final long loadFlags) {
-		CompoundTag level = data.getCompoundTag("Level");
-		if (level == null) {
-			throw new IllegalArgumentException("data does not contain \"Level\" tag");
+		if (dataVersion < JAVA_1_18_21W39A.id()) {
+			if (data.getCompoundTag("Level") == null) {
+				throw new IllegalArgumentException("data does not contain \"Level\" tag");
+			}
 		}
-		inhabitedTime = level.getLong("InhabitedTime");
-		lastUpdate = level.getLong("LastUpdate");
-		if ((loadFlags & BIOMES) != 0) {
+
+		inhabitedTime = getTagValue(INHABITED_TIME_PATH, LongTag::asLong, 0L);
+		lastUpdate = getTagValue(LAST_UPDATE_PATH, LongTag::asLong, 0L);
+		if (dataVersion < JAVA_1_18_21W39A.id() && (loadFlags & BIOMES) != 0) {
 			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
-				biomes = level.getIntArray("Biomes");
+				biomes = getTagValue(BIOMES_PATH, IntArrayTag::getValue);
 			} else {
-				byte[] byteBiomes = level.getByteArray("Biomes");
+				byte[] byteBiomes = getTagValue(BIOMES_PATH, ByteArrayTag::getValue);
 				biomes = new int[byteBiomes.length];
 				for (int i = 0; i < biomes.length; i++) {
 					biomes[i] = byteBiomes[i];
 				}
 			}
-			if (biomes.length == 0) biomes = null;
+			if (biomes != null && biomes.length == 0) biomes = null;
+		} else {
+			// palette biomes
+
 		}
 		if ((loadFlags & HEIGHTMAPS) != 0) {
-			heightMaps = level.getCompoundTag("Heightmaps");
+			legacyHeightMap = getTag(LEGACY_HEIGHT_MAP_PATH);
+			heightMaps = getTag(HEIGHT_MAPS_PATH);
 		}
 		if ((loadFlags & CARVING_MASKS) != 0) {
-			carvingMasks = level.getCompoundTag("CarvingMasks");
+			carvingMasks = getTag(CARVING_MASKS_PATH);
 		}
 		if ((loadFlags & ENTITIES) != 0) {
-			entities = level.containsKey("Entities") ? level.getListTag("Entities").asCompoundTagList() : null;
+			entities = getTag(ENTITIES_PATH);
 		}
 		if ((loadFlags & TILE_ENTITIES) != 0) {
-			tileEntities = level.containsKey("TileEntities") ? level.getListTag("TileEntities").asCompoundTagList() : null;
+			tileEntities = getTag(TILE_ENTITIES_PATH);
 		}
 		if ((loadFlags & TILE_TICKS) != 0) {
-			tileTicks = level.containsKey("TileTicks") ? level.getListTag("TileTicks").asCompoundTagList() : null;
-		}
-		if ((loadFlags & LIQUID_TICKS) != 0) {
-			liquidTicks = level.containsKey("LiquidTicks") ? level.getListTag("LiquidTicks").asCompoundTagList() : null;
-		}
-		if ((loadFlags & LIGHTS) != 0) {
-			lights = level.containsKey("Lights") ? level.getListTag("Lights").asListTagList() : null;
-		}
-		if ((loadFlags & LIQUIDS_TO_BE_TICKED) != 0) {
-			liquidsToBeTicked = level.containsKey("LiquidsToBeTicked") ? level.getListTag("LiquidsToBeTicked").asListTagList() : null;
+			tileTicks = getTag(TILE_TICKS_PATH);
 		}
 		if ((loadFlags & TO_BE_TICKED) != 0) {
-			toBeTicked = level.containsKey("ToBeTicked") ? level.getListTag("ToBeTicked").asListTagList() : null;
+			toBeTicked = getTag(TO_BE_TICKED_PATH);
+		}
+		if ((loadFlags & LIGHTS) != 0) {
+			lights = getTag(LIGHTS_PATH);
+		}
+		if ((loadFlags & LIQUID_TICKS) != 0) {
+			liquidTicks = getTag(LIQUID_TICKS_PATH);
+		}
+		if ((loadFlags & LIQUIDS_TO_BE_TICKED) != 0) {
+			liquidsToBeTicked = getTag(LIQUIDS_TO_BE_TICKED_PATH);
 		}
 		if ((loadFlags & POST_PROCESSING) != 0) {
-			postProcessing = level.containsKey("PostProcessing") ? level.getListTag("PostProcessing").asListTagList() : null;
+			postProcessing = getTag(POST_PROCESSING_PATH);
 		}
-		status = level.getString("Status");
+
+		status = getTagValue(STATUS_PATH, StringTag::getValue);
+		isLightOn = getTagValue(IS_LIGHT_ON_PATH, ByteTag::asBoolean);
+		isTerrainPopulated = getTagValue(TERRAIN_POPULATED_PATH, ByteTag::asBoolean);
+
+		// TODO: add load flag for this
+		upgradeData = getTag(UPGRADE_DATA_PATH);
+
 		if ((loadFlags & STRUCTURES) != 0) {
-			structures = level.getCompoundTag("Structures");
+			structures = getTag(STRUCTURES_PATH);
+			hasLegacyStructureData = getTagValue(HAS_LEGACY_STRUCTURE_DATA_PATH, ByteTag::asBoolean);
 		}
-		if ((loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0 && level.containsKey("Sections")) {
-			for (CompoundTag section : level.getListTag("Sections").asCompoundTagList()) {
-				T newSection = createSection(section, dataVersion, loadFlags);
-				putSection(newSection.getHeight(), newSection, false);
+
+		boolean loadSections = (loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0;
+		loadSections |= dataVersion >= JAVA_1_18_21W39A.id()
+				&& ((loadFlags & BIOMES) != 0);
+		if (loadSections) {
+			ListTag<CompoundTag> sections = getTag(SECTIONS_PATH);
+			if (sections != null) {
+				for (CompoundTag section : sections) {
+					T newSection = createSection(section, dataVersion, loadFlags);
+					putSection(newSection.getHeight(), newSection, false);
+				}
 			}
+		} else {
+			yPos = getTagValue(Y_POS_PATH, IntTag::asInt, 0);
+		}
+
+		if ((loadFlags & WORLD_UPGRADE_HINTS) != 0) {
+			belowZeroRetrogen = getTag(BELOW_ZERO_RETROGEN_PATH);
+			blendingData = getTag(BLENDING_DATA_PATH);
 		}
 	}
 
@@ -181,25 +334,46 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		}
 	}
 
-	 /**
-	  * Sets a biome id at a specific block column.
+
+	public void setBiomeAt(int blockX, int blockY, int blockZ, String biomeName) {
+		throw new UnsupportedOperationException("not yet implemented");
+	}
+
+	/**
+	  * Sets a biome id at a specific block.
 	  * The coordinates can be absolute coordinates or relative to the region or chunk.
+	  *
+	  * <h2>data version < JAVA_1_15_19W36A (non-3D biomes)</h2>
+	  * The blockY value has no effect and the biome is set for the entire column, filling a cuboid of 1x256x1.
+	  *
+	  * <h2>data version >= JAVA_1_15_19W36A (3D biomes)</h2>
+	  * 3D biomes occupy a 4x4x4 cuboid so setting the biome for a single block within a cuboid sets it for all
+	  * blocks within the same cuboid.
+	  *
+	  * <h2>data version >= JAVA_1_18_21W39A (palette based 3D biomes)</h2>
+	  * This method is NOT supported for data versions >= JAVA_1_18_21W39A, use
+	  * {@link #setBiomeAt(int, int, int, String)} instead.
+	  *
 	  * @param blockX The x-coordinate of the block column.
+	  * @param blockY The y-coordinate of the block column.
 	  * @param blockZ The z-coordinate of the block column.
 	  * @param biomeID The biome id to be set.
 	  *                When set to a negative number, Minecraft will replace it with the block column's default biome.
 	  */
 	public void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
 		checkRaw();
+		// TODO: see about finding an id to string mapping somewhere
+		if (dataVersion >= JAVA_1_18_21W39A.id())
+			throw new UnsupportedOperationException(
+					"JAVA_1_18_21W39A and above no longer use biomeID ints. " +
+					"You must use #setBiomeAt(int, int, int, String) instead.");
 		if (dataVersion >= JAVA_1_15_19W36A.id()) {
 			if (biomes == null || biomes.length != 1024) {
 				biomes = new int[1024];
 				Arrays.fill(biomes, -1);
 			}
-
 			int biomeX = (blockX & 0xF) >> 2;
 			int biomeZ = (blockZ & 0xF) >> 2;
-
 			biomes[getBiomeIndex(biomeX, blockY, biomeZ)] = biomeID;
 		} else {
 			if (biomes == null || biomes.length != 256) {
@@ -273,6 +447,48 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		this.status = status;
 	}
 
+	// TODO(javadoc)
+	public Boolean getLightOn() {
+		return isLightOn;
+	}
+
+	// TODO(javadoc)
+	public void setLightOn(Boolean lightOn) {
+		isLightOn = lightOn;
+	}
+
+	// TODO(javadoc)
+	public Boolean getTerrainPopulated() {
+		return isTerrainPopulated;
+	}
+
+	// TODO(javadoc)
+	public void setTerrainPopulated(Boolean terrainPopulated) {
+		isTerrainPopulated = terrainPopulated;
+	}
+
+	// TODO(javadoc)
+	public Boolean getHasLegacyStructureData() {
+		return hasLegacyStructureData;
+	}
+
+	// TODO(javadoc)
+	public void setHasLegacyStructureData(Boolean hasLegacyStructureData) {
+		this.hasLegacyStructureData = hasLegacyStructureData;
+	}
+
+	// TODO(javadoc)
+	public CompoundTag getUpgradeData() {
+		return upgradeData;
+	}
+
+	// TODO(javadoc)
+	public void setUpgradeData(CompoundTag upgradeData) {
+		this.upgradeData = upgradeData;
+	}
+
+	// 2048 bytes recording the amount of block-emitted light in each block. Makes load times faster compared to recomputing at load time. 4 bits per block.
+
 	/**
 	 * @return The timestamp when this chunk was last updated as a UNIX timestamp.
 	 */
@@ -343,6 +559,14 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	public void setHeightMaps(CompoundTag heightMaps) {
 		checkRaw();
 		this.heightMaps = heightMaps;
+	}
+
+	public IntArrayTag getLegacyHeightMap() {
+		return legacyHeightMap;
+	}
+
+	public void setLegacyHeightMap(IntArrayTag legacyHeightMap) {
+		this.legacyHeightMap = legacyHeightMap;
 	}
 
 	/**
@@ -518,6 +742,28 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		}
 	}
 
+	/**
+	 * Gets the minimum section y position in the chunk.
+	 * @since 1.18
+	 */
+	public int getYPos() {
+		if (hasSections()) return getMinSectionY();
+		else return yPos;
+	}
+
+	/**
+	 * @since 1.18
+	 */
+	public CompoundTag getBelowZeroRetrogen() {
+		return belowZeroRetrogen;
+	}
+
+	/**
+	 * @since 1.18
+	 */
+	public CompoundTag getBlendingData() {
+		return blendingData;
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -528,10 +774,9 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			return data;
 		}
 		super.updateHandle();
-		CompoundTag level = data.getCompoundTag("Level");
-		level.putLong("LastUpdate", lastUpdate);
-		level.putLong("InhabitedTime", inhabitedTime);
-		if (biomes != null) {
+		setTag(LAST_UPDATE_PATH, new LongTag(lastUpdate));
+		setTag(INHABITED_TIME_PATH, new LongTag(inhabitedTime));
+		if (biomes != null && dataVersion < JAVA_1_18_21W39A.id()) {
 			final int requiredSize = dataVersion <= 0 || dataVersion >= JAVA_1_15_19W36A.id() ? 1024 : 256;
 			if (biomes.length != requiredSize)
 				throw new IllegalStateException(
@@ -539,35 +784,47 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 								requiredSize, dataVersion, biomes.length));
 
 			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
-				level.putIntArray("Biomes", biomes);
+				setTag(BIOMES_PATH, new IntArrayTag(biomes));
 			} else {
 				byte[] byteBiomes = new byte[biomes.length];
 				for (int i = 0; i < biomes.length; i++) {
 					byteBiomes[i] = (byte) biomes[i];
 				}
-				level.putByteArray("Biomes", byteBiomes);
+				setTag(BIOMES_PATH, new ByteArrayTag(byteBiomes));
 			}
 		}
-		level.putIfNotNull("Heightmaps", heightMaps);
-		level.putIfNotNull("CarvingMasks", carvingMasks);
-		level.putIfNotNull("Entities", entities);
-		level.putIfNotNull("TileEntities", tileEntities);
-		level.putIfNotNull("TileTicks", tileTicks);
-		level.putIfNotNull("LiquidTicks", liquidTicks);
-		level.putIfNotNull("Lights", lights);
-		level.putIfNotNull("LiquidsToBeTicked", liquidsToBeTicked);
-		level.putIfNotNull("ToBeTicked", toBeTicked);
-		level.putIfNotNull("PostProcessing", postProcessing);
-		level.putString("Status", status);
-		level.putIfNotNull("Structures", structures);
+		setTagIfNotNull(LEGACY_HEIGHT_MAP_PATH, legacyHeightMap);
+		setTagIfNotNull(HEIGHT_MAPS_PATH, heightMaps);
+		setTagIfNotNull(CARVING_MASKS_PATH, carvingMasks);
+		setTagIfNotNull(ENTITIES_PATH, entities);
+		setTagIfNotNull(TILE_ENTITIES_PATH, tileEntities);
+		setTagIfNotNull(TILE_TICKS_PATH, tileTicks);
+		setTagIfNotNull(LIQUID_TICKS_PATH, liquidTicks);
+		setTagIfNotNull(LIGHTS_PATH, lights);
+		setTagIfNotNull(LIQUIDS_TO_BE_TICKED_PATH, liquidsToBeTicked);
+		setTagIfNotNull(TO_BE_TICKED_PATH, toBeTicked);
+		setTagIfNotNull(POST_PROCESSING_PATH, postProcessing);
+		if (status != null) setTag(STATUS_PATH, new StringTag(status));
+		if (isLightOn != null) setTag(IS_LIGHT_ON_PATH, new ByteTag(isLightOn));
+		if (isTerrainPopulated != null) setTag(TERRAIN_POPULATED_PATH, new ByteTag(isTerrainPopulated));
+		setTagIfNotNull(STRUCTURES_PATH, structures);
+		if (hasLegacyStructureData != null) setTag(HAS_LEGACY_STRUCTURE_DATA_PATH, new ByteTag(hasLegacyStructureData));
 
+		// TODO: This logic does not respect original load flags! However, this is a long standing bug so
+		// 		 simply "fixing" it may break consumers...
 		ListTag<CompoundTag> sections = new ListTag<>(CompoundTag.class);
 		for (T section : this) {
 			if (section != null) {
 				sections.add(section.updateHandle());  // contract of iterator assures correctness of "height" aka section-y
 			}
 		}
-		level.put("Sections", sections);
+		setTag(SECTIONS_PATH, sections);
+
+		if (dataVersion >= JAVA_1_18_21W43A.id()) {
+			setTag(Y_POS_PATH, new IntTag(getMinSectionY()));
+			setTagIfNotNull(BELOW_ZERO_RETROGEN_PATH, belowZeroRetrogen);
+			setTagIfNotNull(BLENDING_DATA_PATH, blendingData);
+		}
 		return data;
 	}
 
@@ -577,9 +834,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			return data;
 		}
 		updateHandle();
-		CompoundTag level = data.getCompoundTag("Level");
-		level.putInt("xPos", xPos);
-		level.putInt("zPos", zPos);
+		setTag(X_POS_PATH, new IntTag(xPos));
+		setTag(Z_POS_PATH, new IntTag(zPos));
 		return data;
 	}
 }

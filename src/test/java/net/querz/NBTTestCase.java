@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public abstract class NBTTestCase extends TestCase {
@@ -162,6 +163,20 @@ public abstract class NBTTestCase extends TestCase {
 		}
 	}
 
+	protected <T, E extends Exception> void assertThrowsException(ExceptionSupplier<T, E> r, Class<? extends Exception> e, Predicate<String> expectedMessageMatcher) {
+		try {
+			r.run();
+			TestCase.fail();
+		} catch (Exception ex) {
+			if (!e.equals(ex.getClass())) {
+				throw new WrongExceptionThrownException(e, ex);
+			}
+			if (!expectedMessageMatcher.test(ex.getMessage())) {
+				throw new WrongExceptionMessageException(ex);
+			}
+		}
+	}
+
 	/**
 	 * @deprecated replaced by improved {@link #assertThrowsException(ExceptionSupplier, Class)}
 	 */
@@ -174,6 +189,13 @@ public abstract class NBTTestCase extends TestCase {
 		public WrongExceptionThrownException(Class<? extends Exception> expectedType, Exception actual) {
 			super("", expectedType.getTypeName(), actual.getClass().getTypeName());
 			this.setStackTrace(actual.getStackTrace());
+		}
+	}
+
+	private static class WrongExceptionMessageException extends ComparisonFailure {
+		public WrongExceptionMessageException(Exception ex) {
+			super("", "<predicate did not match>", ex.getClass().getTypeName() + " " + ex.getMessage());
+			this.setStackTrace(ex.getStackTrace());
 		}
 	}
 

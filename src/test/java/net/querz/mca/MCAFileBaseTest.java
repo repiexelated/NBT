@@ -1,10 +1,20 @@
 package net.querz.mca;
 
+import net.querz.nbt.io.NBTUtil;
+import net.querz.nbt.tag.CompoundTag;
 import net.querz.util.IntPointXZ;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static net.querz.util.JsonPrettyPrinter.prettyPrintJson;
 
 // TODO: implement abstract test pattern for MCAFileBase & refactor MCAFileTest like mad
 public class MCAFileBaseTest extends MCATestCase {
@@ -17,23 +27,73 @@ public class MCAFileBaseTest extends MCATestCase {
     protected <CT extends ChunkBase, FT extends MCAFileBase<CT>> void validateReadWriteParity(DataVersion expectedDataVersion, String mcaResourcePath, Class<FT> clazz) {
         FT mcaA = assertThrowsNoException(() -> MCAUtil.readAuto(copyResourceToTmp(mcaResourcePath)));
         assertTrue(clazz.isInstance(mcaA));
-        CT chunkA = mcaA.stream().filter(Objects::nonNull).findFirst().orElse(null);
-        assertNotNull(chunkA);
+        List<CT> chunksIn = mcaA.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        assertFalse(chunksIn.isEmpty());
         assertEquals(expectedDataVersion.id(), mcaA.getDefaultChunkDataVersion());
-        assertEquals(expectedDataVersion, chunkA.getDataVersionEnum());
+
+        // ensure that we are reading and writing every tag - at least at the chunk/section level
+        final List<CompoundTag> originalChunkData = new ArrayList<>();
+        for (CT chunk : chunksIn) {
+            assertEquals(expectedDataVersion, chunk.getDataVersionEnum());
+            originalChunkData.add(chunk.data.clone());
+            if (chunk instanceof SectionedChunkBase) {
+                for (SectionBase<?> section : (SectionedChunkBase<?>) chunk) {
+                    section.data.clear();
+                }
+            }
+            chunk.data.clear();
+        }
 
         File tmpFile = super.getNewTmpFile(Paths.get("out", mcaResourcePath).toString());
         assertThrowsNoException(() -> MCAUtil.write(mcaA, tmpFile));
+        // writing should have rebuilt the data tag fully and correctly
+        for (int i = 0; i < chunksIn.size(); i++) {
+
+            // check the strings match first - and format them so any diffs give a helpful inspection
+//            assertEquals(
+//                    prettyPrintJson(originalChunkData.get(i).toString()),
+//                    prettyPrintJson(chunksIn.get(i).data.toString()));
+
+            try {
+                if (!originalChunkData.get(i).equals(chunksIn.get(i).data)) {
+                    Path p = Paths.get("F:\\Archive\\Programming\\Java\\MCPlugins 1.20.4\\QuerzNbt\\TESTDBG", mcaResourcePath + "." + i + ".original.json");
+                    p.getParent().toFile().mkdirs();
+                    Files.write(p,
+                            prettyPrintJson(originalChunkData.get(i).toString()).getBytes());
+                    Files.write(
+                            Paths.get("F:\\Archive\\Programming\\Java\\MCPlugins 1.20.4\\QuerzNbt\\TESTDBG", mcaResourcePath + "." + i + ".out.json"),
+                            prettyPrintJson(chunksIn.get(i).data.toString()).getBytes());
+                } else {
+                    Path p = Paths.get("F:\\Archive\\Programming\\Java\\MCPlugins 1.20.4\\QuerzNbt\\TESTDBG", mcaResourcePath + ".OK." + i + ".original.json");
+                    p.getParent().toFile().mkdirs();
+                    Files.write(p,
+                            prettyPrintJson(originalChunkData.get(i).toString()).getBytes());
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                fail(ex.getMessage());
+            }
+
+            assertEquals(originalChunkData.get(i), chunksIn.get(i).data);
+        }
 
         FT mcaB = assertThrowsNoException(() -> MCAUtil.readAuto(tmpFile));
-        CT chunkB = mcaB.stream().filter(Objects::nonNull).findFirst().orElse(null);
+        List<CT> chunksAsReread = mcaB.stream().filter(Objects::nonNull).collect(Collectors.toList());
         assertTrue(clazz.isInstance(mcaB));
-        assertNotNull(chunkB);
+        assertFalse(chunksAsReread.isEmpty());
+        assertEquals(chunksIn.size(), chunksAsReread.size());
         assertEquals(expectedDataVersion.id(), mcaB.getDefaultChunkDataVersion());
-        assertEquals(expectedDataVersion, chunkB.getDataVersionEnum());
 
-        assertEquals(chunkA.getLastMCAUpdate(), chunkB.getLastMCAUpdate());
-        assertEquals(chunkA.data, chunkB.data);
+        for (int i = 0; i < chunksAsReread.size(); i++) {
+            CT chunkA = chunksIn.get(i);
+            CT chunkB = chunksAsReread.get(i);
+            assertEquals(chunkA.getDataVersionEnum(), chunkB.getDataVersionEnum());
+            // check the strings match first - and format them so any diffs give a helpful inspection
+//            assertEquals(
+//                    prettyPrintJson(originalChunkData.get(i).toString()),
+//                    prettyPrintJson(chunkB.data.toString()));
+            assertEquals(originalChunkData.get(i), chunkB.data);
+        }
     }
 
     public void testGetRelativeChunkXZ() {

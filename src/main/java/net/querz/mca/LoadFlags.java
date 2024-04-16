@@ -20,6 +20,8 @@ public final class LoadFlags {
 	public static final long LIQUIDS_TO_BE_TICKED = 0x0000_8000;
 	public static final long RAW                  = 0x0001_0000;
 	public static final long POI_RECORDS          = 0x0002_0000;
+	// For fields such as below_zero_retrogen and blending_data which were added to support chunk migration to 1.18
+	public static final long WORLD_UPGRADE_HINTS  = 0x0004_0000;
 
 	public static final long ALL_DATA             = 0xffffffffffffffffL;
 

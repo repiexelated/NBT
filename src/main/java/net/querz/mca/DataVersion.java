@@ -84,6 +84,7 @@ public enum DataVersion {
     JAVA_1_12_2_PRE1(1341, 12, 2, "PRE1"),
     JAVA_1_12_2_PRE2(1342, 12, 2, "PRE2"),
     JAVA_1_12_2(1343, 12, 2),
+    // TODO: Unsure when exactly in 1.13 development "Blocks" and "Data" were replaced with block palette but 1.12.2 was pre block palette era.
     JAVA_1_13_17W43A(1444, 13, 0, "17w43a"),
     JAVA_1_13_17W43B(1445, 13, 0, "17w43b"),
     JAVA_1_13_17W45A(1447, 13, 0, "17w45a"),
@@ -379,6 +380,8 @@ public enum DataVersion {
      * <li>Chunk’s Level.Structures.Starts has moved to structures.starts
      * <li>Chunk’s Level.Sections[].BlockStates and Level.Sections[].Palette have moved to a container structure in sections[].block_states
      * <li>Chunk’s Level.Biomes are now paletted and live in a similar container structure in sections[].biomes
+     *     <ul><li>Consists of 64 entries, representing 4×4×4 biome regions in the chunk section.</li>
+     *     <li>When `palette` contains a single entry `data` will be omitted and the full chunk section is composed of a single biome.</li></ul>
      * <li>Added yPos the minimum section y position in the chunk
      * <li>Added below_zero_retrogen containing data to support below zero generation
      * <li>Added blending_data containing data to support blending new world generation with existing chunks
