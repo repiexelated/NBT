@@ -1,4 +1,6 @@
 # NBT
+WARNING: This fork is currently under heavy development and is NOT ready for consumption.
+
 [![Build Status](https://travis-ci.org/Querz/NBT.svg?branch=master)](https://travis-ci.org/Querz/NBT) [![Coverage Status](https://img.shields.io/coveralls/github/Querz/NBT/master.svg)](https://coveralls.io/github/Querz/NBT?branch=master) [![Release](https://jitpack.io/v/Querz/NBT.svg)](https://jitpack.io/#Querz/NBT)
 #### A java implementation of the [NBT protocol](https://minecraft.gamepedia.com/NBT_format) for Minecraft Java Edition.
 ---
@@ -150,3 +152,20 @@ mcaFile.cleanupPalettesAndBlockStates();
 chunk.cleanupPalettesAndBlockStates();
 section.cleanupPaletteAndBlockStates();
 ```
+
+## TODO
+- Make poi structure respect RAW reads and check behavior of LoadData not including poi
+- Add unit tests for entities chunks read RAW and read without ENTITIES LoadData flag
+- Add helper to EntityFactory taking a ListTag<CompoundTag> that returns a list - and its symmetrical counterpart
+- unit test IntPointXZ and IntPointXYZ
+- Update readme
+    - about entities and poi support
+    - working with the entity factory
+    - working with the mca factory
+- Add move region - akin to move chunk
+
+### 1.18
+- biome pallets moved into section
+
+### MCA
+- support "extra" tags for full non-vanilla read/write idempotency support
