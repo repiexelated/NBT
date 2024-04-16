@@ -1,4 +1,4 @@
-package net.querz.mca;
+package net.querz.mca.util;
 
 import net.querz.NBTTestCase;
 import net.querz.nbt.tag.CompoundTag;
@@ -123,7 +123,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
         Arrays.fill(tags, airTag);
         tags[7] = null;
         assertThrowsException(() -> new PalettizedCuboid<>(tags),
-                NullPointerException.class,
+                IllegalArgumentException.class,
                 s -> s.equals("values must not contain nulls!"));
 
     }

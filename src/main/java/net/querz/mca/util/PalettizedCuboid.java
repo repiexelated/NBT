@@ -1,5 +1,6 @@
-package net.querz.mca;
+package net.querz.mca.util;
 
+import net.querz.mca.DataVersion;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.ListTag;
 import net.querz.nbt.tag.LongArrayTag;
@@ -11,6 +12,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static net.querz.mca.DataVersion.JAVA_1_16_20W17A;
+import static net.querz.util.ArgValidator.*;
 
 /**
  * A PalettizedCuboid is serialized as a {@link net.querz.nbt.tag.CompoundTag} containing {@code data}
@@ -101,7 +103,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     @SuppressWarnings("unchecked")
     protected PalettizedCuboid(int cubeEdgeLength, E fillWith, Class<E> paletteEntryClass, boolean allowNullFill) {
-        if (fillWith == null && !allowNullFill) throw new NullPointerException("fillWith must not be null");
+        if (!allowNullFill) requireValue(fillWith, "fillWith");
         this.paletteEntryClass = paletteEntryClass;
         int bits = calculatePowerOfTwoExponent(cubeEdgeLength, true);
         this.cordBitMask = calculateBitMask(bits);
@@ -125,7 +127,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         this(cubeRoot(values.length), null, (Class<E>) values.getClass().getComponentType(), true);
         Map<E, Integer> indexLookup = new HashMap<>();
         for (int i = 0; i < data.length; i++) {
-            if (values[i] == null) throw new NullPointerException("values must not contain nulls!");
+            check(values[i] != null, "values must not contain nulls!");
             int paletteIndex = indexLookup.computeIfAbsent(values[i], k -> {
                 palette.add((E) k.clone());
                 return palette.size() - 1;
@@ -276,8 +278,8 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @return True if any modifications were made, false otherwise.
      */
     public boolean replace(E oldValue, E newValue) {
-        if (oldValue == null) throw new NullPointerException("oldValue required");
-        if (newValue == null) throw new NullPointerException("newValue required");
+        requireValue(oldValue, "oldValue");
+        requireValue(newValue, "newValue");
         if (oldValue.equals(newValue)) return false;
         // Don't pass a singleton list/set type - they are immutable and will cause errors.
         return replace(new ArrayList<>(Collections.singletonList(palette.indexOf(oldValue))), newValue);
@@ -288,7 +290,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     public boolean replaceAll(Collection<E> c, E replacement) {
-        if (replacement == null) throw new NullPointerException("replacement required");
+        requireValue(replacement, "replacement");
         if (c.isEmpty()) return false;
         Set<Integer> replacing = new HashSet<>();
         for (E e : c) {
@@ -301,7 +303,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     public boolean replaceIf(Predicate<E> filter, E replacement) {
-        if (replacement == null) throw new NullPointerException("replacement required");
+        requireValue(replacement, "replacement");
         Set<Integer> replacing = new HashSet<>();
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
@@ -317,7 +319,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     public boolean retainAll(Collection<E> c, E replacement) {
-        if (replacement == null) throw new NullPointerException("replacement required");
+        requireValue(replacement, "replacement");
         Set<Integer> replacing = new HashSet<>();
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
@@ -535,8 +537,8 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     @SuppressWarnings("unchecked")
     public static <T extends Tag<?>> PalettizedCuboid<T> fromCompoundTag(CompoundTag tag, int expectedCubeEdgeLength, int dataVersion) {
         ListTag<T> paletteListTag = tag.getListTagAutoCast("palette");
-        if (paletteListTag == null) throw new IllegalArgumentException("Did not find 'palette' ListTag");
-        if (paletteListTag.isEmpty()) throw new IllegalArgumentException("'palette' ListTag exists but it was empty!");
+        check(paletteListTag != null, "Did not find 'palette' ListTag");
+        check(!paletteListTag.isEmpty(), "'palette' ListTag exists but it was empty!");
         LongArrayTag dataTag = tag.getLongArrayTag("data");
         if ((dataTag == null || dataTag.getValue().length == 0) && paletteListTag.size() > 1)
             throw new IllegalArgumentException("Did not find 'data' LongArrayTag when expected");
