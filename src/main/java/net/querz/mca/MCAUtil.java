@@ -188,6 +188,16 @@ public final class MCAUtil {
 	}
 
 	/**
+	 * Reads an MCA file and loads all of its chunks.
+	 * @param path The path to read the data from.
+	 * @return An in-memory representation of the MCA file with decompressed chunk data.
+	 * @throws IOException if something during deserialization goes wrong.
+	 */
+	public static <T extends MCAFileBase<?>> T readAuto(Path path) throws IOException {
+		return readAuto(path, LoadFlags.ALL_DATA);
+	}
+
+	/**
 	 * @see MCAUtil#readAuto(File, long)
 	 * @param file The file to read the data from.
 	 * @return An in-memory representation of the MCA file with decompressed chunk data.
@@ -196,6 +206,17 @@ public final class MCAUtil {
 	 */
 	public static <T extends MCAFileBase<?>> T readAuto(String file, long loadFlags) throws IOException {
 		return readAuto(new File(file), loadFlags);
+	}
+
+	/**
+	 * @see MCAUtil#readAuto(File, long)
+	 * @param path The path to read the data from.
+	 * @return An in-memory representation of the MCA file with decompressed chunk data.
+	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+	 * @throws IOException if something during deserialization goes wrong.
+	 */
+	public static <T extends MCAFileBase<?>> T readAuto(Path path, long loadFlags) throws IOException {
+		return readAuto(path.toFile(), loadFlags);
 	}
 
 	/**
@@ -220,8 +241,8 @@ public final class MCAUtil {
 	/**
 	 * Calls {@link MCAUtil#write(MCAFileBase, File, boolean)} without changing the timestamps.
 	 * @see MCAUtil#write(MCAFileBase, File, boolean)
-	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
+	 * @param file The file to write to.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
 	 */
@@ -232,8 +253,8 @@ public final class MCAUtil {
 	/**
 	 * Calls {@link MCAUtil#write(MCAFileBase, File, boolean)} without changing the timestamps.
 	 * @see MCAUtil#write(MCAFileBase, File, boolean)
-	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
+	 * @param file The file to write to.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
 	 */
@@ -242,9 +263,33 @@ public final class MCAUtil {
 	}
 
 	/**
+	 * Calls {@link MCAUtil#write(MCAFileBase, File, boolean)} without changing the timestamps.
 	 * @see MCAUtil#write(MCAFileBase, File, boolean)
-	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
+	 * @param path The file to write to.
+	 * @return The amount of chunks written to the file.
+	 * @throws IOException If something goes wrong during serialization.
+	 */
+	public static int write(MCAFileBase<?> mcaFile, Path path) throws IOException {
+		return write(mcaFile, path.toFile(), false);
+	}
+
+	/**
+	 * @see MCAUtil#write(MCAFileBase, File, boolean)
+	 * @param mcaFile The data of the MCA file to write.
+	 * @param path The file to write to.
+	 * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
+	 * @return The amount of chunks written to the file.
+	 * @throws IOException If something goes wrong during serialization.
+	 */
+	public static int write(MCAFileBase<?> mcaFile, Path path, boolean changeLastUpdate) throws IOException {
+		return write(mcaFile, path.toFile(), changeLastUpdate);
+	}
+
+	/**
+	 * @see MCAUtil#write(MCAFileBase, File, boolean)
+	 * @param mcaFile The data of the MCA file to write.
+	 * @param file The file to write to.
 	 * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
@@ -258,8 +303,8 @@ public final class MCAUtil {
 	 * when the file was last saved to the current date and time or leaves them at
 	 * the value set by either loading an already existing MCA file or setting them manually.<br>
 	 * If the file already exists, it is completely overwritten by the new file (no modification).
-	 * @param file The file to write to.
 	 * @param mcaFile The data of the MCA file to write.
+	 * @param file The file to write to.
 	 * @param changeLastUpdate Whether to adjust the timestamps of when the file was saved.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something goes wrong during serialization.
