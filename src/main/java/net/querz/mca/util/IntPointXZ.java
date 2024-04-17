@@ -30,6 +30,10 @@ public class IntPointXZ {
         return new IntPointXZ(x * multiplier.x, z * multiplier.z);
     }
 
+    public IntPointXZ multiply(IntPointXYZ multiplier) {
+        return new IntPointXZ(x * multiplier.x, z * multiplier.z);
+    }
+
     public IntPointXZ divide(int denominator) {
         return new IntPointXZ(x / denominator, z / denominator);
     }
@@ -38,7 +42,15 @@ public class IntPointXZ {
         return new IntPointXZ(x / denominator.x, z / denominator.z);
     }
 
+    public IntPointXZ divide(IntPointXYZ denominator) {
+        return new IntPointXZ(x / denominator.x, z / denominator.z);
+    }
+
     public IntPointXZ add(IntPointXZ other) {
+        return new IntPointXZ(x + other.x, z + other.z);
+    }
+
+    public IntPointXZ add(IntPointXYZ other) {
         return new IntPointXZ(x + other.x, z + other.z);
     }
 
@@ -47,6 +59,10 @@ public class IntPointXZ {
     }
 
     public IntPointXZ subtract(IntPointXZ other) {
+        return new IntPointXZ(x - other.x, z - other.z);
+    }
+
+    public IntPointXZ subtract(IntPointXYZ other) {
         return new IntPointXZ(x - other.x, z - other.z);
     }
 
@@ -92,5 +108,10 @@ public class IntPointXZ {
 
     public boolean equals(int x, int z) {
         return this.x == x && this.z == z;
+    }
+
+    @Override
+    public String toString() {
+        return x + " " + z;
     }
 }
