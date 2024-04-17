@@ -1,12 +1,14 @@
 package net.querz.mca.util;
 
 import net.querz.NBTTestCase;
+import net.querz.mca.DataVersion;
+import net.querz.nbt.io.SNBTUtil;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.ListTag;
 import net.querz.nbt.tag.LongArrayTag;
 import net.querz.nbt.tag.StringTag;
-import net.querz.util.JsonPrettyPrinter;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -341,7 +343,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(lavaTag, cuboid.palette.get(0));
     }
 
-    public void testIndexOfXYZ() {
+    public void testIndexOfXyzLiterals() {
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(
                 16, new StringTag("air"));
         assertEquals(4096, cuboid.size());
@@ -351,6 +353,32 @@ public class PalettizedCuboidTest extends NBTTestCase {
 
         assertEquals(834, cuboid.indexOf(2, 3, 4));
         assertEquals(cuboid.indexOf(2, 3, 4), cuboid.indexOf(16 + 2, 16 + 3, 16 + 4));
+    }
+
+    public void testIndexOfIntPointXYZ() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(
+                16, new StringTag("air"));
+        assertEquals(4096, cuboid.size());
+        assertEquals(0, cuboid.indexOf(new IntPointXYZ(0, 0, 0)));
+        assertEquals(4095, cuboid.indexOf(new IntPointXYZ(15, 15, 15)));
+        assertEquals(0, cuboid.indexOf(new IntPointXYZ(16, 16, 16)));
+
+        assertEquals(834, cuboid.indexOf(new IntPointXYZ(2, 3, 4)));
+        assertEquals(cuboid.indexOf(2, 3, 4), cuboid.indexOf(new IntPointXYZ(16 + 2, 16 + 3, 16 + 4)));
+    }
+
+    public void testXyzOf_xyzLiterals() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(
+                16, new StringTag("air"));
+        assertEquals(new IntPointXYZ(0, 0, 0), cuboid.xyzOf(16, 16, 16));
+        assertEquals(new IntPointXYZ(1, 6, 4), cuboid.xyzOf(65, 70, 84));
+    }
+
+    public void testXyzOf_index() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(
+                16, new StringTag("air"));
+        assertEquals(new IntPointXYZ(0, 0, 0), cuboid.xyzOf(0));
+        assertEquals(new IntPointXYZ(2, 3, 4), cuboid.xyzOf(834));
     }
 
     public void testGet() {
@@ -477,7 +505,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertTrue(serializedTag.get("palette") instanceof ListTag);
         assertTrue(serializedTag.get("data") instanceof LongArrayTag);
 
-        System.out.println(JsonPrettyPrinter.prettyPrintJson(serializedTag.toString()));
+//        System.out.println(JsonPrettyPrinter.prettyPrintJson(serializedTag.toString()));
         PalettizedCuboid<StringTag> cuboid2 = PalettizedCuboid.fromCompoundTag(serializedTag, 4);
         assertNotNull(cuboid2);
         assertEquals(cuboid.size(), cuboid2.size());
@@ -487,5 +515,77 @@ public class PalettizedCuboidTest extends NBTTestCase {
         for (int i = 0; i < cuboid.palette.size(); i++) {
             assertEquals(cuboid.palette.get(i), cuboid2.palette.get(i));
         }
+    }
+
+
+    public void testToCompoundTag_singleElement() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(4, new StringTag("dripstone_caves"));
+        CompoundTag tag = cuboid.toCompoundTag();
+        assertEquals(1, tag.size());
+        assertEquals(1, tag.getListTag("palette").size());
+        assertEquals(new StringTag("dripstone_caves"), tag.getListTag("palette").get(0));
+    }
+
+    public void testFromCompoundTag_singleElement() {
+        ListTag<StringTag> paletteTag = new ListTag<>(StringTag.class);
+        CompoundTag rootTag = new CompoundTag();
+        rootTag.put("palette", paletteTag);
+        paletteTag.add(new StringTag("dripstone_caves"));
+        PalettizedCuboid<StringTag> cuboid = PalettizedCuboid.fromCompoundTag(rootTag, 4);
+        assertNotNull(cuboid);
+        assertEquals(64, cuboid.size());
+        assertEquals(1, cuboid.paletteSize());
+        assertEquals(64, cuboid.countIf(e -> e.getValue().equals("dripstone_caves")));
+    }
+
+    // Interesting because bit packing has no waste on the per-long level, 4 bits to encode size 14 palette data.
+    public void testFromCompoundTag_blockStates_1_20_4__14entries() {
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-14entries.snbt");
+//        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
+        PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
+        assertNotNull(cuboid);
+        assertEquals(4096, cuboid.size());
+        assertEquals(14, cuboid.paletteSize());
+        assertEquals(2, cuboid.countIf(e -> e.getString("Name").equals("minecraft:glow_lichen")));
+        PalettizedCuboid<CompoundTag>.CursorIterator iter =
+                cuboid.iteratorByRef(e -> e.getString("Name").equals("minecraft:glow_lichen"));
+        assertTrue(iter.hasNext());
+        iter.next();
+        assertEquals(cuboid.xyzOf(8, 33, 15), iter.currentXYZ());
+        assertTrue(iter.hasNext());
+        iter.next();
+        assertEquals(cuboid.xyzOf(9, 33, 15), iter.currentXYZ());
+        assertFalse(iter.hasNext());
+    }
+
+    // Interesting because only 3 bits are required to encode size 6 palette data, but it actually uses 4 bits.
+    public void testFromCompoundTag_blockStates_1_20_4__6entries() {
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-6entries.snbt");
+//        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
+        PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
+        assertNotNull(cuboid);
+        assertEquals(4096, cuboid.size());
+        assertEquals(6, cuboid.paletteSize());
+        assertEquals(1, cuboid.countIf(e -> e.getString("Name").equals("minecraft:dripstone_block")));
+        assertEquals(62, cuboid.countIf(e -> e.getString("Name").equals("minecraft:coal_ore")));
+
+    }
+
+    public void testFromCompoundTag_blockStates_1_20_4__28entries() throws IOException {
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-28entries.snbt");
+//        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
+        PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
+        assertNotNull(cuboid);
+        assertEquals(4096, cuboid.size());
+        assertEquals(28, cuboid.paletteSize());
+        PalettizedCuboid<CompoundTag>.CursorIterator iter =
+                cuboid.iteratorByRef(e -> e.getString("Name").equals("minecraft:chest"));
+        assertTrue(iter.hasNext());
+        CompoundTag chestPaletteTag = iter.next();
+        IntPointXYZ subChunkLocation = new IntPointXYZ(2, -4, -1);
+        IntPointXYZ blockAbsoluteLocation = subChunkLocation.transformChunkSectionToBlock().add(iter.currentXYZ());
+        assertEquals(new IntPointXYZ(37, -50, -1), blockAbsoluteLocation);
+        System.out.println();
+        System.out.println(SNBTUtil.toSNBT(chestPaletteTag, true));
     }
 }

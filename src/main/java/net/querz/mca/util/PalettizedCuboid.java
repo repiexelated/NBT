@@ -77,6 +77,7 @@ import static net.querz.util.ArgValidator.*;
  * </pre>
  */
 public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneable {
+//    public static boolean DEBUG = false;
     private final int cordBitMask;
     private final int zShift;
     private final int yShift;
@@ -165,7 +166,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     static int calculateBitMask(int numberOfBits) {
-        if (numberOfBits < 0 || numberOfBits >= 32) throw new IllegalArgumentException();
+        if (numberOfBits < 0 || numberOfBits >= 32) throw new IllegalArgumentException(Integer.toString(numberOfBits));
         return ~(-1 << numberOfBits);
     }
 
@@ -353,6 +354,33 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         return ((y & cordBitMask) << yShift) | ((z & cordBitMask) << zShift) | (x & cordBitMask);
     }
 
+    public int indexOf(IntPointXYZ xyz) {
+        return indexOf(xyz.x, xyz.y, xyz.z);
+    }
+
+    /**
+     * Calculates the x, y, z (in cuboid space) of the given index.
+     */
+    public IntPointXYZ xyzOf(int index) {
+        return new IntPointXYZ(
+                index & cordBitMask,
+                (index >> yShift) & cordBitMask,
+                (index >> zShift) & cordBitMask
+        );
+    }
+
+    /**
+     * Wraps the given x, y, z into cuboid space.
+     */
+    public IntPointXYZ xyzOf(int x, int y, int z) {
+        int index = indexOf(x, y, z);
+        return new IntPointXYZ(
+                index & cordBitMask,
+                (index >> yShift) & cordBitMask,
+                (index >> zShift) & cordBitMask
+        );
+    }
+
     /**
      * Returns a copy of the palette value at the specified position in this cuboid.
      * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
@@ -367,6 +395,22 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     public E get(int index) {
         return (E) palette.get(data[index]).clone();
     }
+    /**
+     * Returns a copy of the palette value at the specified position in this cuboid.
+     * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
+     * <p>To avoid the overhead of making a copy use {@link #getByRef(int, int, int)} instead.</p>
+     *
+     * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+     * @return the element at the specified position in this cuboid.
+     */
+    public E get(int x, int y, int z) {
+        return get(indexOf(x, y, z));
+    }
+
+    public E get(IntPointXYZ xyz) {
+        return get(indexOf(xyz));
+    }
+
 
     /**
      * Returns the palette value at the specified position in this cuboid.
@@ -379,6 +423,21 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     public E getByRef(int index) {
         return palette.get(data[index]);
+    }
+
+    /**
+     * Returns the palette value at the specified position in this cuboid.
+     * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette entry!</b></p>
+     *
+     * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+     * @return the element at the specified position in this cuboid.
+     */
+    public E getByRef(int x, int y, int z) {
+        return getByRef(indexOf(x, y, z));
+    }
+
+    public E getByRef(IntPointXYZ xyz) {
+        return getByRef(indexOf(xyz));
     }
 
     /**
@@ -414,28 +473,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         set(indexOf(x, y, z), element);
     }
 
-    /**
-     * Returns a copy of the palette value at the specified position in this cuboid.
-     * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
-     * <p>To avoid the overhead of making a copy use {@link #getByRef(int, int, int)} instead.</p>
-     *
-     * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
-     * @return the element at the specified position in this cuboid.
-     */
-    public E get(int x, int y, int z) {
-        return get(indexOf(x, y, z));
+    public void set(IntPointXYZ xyz, E element) {
+        set(indexOf(xyz.x, xyz.y, xyz.z), element);
     }
 
-    /**
-     * Returns the palette value at the specified position in this cuboid.
-     * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette entry!</b></p>
-     *
-     * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
-     * @return the element at the specified position in this cuboid.
-     */
-    public E getByRef(int x, int y, int z) {
-        return getByRef(indexOf(x, y, z));
-    }
 
     /**
      * Removes nulls from the palette and remaps value references as-needed.
@@ -447,8 +488,12 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         for (int id : data) {
             seenIds.add(id);
         }
-        if (seenIds.stream().mapToInt(v -> v).max().getAsInt() >= palette.size()) {
-            throw new IllegalStateException("data[] contained an out of bounds palette id!");
+        int maxId = seenIds.stream().mapToInt(v -> v).max().getAsInt();
+        if (maxId >= palette.size()) {
+//            String dataStr = Arrays.stream(data)
+//                    .mapToObj(String::valueOf)
+//                    .collect(Collectors.joining(", "));
+            throw new IllegalStateException("data[" + /*dataStr +*/ "] contained an out of bounds palette id " + maxId + " palette size " + palette.size());
         }
         for (int i = 0; i < palette.size(); i++) {
             if (!seenIds.contains(i))
@@ -536,6 +581,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     @SuppressWarnings("unchecked")
     public static <T extends Tag<?>> PalettizedCuboid<T> fromCompoundTag(CompoundTag tag, int expectedCubeEdgeLength, int dataVersion) {
+        if (tag == null) return null;
         ListTag<T> paletteListTag = tag.getListTagAutoCast("palette");
         check(paletteListTag != null, "Did not find 'palette' ListTag");
         check(!paletteListTag.isEmpty(), "'palette' ListTag exists but it was empty!");
@@ -547,15 +593,27 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             if (dataTag == null) {
                 return new PalettizedCuboid<>(expectedCubeEdgeLength, paletteListTag.get(0));
             }
-            final int bitsPerValue = calculatePowerOfTwoExponent(paletteListTag.size(), false);
+            final long[] longs = dataTag.getValue();
+            final int size = expectedCubeEdgeLength * expectedCubeEdgeLength * expectedCubeEdgeLength;
+
+            // I don't love this - but Mojang seems to optimize the packing of biomes but not block_states,
+            // or more likely sets a minimum of 4 bits per entry for block_states.
+            // This kludge soft detects biomes vs blocks and treaties them differently - this is probably going to
+            // be version sensitive over time.
+            final int bitsPerValue;
+            if (size >= 4096) bitsPerValue = longs.length >> calculatePowerOfTwoExponent(size / 64, true);
+            else bitsPerValue = calculatePowerOfTwoExponent(paletteListTag.size(), false);
+
             final int indicesPerLong = (int) (64D / bitsPerValue);
             final int bitMask = calculateBitMask(bitsPerValue);
+//            if (DEBUG) {
+//                System.out.printf("longs: %d; size %d; bits %d; bitmask 0x%x; indices per long %d; calculatePowerOfTwoExponent(size / 64, true) -> %d%n",
+//                        longs.length, size, bitsPerValue, bitMask, indicesPerLong, calculatePowerOfTwoExponent(size / 64, true));
+//            }
             PalettizedCuboid<T> palettizedCuboid = new PalettizedCuboid<>(expectedCubeEdgeLength, null, (Class<T>) paletteListTag.getTypeClass(), true);
             for (T t : paletteListTag) {
                 palettizedCuboid.palette.add(t);
             }
-            final int size = palettizedCuboid.size();
-            final long[] longs = dataTag.getValue();
             if (longs.length != Math.ceil((double) size / indicesPerLong))
                 throw new IllegalArgumentException("Incorrect data size! Expected " + (size / indicesPerLong) + " but was " + longs.length);
             for (int ll = 0, i = 0; ll < longs.length; ll++) {
@@ -572,62 +630,134 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         }
     }
 
+    /**
+     * Creates a by-value iterator that will visit every entry and yield a clone of each entry.
+     * @see CursorIterator
+     */
     @Override
-    public PalettizedCuboidIterator iterator() {
-        return new PalettizedCuboidIterator();
+    public CursorIterator iterator() {
+        return new CursorIterator(true, null);
     }
 
-    public PalettizedCuboidByRefIterator iteratorByRef() {
-        return new PalettizedCuboidByRefIterator();
+    /**
+     * Creates a by-reference iterator that will visit every entry and yield a reference to the underlying palette
+     * entry of each entry. <b>USE WITH CARE</b>
+     * @see CursorIterator
+     */
+    public CursorIterator iteratorByRef() {
+        return new CursorIterator(false, null);
+    }
+
+    /**
+     * Creates a by-value iterator that will only visit entries which match the provided filter nd yield a clone of
+     * each entry.
+     * @see CursorIterator
+     */
+    public CursorIterator iterator(Predicate<E> filter) {
+        return new CursorIterator(true, filter);
+    }
+
+    /**
+     * Creates a by-ref iterator that will only visit entries which match the provided filter and yield a reference
+     * to the underlying palette entry of each entry. <b>USE WITH CARE</b>
+     * @see CursorIterator
+     */
+    public CursorIterator iteratorByRef(Predicate<E> filter) {
+        return new CursorIterator(false, filter);
     }
 
     public Stream<E> stream() {
         return StreamSupport.stream(spliterator(), false);
     }
+    public Stream<E> streamByRef() {
+        return StreamSupport.stream(spliteratorByRef(), false);
+    }
+
+    public Spliterator<E> spliteratorByRef() {
+        // TODO: make a spliterator that knows the size
+        return Spliterators.spliteratorUnknownSize(iteratorByRef(), 0);
+    }
 
     public void forEachByRef(Consumer<? super E> action) {
         Objects.requireNonNull(action);
-        PalettizedCuboidByRefIterator iter = iteratorByRef();
+        CursorIterator iter = iteratorByRef();
         while (iter.hasNext()) {
             action.accept(iter.next());
         }
     }
 
-    public Spliterator<E> spliteratorByRef() {
-        return Spliterators.spliteratorUnknownSize(iteratorByRef(), 0);
-    }
-
-    public Stream<E> streamByRef() {
-        return StreamSupport.stream(spliteratorByRef(), false);
-    }
-
-    public class PalettizedCuboidIterator implements Iterator<E> {
+    /**
+     * This is both an iterator and a cursor. This cursor knows where it is and can
+     * be inspected to get additional information about the last item returned by {@link CursorIterator#next()}
+     * such as its XYZ cuboid location and index in the data array.
+     *
+     * <p>Behavior depends on how this Iterator was constructed.</p>
+     *
+     * <h2>By Value Mode</h2>
+     * Gets a copy of the next palette value in this cuboid.
+     * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
+     *
+     * <h2>By Reference Mode</h2>
+     * Gets the next palette value in this cuboid BY REFERENCE.
+     * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette entry!</b></p>
+     * <p>Remember that all {@link Tag}'s support cloning. If you are careful it's always faster / more efficient
+     * to iterate by reference and clone entries as-needed. But this optimization comes at the risk of accidentally
+     * corrupting the palette.</p>
+     * <h2>Filtering Mode</h2>
+     * In addition to by reference or by value modes this CursorIterator optionally supports filtering,
+     * see {@link PalettizedCuboid#iterator(Predicate)} and {@link PalettizedCuboid#iteratorByRef(Predicate)},
+     * <p>When a filter is provided {@link #next()} will only return the next matching entry, skipping as necessary.
+     * {@link #hasNext()} will behave appropriately and indicate if there is a next matching entry or not.</p>
+     * <p>While you could use a {@link Stream} to filter and process entries of interest, using a filter on a cursor
+     * iterator allows you to get more information about the current entry, such as its xyz cuboid position.</p>
+     */
+    public class CursorIterator implements java.util.Iterator<E> {
+        private final boolean byValue;
+        private final Predicate<E> filter;  // nullable
         private int currentIndex = -1;
+        private int nextIndex = 0;  // only used if filter isn't null
+
+        CursorIterator(boolean byValue, Predicate<E> filter) {
+            this.byValue = byValue;
+            this.filter = filter;
+        }
+
         @Override
         public boolean hasNext() {
-            return currentIndex < data.length - 1;
+            if (filter == null) return currentIndex < data.length - 1;
+            while (nextIndex < data.length) {
+                if (filter.test(get(nextIndex))) return true;
+                nextIndex ++;
+            }
+            return false;
         }
 
-        /**
-         * Gets a copy of the palette value at the specified position in this cuboid.
-         * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
-         * <p>To avoid the overhead of making a copy use {@link #nextByRef()} instead.</p>
-         */
         @Override
         public E next() {
+            if (byValue) return nextByValue();
+            else return nextByRef();
+        }
+
+        private E nextByValue() {
             if (!hasNext()) throw new NoSuchElementException();
-            return get(++currentIndex);
+            if (filter == null) return get(++currentIndex);
+            return get(currentIndex = nextIndex++);
+        }
+
+        private E nextByRef() {
+            if (!hasNext()) throw new NoSuchElementException();
+            if (filter == null) return getByRef(++currentIndex);
+            return get(currentIndex = nextIndex++);
         }
 
         /**
-         * Gets the next palette value at the specified position in this cuboid BY REFERENCE.
-         * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette entry!</b></p>
+         * Updates the cuboid entry at the index belonging to the last value returned by {@link #next()}.
          */
-        public E nextByRef() {
-            if (!hasNext()) throw new NoSuchElementException();
-            return getByRef(++currentIndex);
+        public void set(E replacement) {
+            PalettizedCuboid.this.set(currentIndex, replacement);
         }
 
+        /** Gets the last entry returned by {@link #next()} */
         public E current() {
             if (currentIndex < 0) throw new NoSuchElementException();
             return get(currentIndex);
@@ -638,40 +768,29 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             return getByRef(currentIndex);
         }
 
+        /** Gets the cuboid data index of the last entry returned by {@link #next()}. */
         public int currentIndex() {
             return currentIndex;
         }
 
+        /** Gets the cuboid x position of the last entry returned by {@link #next()}. */
         public int currentX() {
             return currentIndex & cordBitMask;
         }
 
+        /** Gets the cuboid y position of the last entry returned by {@link #next()}. */
         public int currentY() {
             return (currentIndex >> yShift) & cordBitMask;
         }
 
+        /** Gets the cuboid z position of the last entry returned by {@link #next()}. */
         public int currentZ() {
             return (currentIndex >> zShift) & cordBitMask;
         }
-    }
 
-    public class PalettizedCuboidByRefIterator extends PalettizedCuboidIterator {
-        /**
-         * Gets a copy of the palette value at the specified position in this cuboid.
-         * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
-         * <p>To avoid the overhead of making a copy use {@link #next()} instead.</p>
-         */
-        public E nextByValue() {
-            return super.next();
-        }
-
-        /**
-         * Gets the next palette value at the specified position in this cuboid BY REFERENCE.
-         * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette entry!</b></p>
-         */
-        @Override
-        public E next() {
-            return super.nextByRef();
+        /** Gets the cuboid xyz position of the last entry returned by {@link #next()}. */
+        public IntPointXYZ currentXYZ() {
+            return xyzOf(currentIndex);
         }
     }
 }
