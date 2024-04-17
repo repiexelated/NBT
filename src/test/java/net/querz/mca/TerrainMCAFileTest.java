@@ -10,17 +10,6 @@ import static net.querz.util.JsonPrettyPrinter.prettyPrintJson;
 
 public class TerrainMCAFileTest extends MCAFileBaseTest {
 
-
-    public void testFoo() {
-        MCAFile mca = assertThrowsNoException(() -> MCAUtil.readAuto(copyResourceToTmp("1_18_1/region/r.0.-2.mca")));
-        List<ChunkBase> chunksIn = mca.stream().filter(Objects::nonNull).collect(Collectors.toList());
-        System.out.println("Chunk info from " + mca.createRegionName());
-        for (ChunkBase chunk : chunksIn) {
-            System.out.printf("%d -> %s @ %d %d%n", chunk.dataVersion, DataVersion.bestFor(chunk.dataVersion), chunk.chunkX, chunk.chunkZ);
-//            System.out.println(prettyPrintJson(chunk.data.toString()));
-        }
-    }
-
     public void testMcaReadWriteParity_1_9_4() {
         validateReadWriteParity(DataVersion.JAVA_1_9_4, "1_9_4/region/r.2.-1.mca", MCAFile.class);
     }
