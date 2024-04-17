@@ -1,19 +1,16 @@
 package net.querz.mca;
 
+import net.querz.nbt.io.SNBTUtil;
 import net.querz.nbt.tag.CompoundTag;
 import net.querz.mca.util.IntPointXZ;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static net.querz.util.JsonPrettyPrinter.prettyPrintJson;
 
 // TODO: implement abstract test pattern for MCAFileBase & refactor MCAFileTest like mad
 public class MCAFileBaseTest extends MCATestCase {
@@ -47,26 +44,10 @@ public class MCAFileBaseTest extends MCATestCase {
         assertThrowsNoException(() -> MCAUtil.write(mcaA, tmpFile));
         // writing should have rebuilt the data tag fully and correctly
         for (int i = 0; i < chunksIn.size(); i++) {
-
-            // check the strings match first - and format them so any diffs give a helpful inspection
-//            assertEquals(
-//                    prettyPrintJson(originalChunkData.get(i).toString()),
-//                    prettyPrintJson(chunksIn.get(i).data.toString()));
-
             try {
+                SNBTUtil.writeSnbtTextFile(Paths.get("TESTDBG", mcaResourcePath + "." + i + ".original.snbt"), originalChunkData.get(i), true);
                 if (!originalChunkData.get(i).equals(chunksIn.get(i).data)) {
-                    Path p = Paths.get("F:\\Archive\\Programming\\Java\\MCPlugins 1.20.4\\QuerzNbt\\TESTDBG", mcaResourcePath + "." + i + ".original.json");
-                    p.getParent().toFile().mkdirs();
-                    Files.write(p,
-                            prettyPrintJson(originalChunkData.get(i).toString()).getBytes());
-                    Files.write(
-                            Paths.get("F:\\Archive\\Programming\\Java\\MCPlugins 1.20.4\\QuerzNbt\\TESTDBG", mcaResourcePath + "." + i + ".out.json"),
-                            prettyPrintJson(chunksIn.get(i).data.toString()).getBytes());
-                } else {
-                    Path p = Paths.get("F:\\Archive\\Programming\\Java\\MCPlugins 1.20.4\\QuerzNbt\\TESTDBG", mcaResourcePath + ".OK." + i + ".original.json");
-                    p.getParent().toFile().mkdirs();
-                    Files.write(p,
-                            prettyPrintJson(originalChunkData.get(i).toString()).getBytes());
+                    SNBTUtil.writeSnbtTextFile(Paths.get("TESTDBG", mcaResourcePath + "." + i + ".regurgitated.snbt"), chunksIn.get(i).data, true);
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -87,10 +68,6 @@ public class MCAFileBaseTest extends MCATestCase {
             CT chunkA = chunksIn.get(i);
             CT chunkB = chunksAsReread.get(i);
             assertEquals(chunkA.getDataVersionEnum(), chunkB.getDataVersionEnum());
-            // check the strings match first - and format them so any diffs give a helpful inspection
-//            assertEquals(
-//                    prettyPrintJson(originalChunkData.get(i).toString()),
-//                    prettyPrintJson(chunkB.data.toString()));
             assertEquals(originalChunkData.get(i), chunkB.data);
         }
     }
