@@ -40,6 +40,52 @@ public class JsonPrettyPrinterTest extends TestCase {
         assertEquals(expected, prettyPrintJson(json));
     }
 
+    public void testFormatLongSNBTArray() {
+        String json = "[L;0, 42, 99]";
+        String expected = "[L;\n" +
+                "  0,\n" +
+                "  42,\n" +
+                "  99\n" +
+                "]";
+        assertEquals(expected, prettyPrintJson(json));
+    }
+    public void testFormatEmptyLongSNBTArray() {
+        String json = "[L;]";
+        String expected = "[L;]";
+        assertEquals(expected, prettyPrintJson(json));
+    }
+
+    public void testFormatIntSNBTArray() {
+        String json = "[I;0, 42, 99]";
+        String expected = "[I;\n" +
+                "  0,\n" +
+                "  42,\n" +
+                "  99\n" +
+                "]";
+        assertEquals(expected, prettyPrintJson(json));
+    }
+    public void testFormatEmptyIntSNBTArray() {
+        String json = "[I;]";
+        String expected = "[I;]";
+        assertEquals(expected, prettyPrintJson(json));
+    }
+
+    public void testFormatByteSNBTArray() {
+        String json = "[B;0, 42, 99]";
+        String expected = "[B;\n" +
+                "  0,\n" +
+                "  42,\n" +
+                "  99\n" +
+                "]";
+        assertEquals(expected, prettyPrintJson(json));
+    }
+    public void testFormatEmptyByteSNBTArray() {
+        String json = "[B;]";
+        String expected = "[B;]";
+        assertEquals(expected, prettyPrintJson(json));
+    }
+
+
     public void testFormatJustAString() {
         String json = "\"hello world\"";
         assertEquals(json, prettyPrintJson(json));

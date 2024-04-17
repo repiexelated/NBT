@@ -31,14 +31,27 @@ public final class JsonPrettyPrinter {
                 appendIndent(sb.append(",\n"), indentationLevel);
             } else if (!inString && (c == '[' || c == '{')) {
                 indentationLevel++;
-                appendIndent(sb.append(c).append('\n'), indentationLevel);
+                sb.append(c);
+                // keep int/long tag array hint on same line next to open bracket
+                if (i + 2 < jsonLen && jsonText.charAt(i + 2) == ';') {
+                    sb.append(jsonText.charAt(i + 1)).append(';');
+                    i += 2;
+                }
+                if (i + 1 < jsonLen && jsonText.charAt(i + 1) == ']') {
+                    sb.append(']');
+                    i ++;
+                    indentationLevel--;
+                } else {
+                    appendIndent(sb.append('\n'), indentationLevel);
+                }
             } else if (!inString && c == ']') {
                 indentationLevel--;
-                if (jsonText.charAt(i - 1) != '[') {
-                    appendIndent(sb.append('\n'), indentationLevel);
-                } else {
-                    sb.setLength(sb.lastIndexOf("[") + 1);
-                }
+                appendIndent(sb.append('\n'), indentationLevel);
+//                if (jsonText.charAt(i - 1) != '[') {
+//                    appendIndent(sb.append('\n'), indentationLevel);
+//                } else {
+//                    sb.setLength(sb.lastIndexOf("[") + 1);
+//                }
                 sb.append(c);
             } else if (!inString && c == '}') {
                 indentationLevel--;
