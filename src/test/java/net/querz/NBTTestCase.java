@@ -6,6 +6,7 @@ import junit.framework.TestCase;
 import net.querz.nbt.io.NBTDeserializer;
 import net.querz.nbt.io.NBTSerializer;
 import net.querz.nbt.io.NamedTag;
+import net.querz.nbt.io.SNBTUtil;
 import net.querz.nbt.tag.Tag;
 
 import java.io.*;
@@ -66,12 +67,22 @@ public abstract class NBTTestCase extends TestCase {
 	}
 
 	protected Tag<?> deserializeFromFile(String f) {
-		try (DataInputStream dis = new DataInputStream(new FileInputStream(getResourceFile(f)))) {
-			return new NBTDeserializer(false).fromStream(dis).getTag();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			fail(ex.getMessage());
-			return null;
+		if (!f.endsWith(".snbt")) {
+			try (DataInputStream dis = new DataInputStream(new FileInputStream(getResourceFile(f)))) {
+				return new NBTDeserializer(false).fromStream(dis).getTag();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+				fail(ex.getMessage());
+				return null;
+			}
+		} else {
+			try {
+				return SNBTUtil.fromSNBT(new String(Files.readAllBytes(getResourceFile(f).toPath())), true);
+			} catch (IOException ex) {
+				ex.printStackTrace();
+				fail(ex.getMessage());
+				return null;
+			}
 		}
 	}
 
