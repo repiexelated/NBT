@@ -230,7 +230,7 @@ public abstract class MCAFileBase<T extends ChunkBase> implements Iterable<T> {
 			int timestamp = raf.readInt();
 			raf.seek(4096L * offset + 4); //+4: skip data size
 			T chunk = deserializeChunk(raf, loadFlags, timestamp,
-					getRelativeChunkXZ(i).multiply(chunkOffsetXZ));
+					getRelativeChunkXZ(i).add(chunkOffsetXZ));
 			chunks[i] = chunk;
 			if (chunk != null && chunk.hasDataVersion()) {
 				if (chunk.getDataVersion() < minDataVersion) {
