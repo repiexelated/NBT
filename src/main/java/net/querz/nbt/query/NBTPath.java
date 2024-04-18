@@ -135,10 +135,14 @@ public class NBTPath {
      * Evaluates this {@link NBTPath} against the provided {@link Tag}. Note that this method may return
      * {@link Tag}'s, but it may also return a primitive type such as byte/int/long if the leaf in the
      * path is an index into one of the {@link ArrayTag} types.
+     *
+     * <p>The caller must know the type which will be returned. Any type errors will result in a
+     * {@link ClassCastException} being thrown at the call site of this method - not from within this method.</p>
      * @param root tag to begin traversal from.
      * @param <R> return type - note that if this function returns an unexpected type you will see a
      *      {@link ClassCastException} thrown at the call site of this method - not from within this method.
      * @return result or null
+     * @see #getTag(Tag) 
      */
     @SuppressWarnings("unchecked")
     public <R> R get(Tag<?> root) {
@@ -152,9 +156,10 @@ public class NBTPath {
     }
 
     /**
-     * Just like {@link #get(Tag)} except auto-castable to a {@link Tag} type. The caller must know the
-     * type which will be returned. Any type errors will result in a {@link ClassCastException} being thrown
-     * at the call site of this method - not from within this method.
+     * Just like {@link #get(Tag)} except auto-castable to a {@link Tag} type.
+     *
+     * <p>The caller must know the type which will be returned. Any type errors will result in a
+     * {@link ClassCastException} being thrown at the call site of this method - not from within this method.</p>
      * @see #get(Tag)
      */
     public <R extends Tag<?>> R getTag(Tag<?> root) {
@@ -279,6 +284,7 @@ public class NBTPath {
     }
 
     /**
+     * Shorthand for {@code putTag(root, value, createParents=false);}
      * @see #putTag(Tag, Tag, boolean)
      */
     public <T extends Tag<?>> T putTag(Tag<?> root, Tag<?> value) {
