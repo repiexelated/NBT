@@ -7,7 +7,7 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'jacoco'
 
-group                        = 'net.querz.nbt'
+group                        = 'net.rossquerz.nbt'
 archivesBaseName             = 'nbt'
 version                      = '6.1.ens.0'
 sourceCompatibility          = '1.8'
@@ -26,7 +26,7 @@ dependencies {
 javadoc {
 	source = sourceSets.main.allJava
 	destinationDir = file("./doc/")
-	include 'net/querz/**'
+	include 'net/rossquerz/**'
 	options.windowTitle 'NBT'
 	options.encoding 'UTF-8'
 	options.linkSource true
