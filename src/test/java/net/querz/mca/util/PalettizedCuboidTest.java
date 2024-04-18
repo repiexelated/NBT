@@ -732,15 +732,61 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertFalse(iter.hasNext());
     }
 
-    public void testIterator_currentThrowsNoSuchElementExceptionIfNextHasNeverBeenCalled() {
+    public void testIterator_nextXYZ() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        assertEquals(XYZ(0, 0, 0), iter.nextXYZ());
+        assertEquals(XYZ(1, 0, 0), iter.nextXYZ());
+        assertEquals(XYZ(0, 0, 1), iter.nextXYZ());
+        assertEquals(XYZ(1, 0, 1), iter.nextXYZ());
+        assertEquals(XYZ(0, 1, 0), iter.nextXYZ());
+        assertEquals(XYZ(1, 1, 0), iter.nextXYZ());
+        assertEquals(XYZ(0, 1, 1), iter.nextXYZ());
+        assertEquals(XYZ(1, 1, 1), iter.nextXYZ());
+        assertFalse(iter.hasNext());
+    }
+
+    public void testIterator_current_ThrowsNoSuchElementExceptionIfNextHasNeverBeenCalled() {
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
         PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
         assertThrowsException(iter::current, NoSuchElementException.class);
     }
 
-    public void testIterator_nextThrowsNoSuchElementExceptionIfThereAreNoMoreElements() {
+    public void testIterator_filtered_current_ThrowsNoSuchElementExceptionIfNextHasNeverBeenCalled() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        StringTag tag = new StringTag("abba");
+        cuboid.set(1, tag);
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator(tag::equals);
+        assertThrowsException(iter::current, NoSuchElementException.class);
+    }
+
+    public void testIterator_currentIndex_ThrowsNoSuchElementExceptionIfNextHasNeverBeenCalled() {
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
         PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        assertThrowsException(iter::currentIndex, NoSuchElementException.class);
+    }
+
+    public void testIterator_currentXYZ_ThrowsNoSuchElementExceptionIfNextHasNeverBeenCalled() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        assertThrowsException(iter::currentXYZ, NoSuchElementException.class);
+        assertThrowsException(iter::currentX, NoSuchElementException.class);
+        assertThrowsException(iter::currentY, NoSuchElementException.class);
+        assertThrowsException(iter::currentZ, NoSuchElementException.class);
+    }
+
+    public void testIterator_next_ThrowsNoSuchElementExceptionIfThereAreNoMoreElements() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        while (iter.hasNext()) iter.next();
+        assertThrowsException(iter::next, NoSuchElementException.class);
+    }
+
+    public void testIterator_filtered_next_ThrowsNoSuchElementExceptionIfThereAreNoMoreElements() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        StringTag tag = new StringTag("abba");
+        cuboid.set(1, tag);
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator(tag::equals);
         while (iter.hasNext()) iter.next();
         assertThrowsException(iter::next, NoSuchElementException.class);
     }
@@ -772,6 +818,13 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(6, cuboid.countIf(fillTag::equals));
         assertTrue(cuboid.contains(new StringTag("a")));
         assertTrue(cuboid.contains(new StringTag("b")));
+    }
+
+    public void testIterator_set_throwsIfCalledBeforeNext() {
+        StringTag fillTag = new StringTag("xxxx");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, fillTag);
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        assertThrowsException(() -> iter.set(new StringTag("a")), NoSuchElementException.class);
     }
 
     public void testIterator_set_detectsCommonPaletteCorruptionCase() {
@@ -826,21 +879,44 @@ public class PalettizedCuboidTest extends NBTTestCase {
 
     }
 
-    public void testFromCompoundTag_blockStates_1_20_4__28entries() throws IOException {
-        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-28entries.snbt");
+    public void testFromCompoundTag_blockStates_1_20_4__72entries() throws IOException {
+        // interesting because it's the largest chunk section found in a random world's region file.
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-r.0.0_X6Y-3Z23_72entries.snbt");
 //        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
         PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
         assertNotNull(cuboid);
         assertEquals(4096, cuboid.size());
-        assertEquals(28, cuboid.paletteSize());
+        assertEquals(72, cuboid.paletteSize());
         PalettizedCuboid<CompoundTag>.CursorIterator iter =
-                cuboid.iterator(e -> e.getString("Name").equals("minecraft:chest"));
+                cuboid.iterator(e -> e.getString("Name").equals("minecraft:sticky_piston"));
         assertTrue(iter.hasNext());
-        CompoundTag chestPaletteTag = iter.next();
-        IntPointXYZ subChunkLocation = new IntPointXYZ(2, -4, -1);
-        IntPointXYZ blockAbsoluteLocation = subChunkLocation.transformChunkSectionToBlock().add(iter.currentXYZ());
-        assertEquals(new IntPointXYZ(37, -50, -1), blockAbsoluteLocation);
-        System.out.println();
-        System.out.println(SNBTUtil.toSNBT(chestPaletteTag, true));
+        IntPointXYZ subChunkLocation = new IntPointXYZ(6, -3, 23);
+        IntPointXYZ blockAbsoluteLocation = subChunkLocation.transformChunkSectionToBlock().add(iter.nextXYZ());
+        assertEquals(new IntPointXYZ(99, -48, 372), blockAbsoluteLocation);
+        assertFalse(iter.hasNext());
+        assertEquals("west", iter.current().getCompoundTag("Properties").getString("facing"));
+        assertTrue(iter.current().getCompoundTag("Properties").getBoolean("extended"));
+    }
+
+    public void testFromCompoundTag_biomes_1_20_4__6entries() throws IOException {
+        // interesting because it highlights the need to compute bits per index from palette size and not from the
+        // number of longs - computing from number of longs gives the wrong answer because this sample overflows
+        // 3 longs by as single record.
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/biomes-1.20.4-r.0.0_X21Y-3Z3_6entries.snbt");
+//        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
+        PalettizedCuboid<StringTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 4, DataVersion.JAVA_1_20_4.id());
+        assertNotNull(cuboid);
+        assertEquals(64, cuboid.size());
+        assertEquals(6, cuboid.paletteSize());
+        assertEquals(6, cuboid.countIf(e -> e.getValue().equals("minecraft:dripstone_caves")));
+        PalettizedCuboid<StringTag>.CursorIterator iter =
+                cuboid.iterator(e -> e.getValue().equals("minecraft:dripstone_caves"));
+        assertEquals(XYZ(0, 2, 0), iter.nextXYZ());
+        assertEquals(XYZ(0, 3, 0), iter.nextXYZ());
+        assertEquals(XYZ(1, 3, 0), iter.nextXYZ());
+        assertEquals(XYZ(2, 3, 0), iter.nextXYZ());
+        assertEquals(XYZ(0, 3, 1), iter.nextXYZ());
+        assertEquals(XYZ(1, 3, 1), iter.nextXYZ());
+        assertFalse(iter.hasNext());
     }
 }

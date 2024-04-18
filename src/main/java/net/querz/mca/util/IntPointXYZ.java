@@ -7,7 +7,6 @@ package net.querz.mca.util;
  * <p>Use the shorthand way of creating an instance by staticly importing the {@link #XYZ(int, int, int)} method.<br>
  * <pre>{@code import static net.querz.mca.util.IntPointXYZ.XYZ;
  * IntPointXYZ xyz = XYZ(1, 2, 3);}</pre>
- * </p>
  */
 public class IntPointXYZ extends IntPointXZ {
     protected final int y;

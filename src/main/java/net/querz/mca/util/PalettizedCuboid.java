@@ -787,11 +787,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     /**
      * Creates a by-value iterator that will visit every entry and yield a clone of each entry.
-     * <p>
-     *     Tip: if you are using a java version that supports the {@code var} keyword (java 10+),
-     *     you can avoid using the otherwise unavoidably long typename with
-     *     <pre>{@code var iter = cuboid.iterator();}</pre>
-     * </p>
+     * <p>Tip: if you are using a java version that supports the {@code var} keyword (java 10+),
+     * you can avoid using the otherwise unavoidably long typename with</p>
+     * <pre>{@code var iter = cuboid.iterator();}</pre>
+     *
      * @see CursorIterator
      */
     @Override
@@ -862,6 +861,12 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             }
         }
 
+        private void checkCurrentIndex() {
+            if (currentIndex < 0) {  // note currentIndex will never be GE data.length
+                throw new NoSuchElementException();
+            }
+        }
+
         @Override
         public boolean hasNext() {
             checkNotModified();
@@ -892,11 +897,18 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             return ret;
         }
 
+        /** Advances to the next entry and returns its XYZ. */
+        public IntPointXYZ nextXYZ() {
+            next();
+            return currentXYZ();
+        }
+
         /**
          * Updates the cuboid entry at the index belonging to the last value returned by {@link #next()}.
          */
         public void set(E replacement) {
             checkNotModified();
+            checkCurrentIndex();
             PalettizedCuboid.this.set(currentIndex, replacement);
             expectPaletteModCount = paletteModCount;
             currentPaletteHash = replacement.hashCode();
@@ -906,34 +918,37 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
          * Gets the last entry returned by {@link #next()}.
          */
         public E current() {
-            if (currentIndex < 0) {
-                throw new NoSuchElementException();
-            }
+            checkCurrentIndex();
             return getByRef(currentIndex);
         }
 
         /** Gets the cuboid data index of the last entry returned by {@link #next()}. */
         public int currentIndex() {
+            checkCurrentIndex();
             return currentIndex;
         }
 
         /** Gets the cuboid x position of the last entry returned by {@link #next()}. */
         public int currentX() {
+            checkCurrentIndex();
             return currentIndex & cordBitMask;
         }
 
         /** Gets the cuboid y position of the last entry returned by {@link #next()}. */
         public int currentY() {
+            checkCurrentIndex();
             return (currentIndex >> yShift) & cordBitMask;
         }
 
         /** Gets the cuboid z position of the last entry returned by {@link #next()}. */
         public int currentZ() {
+            checkCurrentIndex();
             return (currentIndex >> zShift) & cordBitMask;
         }
 
         /** Gets the cuboid xyz position of the last entry returned by {@link #next()}. */
         public IntPointXYZ currentXYZ() {
+            checkCurrentIndex();
             return xyzOf(currentIndex);
         }
     }
