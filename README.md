@@ -1,27 +1,27 @@
 # NBT
-WARNING: This fork is currently under heavy development and is NOT ready for consumption.
+!!! THIS FORK IS UNDER HEAVY DEVELOPMENT AND IS NOT YET READY FOR CONSUMPTION !!!
 
-[![Build Status](https://travis-ci.org/Querz/NBT.svg?branch=master)](https://travis-ci.org/Querz/NBT) [![Coverage Status](https://img.shields.io/coveralls/github/Querz/NBT/master.svg)](https://coveralls.io/github/Querz/NBT?branch=master) [![Release](https://jitpack.io/v/Querz/NBT.svg)](https://jitpack.io/#Querz/NBT)
-#### A java implementation of the [NBT protocol](http://minecraft.gamepedia.com/NBT_format) for Minecraft Java Edition.
+<!-- [![Build Status](https://travis-ci.org/Querz/NBT.svg?branch=master)](https://travis-ci.org/Querz/NBT) [![Coverage Status](https://img.shields.io/coveralls/github/Querz/NBT/master.svg)](https://coveralls.io/github/Querz/NBT?branch=master) [![Release](https://jitpack.io/v/Querz/NBT.svg)](https://jitpack.io/#Querz/NBT) -->
+#### A java implementation of the [NBT protocol](https://minecraft.gamepedia.com/NBT_format) for Minecraft Java Edition.
 ---
 ### Specification
 According to the [specification](https://minecraft.gamepedia.com/NBT_format), there are currently 13 different types of tags:
 
 | Tag class    | Superclass | ID | Payload |
 | ---------    | ---------- | -- | ----------- |
-| [EndTag](src/main/java/net/rossquerz/nbt/EndTag.java)             | [Tag](src/main/java/net/rossquerz/nbt/Tag.java)               | 0  | None |
-| [ByteTag](src/main/java/net/rossquerz/nbt/ByteTag.java)           | [NumberTag](src/main/java/net/rossquerz/nbt/NumberTag.java)   | 1  | 1 byte / 8 bits, signed |
-| [ShortTag](src/main/java/net/rossquerz/nbt/ShortTag.java)         | [NumberTag](src/main/java/net/rossquerz/nbt/NumberTag.java)   | 2  | 2 bytes / 16 bits, signed, big endian |
-| [IntTag](src/main/java/net/rossquerz/nbt/IntTag.java)             | [NumberTag](src/main/java/net/rossquerz/nbt/NumberTag.java)   | 3  | 4 bytes / 32 bits, signed, big endian |
-| [LongTag](src/main/java/net/rossquerz/nbt/LongTag.java)           | [NumberTag](src/main/java/net/rossquerz/nbt/NumberTag.java)   | 4  | 8 bytes / 64 bits, signed, big endian |
-| [FloatTag](src/main/java/net/rossquerz/nbt/FloatTag.java)         | [NumberTag](src/main/java/net/rossquerz/nbt/NumberTag.java)   | 5  | 4 bytes / 32 bits, signed, big endian, IEEE 754-2008, binary32 |
-| [DoubleTag](src/main/java/net/rossquerz/nbt/DoubleTag.java)       | [NumberTag](src/main/java/net/rossquerz/nbt/NumberTag.java)   | 6  | 8 bytes / 64 bits, signed, big endian, IEEE 754-2008, binary64 |
-| [ByteArrayTag](src/main/java/net/rossquerz/nbt/ByteArrayTag.java) | [ArrayTag](src/main/java/net/rossquerz/nbt/ArrayTag.java)     | 7  | `IntTag` payload *size*, then *size* `ByteTag` payloads |
-| [StringTag](src/main/java/net/rossquerz/nbt/StringTag.java)       | [Tag](src/main/java/net/rossquerz/nbt/Tag.java)               | 8  | `ShortTag` payload *length*, then a UTF-8 string with size *length* |
-| [ListTag](src/main/java/net/rossquerz/nbt/ListTag.java)           | [Tag](src/main/java/net/rossquerz/nbt/Tag.java)               | 9  | `ByteTag` payload *tagId*, then `IntTag` payload *size*, then *size* tags' payloads, all of type *tagId* |
-| [CompoundTag](src/main/java/net/rossquerz/nbt/CompoundTag.java)   | [Tag](src/main/java/net/rossquerz/nbt/Tag.java)               | 10 | Fully formed tags, followed by an `EndTag` |
-| [IntArrayTag](src/main/java/net/rossquerz/nbt/IntArrayTag.java)   | [ArrayTag](src/main/java/net/rossquerz/nbt/ArrayTag.java)     | 11 | `IntTag` payload *size*, then *size* `IntTag` payloads |
-| [LongArrayTag](src/main/java/net/rossquerz/nbt/LongArrayTag.java) | [ArrayTag](src/main/java/net/rossquerz/nbt/ArrayTag.java)     | 12 | `IntTag` payload *size*, then *size* `LongTag` payloads |
+| [EndTag](src/main/java/net/querz/nbt/tag/EndTag.java)             | [Tag](src/main/java/net/querz/nbt/tag/Tag.java)               | 0  | None |
+| [ByteTag](src/main/java/net/querz/nbt/tag/ByteTag.java)           | [NumberTag](src/main/java/net/querz/nbt/tag/NumberTag.java)   | 1  | 1 byte / 8 bits, signed |
+| [ShortTag](src/main/java/net/querz/nbt/tag/ShortTag.java)         | [NumberTag](src/main/java/net/querz/nbt/tag/NumberTag.java)   | 2  | 2 bytes / 16 bits, signed, big endian |
+| [IntTag](src/main/java/net/querz/nbt/tag/IntTag.java)             | [NumberTag](src/main/java/net/querz/nbt/tag/NumberTag.java)   | 3  | 4 bytes / 32 bits, signed, big endian |
+| [LongTag](src/main/java/net/querz/nbt/tag/LongTag.java)           | [NumberTag](src/main/java/net/querz/nbt/tag/NumberTag.java)   | 4  | 8 bytes / 64 bits, signed, big endian |
+| [FloatTag](src/main/java/net/querz/nbt/tag/FloatTag.java)         | [NumberTag](src/main/java/net/querz/nbt/tag/NumberTag.java)   | 5  | 4 bytes / 32 bits, signed, big endian, IEEE 754-2008, binary32 |
+| [DoubleTag](src/main/java/net/querz/nbt/tag/DoubleTag.java)       | [NumberTag](src/main/java/net/querz/nbt/tag/NumberTag.java)   | 6  | 8 bytes / 64 bits, signed, big endian, IEEE 754-2008, binary64 |
+| [ByteArrayTag](src/main/java/net/querz/nbt/tag/ByteArrayTag.java) | [ArrayTag](src/main/java/net/querz/nbt/tag/ArrayTag.java)     | 7  | `IntTag` payload *size*, then *size* `ByteTag` payloads |
+| [StringTag](src/main/java/net/querz/nbt/tag/StringTag.java)       | [Tag](src/main/java/net/querz/nbt/tag/Tag.java)               | 8  | `ShortTag` payload *length*, then a UTF-8 string with size *length* |
+| [ListTag](src/main/java/net/querz/nbt/tag/ListTag.java)           | [Tag](src/main/java/net/querz/nbt/tag/Tag.java)               | 9  | `ByteTag` payload *tagId*, then `IntTag` payload *size*, then *size* tags' payloads, all of type *tagId* |
+| [CompoundTag](src/main/java/net/querz/nbt/tag/CompoundTag.java)   | [Tag](src/main/java/net/querz/nbt/tag/Tag.java)               | 10 | Fully formed tags, followed by an `EndTag` |
+| [IntArrayTag](src/main/java/net/querz/nbt/tag/IntArrayTag.java)   | [ArrayTag](src/main/java/net/querz/nbt/tag/ArrayTag.java)     | 11 | `IntTag` payload *size*, then *size* `IntTag` payloads |
+| [LongArrayTag](src/main/java/net/querz/nbt/tag/LongArrayTag.java) | [ArrayTag](src/main/java/net/querz/nbt/tag/ArrayTag.java)     | 12 | `IntTag` payload *size*, then *size* `LongTag` payloads |
 
 * The `EndTag` is only used to mark the end of a `CompoundTag` in its serialized state or an empty `ListTag`.
 
@@ -39,7 +39,7 @@ And then add it as a dependency as usual:
 ```
 dependencies {
 	...
-	implementation 'com.github.Querz:NBT:6.1'
+	implementation 'com.github.ens-gijs:NBT:1.0'
 }
 ```
 
@@ -56,9 +56,9 @@ Add Jitpack:
 Dependency:
 ```
 <dependency>
-	<groupId>com.github.Querz</groupId>
+	<groupId>com.github.ens-gijs</groupId>
 	<artifactId>NBT</artifactId>
-	<version>6.1</version>
+	<version>1.0</version>
 </dependency>
 ```
 
@@ -85,7 +85,7 @@ All methods serializing instances or deserializing data track the nesting levels
 
 These methods have a parameter for the maximum nesting depth they are allowed to traverse. A value of `0` means that only the object itself, but no nested object may be processed.
 
-If an instance is nested further than allowed, a [MaxDepthReachedException](src/main/java/net/rossquerz/nbt/MaxDepthReachedException.java) will be thrown. A negative maximum depth will cause an `IllegalArgumentException`.
+If an instance is nested further than allowed, a [MaxDepthReachedException](src/main/java/net/querz/io/MaxDepthReachedException.java) will be thrown. A negative maximum depth will cause an `IllegalArgumentException`.
 
 Some methods do not provide a parameter to specify the maximum depth, but instead use `Tag.DEFAULT_MAX_DEPTH` (`512`) which is also the maximum used in Minecraft.
 
