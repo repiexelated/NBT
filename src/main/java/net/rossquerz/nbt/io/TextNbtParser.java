@@ -45,11 +45,15 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 		ptr.reset();
 		ptr.skipWhitespace();
 		String name = ptr.currentChar() == '"' ? ptr.parseQuotedString() : ptr.parseSimpleString();
-		if (!name.isEmpty()) {
+		// note to future self: if you're ever compelled to set NamedTag's name to null if it's empty
+		// consider changing TextNbtWriter#writeAnything(NamedTag, int)'s behavior to match
+		ptr.skipWhitespace();
+		if (ptr.hasNext() && ptr.next() ==':') {
 			ptr.skipWhitespace();
-			if (ptr.next() ==':') {
-				return new NamedTag(name, parseAnything(maxDepth));
+			if (!ptr.hasNext()) {
+				throw ptr.parseException("unexpected end of input - no value after name:");
 			}
+			return new NamedTag(name, parseAnything(maxDepth));
 		}
 		return new NamedTag(null, readRawTag(maxDepth));
 	}

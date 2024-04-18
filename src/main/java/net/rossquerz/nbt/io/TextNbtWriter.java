@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  */
 public final class TextNbtWriter implements MaxDepthIO {
 
-	private static final Pattern NON_QUOTE_PATTERN = Pattern.compile("[a-zA-Z_.+\\-]+");
+	private static final Pattern NON_QUOTE_PATTERN = Pattern.compile("^[a-zA-Z_.+\\-]+$");
 
 	private Writer writer;
 
@@ -52,8 +52,10 @@ public final class TextNbtWriter implements MaxDepthIO {
 	}
 
 	private void writeAnything(NamedTag tag, int maxDepth) throws IOException {
-		if (tag.getName() != null && !tag.getName().isEmpty()) {
-			writer.write(tag.getName());
+		// note to future self: if you're ever compelled not write an empty name be sure to
+		// consider what that means for TextNbtParser#readTag(int)
+		if (tag.getName() != null) {
+			writer.write(tag.getEscapedName());
 			writer.write(':');
 		}
 		writeAnything(tag.getTag(), maxDepth);

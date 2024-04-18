@@ -2,11 +2,13 @@ package net.rossquerz.nbt.io;
 
 import net.rossquerz.NbtTestCase;
 import net.rossquerz.nbt.tag.*;
+import org.junit.Assert;
+
 import java.util.Arrays;
 
 public class TextNbtParserTest extends NbtTestCase {
 
-	public void testParse() {
+	public void testParseTags() {
 		Tag<?> t = assertThrowsNoException(() -> new TextNbtParser("{abc: def, blah: 4b, blubb: \"string\", \"foo\": 2s}").parse());
 		assertEquals(CompoundTag.class, t.getClass());
 		CompoundTag c = (CompoundTag) t;
@@ -155,5 +157,99 @@ public class TextNbtParserTest extends NbtTestCase {
 		assertThrowsException(() -> new TextNbtParser("{abc: def").parse(), ParseException.class);
 		assertThrowsException(() -> new TextNbtParser("{\"\":empty}").parse(), ParseException.class);
 		assertThrowsException(() -> new TextNbtParser("{empty:}").parse(), ParseException.class);
+	}
+
+
+	public void testReadNamedTag() {
+		// name followed by number
+		// literal name
+		NamedTag namedTag = assertThrowsNoException(() -> new TextNbtParser("my-value:16b").readTag(99));
+		assertEquals("my-value", namedTag.getName());
+		assertEquals(new ByteTag((byte) 16), namedTag.getTag());
+
+		// numbers can be names
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("10: ten").readTag(99));
+		assertEquals("10", namedTag.getName());
+		assertEquals("ten", ((StringTag) namedTag.getTag()).getValue());
+
+		// double literals can be names
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("1.6: one-point-six").readTag(99));
+		assertEquals("1.6", namedTag.getName());
+		assertEquals("one-point-six", ((StringTag) namedTag.getTag()).getValue());
+
+		// name followed by bool
+		// quoted name with space
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("\"some bool\":true").readTag(99));
+		assertEquals("some bool", namedTag.getName());
+		assertTrue(((ByteTag) namedTag.getTag()).asBoolean());
+
+		// quoted name followed by quoted string
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("\"me key\": \"me value\"").readTag(99));
+		assertEquals("me key", namedTag.getName());
+		assertEquals("me value", ((StringTag) namedTag.getTag()).getValue());
+
+		// name followed by long array
+		// literal name containing a dot
+		// whitespace around ':'
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("mod.params : [L; -9223372036854775808, 0, 9223372036854775807 ]").readTag(99));
+		assertEquals("mod.params", namedTag.getName());
+		assertEquals(LongArrayTag.class, namedTag.getTag().getClass());
+		assertEquals(3, ((LongArrayTag) namedTag.getTag()).length());
+		Assert.assertArrayEquals(new long[]{-9223372036854775808L, 0, 9223372036854775807L}, ((LongArrayTag) namedTag.getTag()).getValue());
+
+		// name followed by string array
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("my_array: [abc, \"def\", \"123\" ]").readTag(99));
+		assertEquals("my_array", namedTag.getName());
+		assertEquals(ListTag.class, namedTag.getTag().getClass());
+		assertEquals(StringTag.class, ((ListTag<?>) namedTag.getTag()).getTypeClass());
+		assertEquals(3, ((ListTag<?>) namedTag.getTag()).size());
+		assertEquals("abc", ((ListTag<?>) namedTag.getTag()).asStringTagList().get(0).getValue());
+		assertEquals("def", ((ListTag<?>) namedTag.getTag()).asStringTagList().get(1).getValue());
+		assertEquals("123", ((ListTag<?>) namedTag.getTag()).asStringTagList().get(2).getValue());
+
+		// name followed by empty list tag
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("my-array:[]").readTag(99));
+		assertEquals("my-array", namedTag.getName());
+		assertEquals(ListTag.class, namedTag.getTag().getClass());
+		assertTrue(((ListTag<?>) namedTag.getTag()).isEmpty());
+
+		// name followed by compound tag
+		NamedTag namedTagC = assertThrowsNoException(() -> new TextNbtParser("my-object: {abc: def,\"key\": 123d, blah: [L;123, 456], blubb: [123, 456]}").readTag(99));
+		assertEquals(CompoundTag.class, namedTagC.getTag().getClass());
+		assertEquals(4, ((CompoundTag) namedTagC.getTag()).size());
+		assertEquals("def", assertThrowsNoException(() -> ((CompoundTag) namedTagC.getTag()).getString("abc")));
+		assertEquals(123D, assertThrowsNoException(() -> ((CompoundTag) namedTagC.getTag()).getDouble("key")));
+		Assert.assertArrayEquals(new long[]{123, 456}, assertThrowsNoException(() -> ((CompoundTag) namedTagC.getTag()).getLongArray("blah")));
+		assertEquals(2, assertThrowsNoException(() -> ((CompoundTag) namedTagC.getTag()).getListTag("blubb")).size());
+		assertEquals(IntTag.class, ((CompoundTag) namedTagC.getTag()).getListTag("blubb").getTypeClass());
+
+		// name followed by empty compound tag
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("my-object:{}").readTag(99));
+		assertEquals("my-object", namedTag.getName());
+		assertEquals(CompoundTag.class, namedTag.getTag().getClass());
+		assertTrue(((CompoundTag) namedTag.getTag()).isEmpty());
+
+		// unnamed string literal
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("my-value.xyz").readTag(99));
+		assertNull(namedTag.getName());
+		assertEquals("my-value.xyz", ((StringTag) namedTag.getTag()).getValue());
+
+		// unnamed quoted string
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("\"mystring\"").readTag(99));
+		assertNull(namedTag.getName());
+		assertEquals("mystring", ((StringTag) namedTag.getTag()).getValue());
+
+		// unnamed float literal
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("42.5f").readTag(99));
+		assertNull(namedTag.getName());
+		assertEquals(42.5f, ((FloatTag) namedTag.getTag()).asFloat());
+
+		// empty quoted string name
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("\"\":\nnothing").readTag(99));
+		assertEquals("", namedTag.getName());
+		assertEquals("nothing", ((StringTag) namedTag.getTag()).getValue());
+
+		// no value after name
+		assertThrowsException(() -> new TextNbtParser("oof: \n").readTag(99), ParseException.class);
 	}
 }
