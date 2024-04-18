@@ -847,7 +847,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
 
     // Interesting because bit packing has no waste on the per-long level, 4 bits to encode size 14 palette data.
     public void testFromCompoundTag_blockStates_1_20_4__14entries() {
-        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-14entries.snbt");
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-14entries.snbt").getTag();
 //        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
         PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
         assertNotNull(cuboid);
@@ -867,7 +867,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
 
     // Interesting because only 3 bits are required to encode size 6 palette data, but it actually uses 4 bits.
     public void testFromCompoundTag_blockStates_1_20_4__6entries() {
-        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-6entries.snbt");
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-6entries.snbt").getTag();
 //        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
         PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
         assertNotNull(cuboid);
@@ -880,7 +880,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
 
     public void testFromCompoundTag_blockStates_1_20_4__72entries() throws IOException {
         // interesting because it's the largest chunk section found in a random world's region file.
-        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-r.0.0_X6Y-3Z23_72entries.snbt");
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-r.0.0_X6Y-3Z23_72entries.snbt").getTag();
 //        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
         PalettizedCuboid<CompoundTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 16, DataVersion.JAVA_1_20_4.id());
         assertNotNull(cuboid);
@@ -901,7 +901,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         // interesting because it highlights the need to compute bits per index from palette size and not from the
         // number of longs - computing from number of longs gives the wrong answer because this sample overflows
         // 3 longs by as single record.
-        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/biomes-1.20.4-r.0.0_X21Y-3Z3_6entries.snbt");
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/biomes-1.20.4-r.0.0_X21Y-3Z3_6entries.snbt").getTag();
 //        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
         PalettizedCuboid<StringTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 4, DataVersion.JAVA_1_20_4.id());
         assertNotNull(cuboid);

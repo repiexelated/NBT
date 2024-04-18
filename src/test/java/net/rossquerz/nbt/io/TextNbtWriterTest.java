@@ -20,9 +20,9 @@ public class TextNbtWriterTest extends NbtTestCase {
 
 		// write array tags
 
-		assertEquals("[B;-128,0,127]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new ByteArrayTag(new byte[]{Byte.MIN_VALUE, 0, Byte.MAX_VALUE}))));
-		assertEquals("[I;-2147483648,0,2147483647]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new IntArrayTag(new int[]{Integer.MIN_VALUE, 0, Integer.MAX_VALUE}))));
-		assertEquals("[L;-9223372036854775808,0,9223372036854775807]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new LongArrayTag(new long[]{Long.MIN_VALUE, 0, Long.MAX_VALUE}))));
+		assertEquals("[B;-128,0,127]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new ByteArrayTag(new byte[]{Byte.MIN_VALUE, 0, Byte.MAX_VALUE}), false)));
+		assertEquals("[I;-2147483648,0,2147483647]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new IntArrayTag(new int[]{Integer.MIN_VALUE, 0, Integer.MAX_VALUE}), false)));
+		assertEquals("[L;-9223372036854775808,0,9223372036854775807]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new LongArrayTag(new long[]{Long.MIN_VALUE, 0, Long.MAX_VALUE}), false)));
 
 		// write string tag
 
@@ -39,7 +39,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 		lt.addString("blah");
 		lt.addString("blubb");
 		lt.addString("123");
-		assertEquals("[blah,blubb,\"123\"]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(lt)));
+		assertEquals("[blah,blubb,\"123\"]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(lt, false)));
 
 		// write compound tag
 		CompoundTag ct = new CompoundTag();
@@ -52,6 +52,6 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("bar");
 		ct.put("list", clt);
 		String ctExpected = "{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
-		assertEquals(ctExpected, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct)));
+		assertEquals(ctExpected, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct, false)));
 	}
 }

@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * TextNbtWriter creates an SNBT String.
+ * TextNbtWriter creates a text NBT String.
  */
 public final class TextNbtWriter implements MaxDepthIO {
 
@@ -34,12 +34,29 @@ public final class TextNbtWriter implements MaxDepthIO {
 		this.writer = writer;
 	}
 
+
+	public static void write(NamedTag tag, Writer writer, int maxDepth) throws IOException {
+		new TextNbtWriter(writer).writeAnything(tag, maxDepth);
+	}
+
+	public static void write(NamedTag tag, Writer writer) throws IOException {
+		write(tag, writer, Tag.DEFAULT_MAX_DEPTH);
+	}
+
 	public static void write(Tag<?> tag, Writer writer, int maxDepth) throws IOException {
 		new TextNbtWriter(writer).writeAnything(tag, maxDepth);
 	}
 
 	public static void write(Tag<?> tag, Writer writer) throws IOException {
 		write(tag, writer, Tag.DEFAULT_MAX_DEPTH);
+	}
+
+	private void writeAnything(NamedTag tag, int maxDepth) throws IOException {
+		if (tag.getName() != null && !tag.getName().isEmpty()) {
+			writer.write(tag.getName());
+			writer.write(':');
+		}
+		writeAnything(tag.getTag(), maxDepth);
 	}
 
 	private void writeAnything(Tag<?> tag, int maxDepth) throws IOException {

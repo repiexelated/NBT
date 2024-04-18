@@ -9,6 +9,10 @@ public class StringPointer {
 		this.value = value;
 	}
 
+	public void reset() {
+		index = 0;
+	}
+
 	public int getIndex() {
 		return index;
 	}

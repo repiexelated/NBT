@@ -3,10 +3,7 @@ package net.rossquerz;
 import junit.framework.AssertionFailedError;
 import junit.framework.ComparisonFailure;
 import junit.framework.TestCase;
-import net.rossquerz.nbt.io.BinaryNbtDeserializer;
-import net.rossquerz.nbt.io.BinaryNbtSerializer;
-import net.rossquerz.nbt.io.NamedTag;
-import net.rossquerz.nbt.io.TextNbtHelpers;
+import net.rossquerz.nbt.io.*;
 import net.rossquerz.nbt.tag.Tag;
 
 import java.io.*;
@@ -66,10 +63,10 @@ public abstract class NbtTestCase extends TestCase {
 		return new File(resPath);
 	}
 
-	protected Tag<?> deserializeFromFile(String f) {
+	protected NamedTag deserializeFromFile(String f) {
 		if (!f.endsWith(".snbt")) {
-			try (DataInputStream dis = new DataInputStream(new FileInputStream(getResourceFile(f)))) {
-				return new BinaryNbtDeserializer(false).fromStream(dis).getTag();
+			try {
+				return BinaryNbtHelpers.read(getResourceFile(f));
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				fail(ex.getMessage());
@@ -77,7 +74,7 @@ public abstract class NbtTestCase extends TestCase {
 			}
 		} else {
 			try {
-				return TextNbtHelpers.fromTextNbt(new String(Files.readAllBytes(getResourceFile(f).toPath())), true);
+				return TextNbtHelpers.readTextNbtFile(getResourceFile(f));
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				fail(ex.getMessage());

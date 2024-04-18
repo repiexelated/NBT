@@ -6,6 +6,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 
+/** Utilities for reading and writing {@link Tag}'s to and from binary NBT data. */
 public final class BinaryNbtHelpers {
 	private BinaryNbtHelpers() {}
 

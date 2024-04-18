@@ -37,6 +37,4 @@ public interface Deserializer<T> {
 			return fromStream(stream);
 		}
 	}
-
-
 }

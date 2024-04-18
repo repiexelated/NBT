@@ -16,11 +16,13 @@ import net.rossquerz.nbt.tag.LongTag;
 import net.rossquerz.nbt.tag.ShortTag;
 import net.rossquerz.nbt.tag.StringTag;
 import net.rossquerz.nbt.tag.Tag;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public final class TextNbtParser implements MaxDepthIO {
+public final class TextNbtParser implements MaxDepthIO, NbtInput {
 
 	private static final Pattern
 			FLOAT_LITERAL_PATTERN = Pattern.compile("^[-+]?(?:\\d+\\.?|\\d*\\.\\d+)(?:e[-+]?\\d+)?f$", Pattern.CASE_INSENSITIVE),
@@ -38,12 +40,32 @@ public final class TextNbtParser implements MaxDepthIO {
 		this.ptr = new StringPointer(string);
 	}
 
+	@Override
+	public NamedTag readTag(int maxDepth) throws IOException {
+		ptr.reset();
+		ptr.skipWhitespace();
+		String name = ptr.currentChar() == '"' ? ptr.parseQuotedString() : ptr.parseSimpleString();
+		if (!name.isEmpty()) {
+			ptr.skipWhitespace();
+			if (ptr.next() ==':') {
+				return new NamedTag(name, parseAnything(maxDepth));
+			}
+		}
+		return new NamedTag(null, readRawTag(maxDepth));
+	}
+
+	@Override
+	public Tag<?> readRawTag(int maxDepth) throws IOException {
+		ptr.reset();
+		return parseAnything(maxDepth);
+	}
+
 	public Tag<?> parse(int maxDepth, boolean lenient) throws ParseException {
 		Tag<?> tag = parseAnything(maxDepth);
 		if (!lenient) {
 			ptr.skipWhitespace();
 			if (ptr.hasNext()) {
-				throw ptr.parseException("invalid characters after end of snbt");
+				throw ptr.parseException("invalid characters after end of text nbt");
 			}
 		}
 		return tag;
