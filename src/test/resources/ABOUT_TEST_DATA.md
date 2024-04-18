@@ -1,3 +1,20 @@
+# MCA Palette Samples
+
+### 1.20.4
+* **biomes-1.20.4-r.0.0_X21Y-3Z3_6entries.snbt** -
+  interesting because it highlights the need to compute bits per index from palette size and not from the
+  number of longs - computing from number of longs gives the wrong answer because this sample overflows
+  3 longs by as single record.
+* **block_states-1.20.4-6entries.snbt** -
+  interesting because only 3 bits are required to encode size 6 palette data, but it actually uses 4 bits.
+* **block_states-1.20.4-14entries.snbt** -
+  interesting because bit packing has no waste on the per-long level, 4 bits to encode size 14 palette data.
+* **block_states-1.20.4-r.0.0_X6Y-3Z23_72entries.snbt** -
+  interesting because it's the largest chunk section found in a random world's region file having a 
+  bits per index of 7.
+
+# Region Files
+
 ## Older versions
 
 ### 1.9.4
