@@ -10,6 +10,9 @@ import net.querz.nbt.tag.StringTag;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
 
 import static org.junit.Assert.assertArrayEquals;
 import static net.querz.mca.util.IntPointXYZ.XYZ;
@@ -162,6 +165,9 @@ public class PalettizedCuboidTest extends NBTTestCase {
 
         assertThrowsException(() -> cuboid.countIf(e -> {e.setValue("boom"); return false;}),
                 PalettizedCuboid.PaletteCorruptedException.class);
+
+        assertThrowsException(() -> cuboid.countIf(e -> {cuboid.set(0, new StringTag("zap")); return false;}),
+                ConcurrentModificationException.class);
     }
 
     public void testToArray() {
@@ -229,6 +235,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
         tags[6] = stoneTag;
         tags[7] = stoneTag;
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(tags);
+        assertEquals(3, cuboid.palette.size());
         assertEquals(2, cuboid.data[7]);  // validate test assumption
 
         assertTrue(cuboid.replace(stoneTag, bedrockTag));
@@ -272,7 +279,8 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertTrue(cuboid.palette.contains(lavaTag));
         assertEquals(3, cuboid.data[7]);  // validate data remapped to exiting palette index
 
-        assertFalse(cuboid.replace(stoneTag, bedrockTag));  // check not found case
+        assertFalse(cuboid.replaceAll(Collections.emptyList(), bedrockTag));  // check empty case
+        assertFalse(cuboid.replaceAll(Collections.singleton(stoneTag), bedrockTag));  // check not found case
         assertFalse(cuboid.replaceAll(new StringTag[] {airTag}, airTag));  // check old == new case reports no changes
     }
 
@@ -303,6 +311,12 @@ public class PalettizedCuboidTest extends NBTTestCase {
 
         assertFalse(cuboid.replace(stoneTag, bedrockTag));  // check not found case
         assertFalse(cuboid.replaceAll(new StringTag[] {airTag}, airTag));  // check old == new case reports no changes
+
+        assertThrowsException(() -> cuboid.replaceIf(e -> {e.setValue("bad"); return true;}, new StringTag("ok")),
+                PalettizedCuboid.PaletteCorruptedException.class);
+
+        assertThrowsException(() -> cuboid.replaceIf(e -> {cuboid.set(0, new StringTag("zap")); return true;}, new StringTag("good")),
+                ConcurrentModificationException.class);
     }
 
     public void testRetainAll() {
@@ -425,6 +439,12 @@ public class PalettizedCuboidTest extends NBTTestCase {
         // optimizePalette will clean those up - tested in #testOptimizePalette
     }
 
+    public void testSet_throwsWhenIndexOutOfBounds() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("air"));
+        assertThrowsException(() -> cuboid.set(-1, new StringTag("bam")), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> cuboid.set(8, new StringTag("bam")), IndexOutOfBoundsException.class);
+    }
+
     public void testSetRange_fullVolume_isTheSameAsFill() {
         StringTag airTag = new StringTag("air");
         StringTag lavaTag = new StringTag("lava");
@@ -447,7 +467,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
 
         cuboid.set(0, 6, 0, stoneTag, 15, 8, 15);
         assertEquals(16 * 16 * 3, cuboid.countIf(stoneTag::equals));
-        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iteratorByRef();
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
         while (iter.hasNext()) {
             iter.next();
             int y = iter.currentY();
@@ -492,7 +512,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
 
         cuboid.set(14, 14, 14, stoneTag, 1, 1, 1);  // require swapping all coords
         assertEquals(14 * 14 * 14, cuboid.countIf(stoneTag::equals));
-        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iteratorByRef();
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
         assertEquals(airTag, cuboid.get(0, 0, 0));
         assertEquals(airTag, cuboid.get(0, 0, 15));
         assertEquals(airTag, cuboid.get(0, 15, 0));
@@ -622,6 +642,32 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(new StringTag("dripstone_caves"), tag.getListTag("palette").get(0));
     }
 
+
+    public void testToCompoundTag_minimumBitsPerIndex() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(16, new StringTag("air"));
+        cuboid.set(42, new StringTag("answers"));
+
+        // when not providing a minimum bits per index, for a 16^3 cuboid, 4 bits per index is assumed
+        CompoundTag tag = cuboid.toCompoundTag();
+        assertEquals(2, tag.size());
+        assertEquals(2, tag.getListTag("palette").size());
+        assertEquals(256, tag.getLongArrayTag("data").length());
+        assertEquals(new StringTag("air"), tag.getListTag("palette").get(0));
+        assertEquals(new StringTag("answers"), tag.getListTag("palette").get(1));
+
+        // we can override this detected default
+        tag = cuboid.toCompoundTag(0, 1);
+        assertEquals(2, tag.size());
+        assertEquals(2, tag.getListTag("palette").size());
+        assertEquals(64, tag.getLongArrayTag("data").length());
+        assertEquals(new StringTag("air"), tag.getListTag("palette").get(0));
+        assertEquals(new StringTag("answers"), tag.getListTag("palette").get(1));
+    }
+
+    public void testFromCompoundTag_returnsNullWhenGivenNullTag() {
+        assertNull(PalettizedCuboid.fromCompoundTag(null, 4));
+    }
+
     public void testFromCompoundTag_singleElement() {
         ListTag<StringTag> paletteTag = new ListTag<>(StringTag.class);
         CompoundTag rootTag = new CompoundTag();
@@ -634,6 +680,119 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(64, cuboid.countIf(e -> e.getValue().equals("dripstone_caves")));
     }
 
+    public void testFromCompoundTag_missingDataTagThrows() {
+        ListTag<StringTag> paletteTag = new ListTag<>(StringTag.class);
+        CompoundTag rootTag = new CompoundTag();
+        rootTag.put("palette", paletteTag);
+        paletteTag.add(new StringTag("a"));
+        paletteTag.add(new StringTag("b"));
+        assertThrowsException(() -> PalettizedCuboid.fromCompoundTag(rootTag, 4), IllegalArgumentException.class);
+    }
+
+    public void testIterator_happyCase() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        cuboid.set(0, 0, 0, new StringTag("000"));
+        cuboid.set(1, 0, 0, new StringTag("100"));
+        cuboid.set(0, 0, 1, new StringTag("001"));
+        cuboid.set(1, 0, 1, new StringTag("101"));
+        cuboid.set(0, 1, 0, new StringTag("010"));
+        cuboid.set(1, 1, 0, new StringTag("110"));
+        cuboid.set(0, 1, 1, new StringTag("011"));
+        cuboid.set(1, 1, 1, new StringTag("111"));
+
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        assertTrue(iter.hasNext());
+        assertEquals("000", iter.next().getValue());
+        assertEquals("000", iter.current().getValue());
+        assertEquals(0, iter.currentIndex());
+        assertEquals(XYZ(0, 0, 0), iter.currentXYZ());
+        assertTrue(iter.hasNext());
+        assertEquals("100", iter.next().getValue());
+        assertEquals(1, iter.currentIndex());
+        assertTrue(iter.hasNext());
+        assertEquals("001", iter.next().getValue());
+        assertEquals(0, iter.currentX());
+        assertTrue(iter.hasNext());
+        assertEquals("101", iter.next().getValue());
+        assertEquals(XYZ(1, 0, 1), iter.currentXYZ());
+        assertEquals(1, iter.currentX());
+        assertEquals(0, iter.currentY());
+        assertEquals(1, iter.currentZ());
+        assertTrue(iter.hasNext());
+        assertEquals("010", iter.next().getValue());
+        assertEquals(1, iter.currentY());
+        assertEquals(0, iter.currentZ());
+        assertTrue(iter.hasNext());
+        assertEquals("110", iter.next().getValue());
+        assertTrue(iter.hasNext());
+        assertEquals("011", iter.next().getValue());
+        assertTrue(iter.hasNext());
+        assertEquals("111", iter.next().getValue());
+        assertEquals("111", iter.current().getValue());
+        assertFalse(iter.hasNext());
+    }
+
+    public void testIterator_currentThrowsNoSuchElementExceptionIfNextHasNeverBeenCalled() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        assertThrowsException(iter::current, NoSuchElementException.class);
+    }
+
+    public void testIterator_nextThrowsNoSuchElementExceptionIfThereAreNoMoreElements() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        while (iter.hasNext()) iter.next();
+        assertThrowsException(iter::next, NoSuchElementException.class);
+    }
+
+    public void testIterator_PaletteCorruptedExceptionThrown() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        iter.next().setValue("boom");
+        assertThrowsException(iter::hasNext, PalettizedCuboid.PaletteCorruptedException.class);
+    }
+
+    public void testIterator_ConcurrentModificationExceptionThrown() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("xxxx"));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        cuboid.set(0, 1, 0, new StringTag("010"));
+        assertThrowsException(iter::hasNext, ConcurrentModificationException.class);
+    }
+
+    public void testIterator_set_canSafelyModify() {
+        StringTag fillTag = new StringTag("xxxx");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, fillTag);
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        iter.next();
+        iter.set(new StringTag("a"));
+        iter.next();
+        iter.next();
+        iter.set(new StringTag("b"));
+        assertTrue(iter.hasNext());
+        assertEquals(6, cuboid.countIf(fillTag::equals));
+        assertTrue(cuboid.contains(new StringTag("a")));
+        assertTrue(cuboid.contains(new StringTag("b")));
+    }
+
+    public void testIterator_set_detectsCommonPaletteCorruptionCase() {
+        StringTag fillTag = new StringTag("xxxx");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, fillTag);
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        StringTag tag = iter.next();
+        tag.setValue("boom");
+        assertThrowsException(() -> iter.set(tag), PalettizedCuboid.PaletteCorruptedException.class);
+    }
+
+    public void testIterator_set_detectsConcurrentModificationCase() {
+        StringTag fillTag = new StringTag("xxxx");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, fillTag);
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iterator();
+        iter.next();
+        cuboid.set(0, 1, 0, new StringTag("pop"));
+        assertThrowsException(() -> iter.set(new StringTag("a")), ConcurrentModificationException.class);
+    }
+
+
     // Interesting because bit packing has no waste on the per-long level, 4 bits to encode size 14 palette data.
     public void testFromCompoundTag_blockStates_1_20_4__14entries() {
         CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/block_states-1.20.4-14entries.snbt");
@@ -644,7 +803,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(14, cuboid.paletteSize());
         assertEquals(2, cuboid.countIf(e -> e.getString("Name").equals("minecraft:glow_lichen")));
         PalettizedCuboid<CompoundTag>.CursorIterator iter =
-                cuboid.iteratorByRef(e -> e.getString("Name").equals("minecraft:glow_lichen"));
+                cuboid.iterator(e -> e.getString("Name").equals("minecraft:glow_lichen"));
         assertTrue(iter.hasNext());
         iter.next();
         assertEquals(cuboid.xyzOf(8, 33, 15), iter.currentXYZ());
@@ -675,7 +834,7 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(4096, cuboid.size());
         assertEquals(28, cuboid.paletteSize());
         PalettizedCuboid<CompoundTag>.CursorIterator iter =
-                cuboid.iteratorByRef(e -> e.getString("Name").equals("minecraft:chest"));
+                cuboid.iterator(e -> e.getString("Name").equals("minecraft:chest"));
         assertTrue(iter.hasNext());
         CompoundTag chestPaletteTag = iter.next();
         IntPointXYZ subChunkLocation = new IntPointXYZ(2, -4, -1);

@@ -6,7 +6,6 @@ import net.querz.nbt.tag.ListTag;
 import net.querz.nbt.tag.LongArrayTag;
 import net.querz.nbt.tag.Tag;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -89,6 +88,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     protected final List<E> palette = new ArrayList<>();
     protected final Class<E> paletteEntryClass;
+    protected transient int paletteModCount = 0;
     protected final int[] data;
 
     /**
@@ -105,7 +105,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     @SuppressWarnings("unchecked")
     protected PalettizedCuboid(int cubeEdgeLength, E fillWith, Class<E> paletteEntryClass, boolean allowNullFill) {
-        if (!allowNullFill) requireValue(fillWith, "fillWith");
+        if (!allowNullFill) {
+            requireValue(fillWith, "fillWith");
+        }
         this.cubeEdgeLength = cubeEdgeLength;
         this.paletteEntryClass = paletteEntryClass;
         int bits = calculatePowerOfTwoExponent(cubeEdgeLength, true);
@@ -141,8 +143,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     static int cubeRoot(int num) {
         int k = (int) Math.round(Math.pow(num, 1/3d));
-        if (k * k * k != num)
+        if (k * k * k != num) {
             throw new IllegalArgumentException("the cube root of " + num + " is not an integer!");
+        }
         return k;
     }
 
@@ -157,10 +160,11 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         while (num > 1) {
             k++;
             if (num % 2 != 0) {
-                if (strict)
+                if (strict) {
                     throw new IllegalArgumentException(num + " isn't a power of two!");
-                else
+                } else {
                     bump = true;
+                }
             }
             num /= 2;
         }
@@ -168,7 +172,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     static int calculateBitMask(int numberOfBits) {
-        if (numberOfBits < 0 || numberOfBits >= 32) throw new IllegalArgumentException(Integer.toString(numberOfBits));
+        if (numberOfBits < 0 || numberOfBits >= 32) {
+            throw new IllegalArgumentException(Integer.toString(numberOfBits));
+        }
         return ~(-1 << numberOfBits);
     }
 
@@ -189,25 +195,43 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         return palette.size();
     }
 
+    /**
+     * @see #countIf(Predicate)
+     */
     public boolean contains(E o) {
         return palette.contains(o);
     }
 
+    /**
+     * Counts the number of data entries which match the given filter.
+     */
     public int countIf(Predicate<E> filter) {
         Collection<Integer> counting = new HashSet<>();
+        final int expectPaletteModCount = paletteModCount;
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
-            if (paletteValue == null) continue;
+            if (paletteValue == null) {
+                continue;
+            }
             final int hash = paletteValue.hashCode();
             if (filter.test(paletteValue)) {
                 counting.add(i);
             }
-            if (paletteValue.hashCode() != hash)
-                throw new PaletteCorruptedException("Palette element modified by countIf filter call!");
+            if (paletteValue.hashCode() != hash) {
+                throw new PaletteCorruptedException("Palette element modified during countIf filter call! Consider using replaceIf() instead.");
+            }
         }
-        if (counting.isEmpty()) return 0;
-        if (counting.size() == 1) counting = Collections.singleton(counting.iterator().next());
-        else if (counting.size() < 5) counting = new ArrayList<>(counting);
+        if (expectPaletteModCount != paletteModCount) {
+            throw new ConcurrentModificationException();
+        }
+        if (counting.isEmpty()) {
+            return 0;
+        }
+        if (counting.size() == 1) {
+            counting = Collections.singleton(counting.iterator().next());
+        } else if (counting.size() < 5) {
+            counting = new ArrayList<>(counting);
+        }
         return (int) Arrays.stream(data).filter(counting::contains).count();
     }
 
@@ -241,8 +265,12 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     @SuppressWarnings("unchecked")
     private boolean replace(Collection<Integer> replacing, E replacement) {
+        requireValue(replacement, "replacement");
+        paletteModCount ++;
         replacing.remove(-1);
-        if (replacing.isEmpty()) return false;
+        if (replacing.isEmpty()) {
+            return false;
+        }
         int replacementPaletteIndex = palette.indexOf(replacement);
         boolean addReplacementToPaletteIfDataModified;
         if (replacementPaletteIndex < 0) {
@@ -250,7 +278,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             addReplacementToPaletteIfDataModified = true;
         } else {
             replacing.remove(replacementPaletteIndex);
-            if (replacing.isEmpty()) return false;
+            if (replacing.isEmpty()) {
+                return false;
+            }
             addReplacementToPaletteIfDataModified = false;
         }
 
@@ -274,10 +304,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         }
         if (modified) {
             for (int i : replacing) {
-                palette.set(i, null);
+                palette.set(i, null);  // paletteModCount incremented at top of method
             }
             if (addReplacementToPaletteIfDataModified)
-                palette.add((E) replacement.clone());
+                palette.add((E) replacement.clone());  // paletteModCount incremented at top of method
         }
         return modified;
     }
@@ -288,7 +318,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     public boolean replace(E oldValue, E newValue) {
         requireValue(oldValue, "oldValue");
         requireValue(newValue, "newValue");
-        if (oldValue.equals(newValue)) return false;
+        if (oldValue.equals(newValue)) {
+            return false;
+        }
         // Don't pass a singleton list/set type - they are immutable and will cause errors.
         return replace(new ArrayList<>(Collections.singletonList(palette.indexOf(oldValue))), newValue);
     }
@@ -299,7 +331,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     public boolean replaceAll(Collection<E> c, E replacement) {
         requireValue(replacement, "replacement");
-        if (c.isEmpty()) return false;
+        if (c.isEmpty()) {
+            return false;
+        }
         Set<Integer> replacing = new HashSet<>();
         for (E e : c) {
             int i = palette.indexOf(e);
@@ -312,12 +346,23 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     public boolean replaceIf(Predicate<E> filter, E replacement) {
         requireValue(replacement, "replacement");
+        final int expectPaletteModCount = paletteModCount;
         Set<Integer> replacing = new HashSet<>();
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
-            if (paletteValue != null && filter.test(paletteValue)) {
+            if (paletteValue == null) {
+                continue;
+            }
+            final int hash = paletteValue.hashCode();
+            if (filter.test(paletteValue)) {
                 replacing.add(i);
             }
+            if (paletteValue.hashCode() != hash) {
+                throw new PaletteCorruptedException("Palette element passed to filter modified unexpectedly!");
+            }
+        }
+        if (expectPaletteModCount != paletteModCount) {
+            throw new ConcurrentModificationException();
         }
         return replace(replacing, replacement);
     }
@@ -344,6 +389,8 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     @SuppressWarnings("unchecked")
     public void fill(E fillWith) {
+        requireValue(fillWith, "fillWith");
+        paletteModCount ++;
         palette.clear();
         palette.add((E) fillWith.clone());
         Arrays.fill(data, 0);
@@ -457,11 +504,15 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     @SuppressWarnings("unchecked")
     public void set(int index, E element) {
-        if (index < 0 || index >= data.length) throw new IndexOutOfBoundsException();
+        requireValue(element, "element");
+        if (index < 0 || index >= data.length) {
+            throw new IndexOutOfBoundsException();
+        }
+        paletteModCount ++;
         int paletteIndex = palette.indexOf(element);
         if (paletteIndex < 0) {
             paletteIndex = palette.size();
-            palette.add((E) element.clone());
+            palette.add((E) element.clone());  // paletteModCount incremented at top of method
         }
         data[index] = paletteIndex;
     }
@@ -538,8 +589,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     protected void checkBounds(int x, int y, int z) {
-        if (x < 0 || y < 0 || z < 0 || x >= cubeEdgeLength || y >= cubeEdgeLength || z >= cubeEdgeLength)
+        if (x < 0 || y < 0 || z < 0 || x >= cubeEdgeLength || y >= cubeEdgeLength || z >= cubeEdgeLength) {
             throw new IndexOutOfBoundsException();
+        }
     }
 
     /**
@@ -547,6 +599,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @return true if any modifications were made
      */
     protected boolean optimizePalette() {
+        paletteModCount ++;
         // 1. identify unused palette id's & remove them from palette
         Set<Integer> seenIds = new HashSet<>();
         for (int id : data) {
@@ -560,8 +613,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             throw new IllegalStateException("data[" + /*dataStr +*/ "] contained an out of bounds palette id " + maxId + " palette size " + palette.size());
         }
         for (int i = 0; i < palette.size(); i++) {
-            if (!seenIds.contains(i))
-                palette.set(i, null);
+            if (!seenIds.contains(i)) {
+                palette.set(i, null);  // paletteModCount at top of function
+            }
         }
 
         // 2. calculate palette defragmentation
@@ -569,16 +623,20 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         Map<Integer, Integer> remapping = new HashMap<>();
         for (int i = 0; i < palette.size(); i++) {
             if (palette.get(i) != null) {
-                if (i != cursor) remapping.put(i, cursor);
+                if (i != cursor) {
+                    remapping.put(i, cursor);
+                }
                 cursor++;
             }
         }
 
         // 3. remove nulls from palette
-        palette.removeAll(Collections.singletonList(null));
+        palette.removeAll(Collections.singletonList(null));  // paletteModCount at top of function
 
         // 4. perform id remapping
-        if (remapping.isEmpty()) return false;
+        if (remapping.isEmpty()) {
+            return false;
+        }
         for (int i = 0; i < data.length; i++) {
             int remappedPaletteIndex = remapping.getOrDefault(data[i], -1);
             if (remappedPaletteIndex >= 0) {
@@ -606,18 +664,45 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         return toCompoundTag(DataVersion.latest().id());
     }
 
-    /** Serializes this cuboid to a {@link CompoundTag} */
     public CompoundTag toCompoundTag(int dataVersion) {
+        return this.toCompoundTag(dataVersion, -1);
+    }
+
+    /**
+     * Serializes this cuboid to a {@link CompoundTag}.
+     *
+     * @param dataVersion Optional - data version for formatting / packing. If given value is 0 then latest version is assumed.
+     * @param minimumBitsPerIndex Optional - Minimum bits per index to use for packing.
+     *                            For biome data this should be 1.
+     *                            For block_states data this should be 4.
+     *                            If LE 0 is given then a best guess is made at what the minimum bits per index should
+     *                            be. This guess is based on the {@link #size()}, if size is GE 4096 then min bits per
+     *                            index is assumed to be 4, otherwise it is 1.
+     *                            This value has no effect on monotonic (single palette entry) data - when all entries
+     *                            are the same the longs array is omitted entirely.
+     */
+    public CompoundTag toCompoundTag(int dataVersion, int minimumBitsPerIndex) {
         optimizePalette();
+        if (dataVersion == 0) {
+            dataVersion = DataVersion.latest().id();
+        }
         CompoundTag rootTag = new CompoundTag(2);
         ListTag<E> paletteListTag = new ListTag<>(paletteEntryClass, palette.size());
         paletteListTag.addAll(palette);
         rootTag.put("palette", paletteListTag);
 
         if (palette.size() > 1) {
-            final int bitsPerValue = calculatePowerOfTwoExponent(palette.size(), false);
             final long[] longs;
             if (dataVersion >= JAVA_1_16_20W17A.id()) {
+                if (minimumBitsPerIndex <= 0) {
+                    if (size() >= 4096) {
+                        // assume we're dealing with block_states (it's a safe assumption for all versions up to time of writing - 1.20.4)
+                        minimumBitsPerIndex = 4;
+                    } else {
+                        minimumBitsPerIndex = 1;
+                    }
+                }
+                final int bitsPerValue = Math.max(minimumBitsPerIndex, calculatePowerOfTwoExponent(palette.size(), false));
                 // This bit packing is less than 100% efficient as there may be "unused" bits in every long.
                 // For example, if bitsPerValue = 5 then there will be 12 indices per long using only 60 of 64 bits.
                 final int indicesPerLong = (int) (64D / bitsPerValue);
@@ -645,14 +730,16 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     @SuppressWarnings("unchecked")
     public static <T extends Tag<?>> PalettizedCuboid<T> fromCompoundTag(CompoundTag tag, int expectedCubeEdgeLength, int dataVersion) {
-        if (tag == null) return null;
+        if (tag == null) {
+            return null;
+        }
         ListTag<T> paletteListTag = tag.getListTagAutoCast("palette");
         check(paletteListTag != null, "Did not find 'palette' ListTag");
         check(!paletteListTag.isEmpty(), "'palette' ListTag exists but it was empty!");
         LongArrayTag dataTag = tag.getLongArrayTag("data");
-        if ((dataTag == null || dataTag.getValue().length == 0) && paletteListTag.size() > 1)
+        if ((dataTag == null || dataTag.getValue().length == 0) && paletteListTag.size() > 1) {
             throw new IllegalArgumentException("Did not find 'data' LongArrayTag when expected");
-
+        }
         if (dataVersion >= JAVA_1_16_20W17A.id()) {
             if (dataTag == null) {
                 return new PalettizedCuboid<>(expectedCubeEdgeLength, paletteListTag.get(0));
@@ -665,8 +752,11 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             // This kludge soft detects biomes vs blocks and treaties them differently - this is probably going to
             // be version sensitive over time.
             final int bitsPerValue;
-            if (size >= 4096) bitsPerValue = longs.length >> calculatePowerOfTwoExponent(size / 64, true);
-            else bitsPerValue = calculatePowerOfTwoExponent(paletteListTag.size(), false);
+            if (size >= 4096) {
+                bitsPerValue = longs.length >> calculatePowerOfTwoExponent(size / 64, true);
+            } else {
+                bitsPerValue = calculatePowerOfTwoExponent(paletteListTag.size(), false);
+            }
 
             final int indicesPerLong = (int) (64D / bitsPerValue);
             final int bitMask = calculateBitMask(bitsPerValue);
@@ -678,8 +768,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             for (T t : paletteListTag) {
                 palettizedCuboid.palette.add(t);
             }
-            if (longs.length != Math.ceil((double) size / indicesPerLong))
+            if (longs.length != Math.ceil((double) size / indicesPerLong)) {
                 throw new IllegalArgumentException("Incorrect data size! Expected " + (size / indicesPerLong) + " but was " + longs.length);
+            }
             for (int ll = 0, i = 0; ll < longs.length; ll++) {
                 long currentLong = longs[ll];
                 for (int j = 0; j < indicesPerLong && i < size; j++, i++) {
@@ -696,20 +787,16 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     /**
      * Creates a by-value iterator that will visit every entry and yield a clone of each entry.
+     * <p>
+     *     Tip: if you are using a java version that supports the {@code var} keyword (java 10+),
+     *     you can avoid using the otherwise unavoidably long typename with
+     *     <pre>{@code var iter = cuboid.iterator();}</pre>
+     * </p>
      * @see CursorIterator
      */
     @Override
     public CursorIterator iterator() {
-        return new CursorIterator(true, null);
-    }
-
-    /**
-     * Creates a by-reference iterator that will visit every entry and yield a reference to the underlying palette
-     * entry of each entry. <b>USE WITH CARE</b>
-     * @see CursorIterator
-     */
-    public CursorIterator iteratorByRef() {
-        return new CursorIterator(false, null);
+        return new CursorIterator(null);
     }
 
     /**
@@ -718,36 +805,11 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @see CursorIterator
      */
     public CursorIterator iterator(Predicate<E> filter) {
-        return new CursorIterator(true, filter);
-    }
-
-    /**
-     * Creates a by-ref iterator that will only visit entries which match the provided filter and yield a reference
-     * to the underlying palette entry of each entry. <b>USE WITH CARE</b>
-     * @see CursorIterator
-     */
-    public CursorIterator iteratorByRef(Predicate<E> filter) {
-        return new CursorIterator(false, filter);
+        return new CursorIterator(filter);
     }
 
     public Stream<E> stream() {
         return StreamSupport.stream(spliterator(), false);
-    }
-    public Stream<E> streamByRef() {
-        return StreamSupport.stream(spliteratorByRef(), false);
-    }
-
-    public Spliterator<E> spliteratorByRef() {
-        // TODO: make a spliterator that knows the size
-        return Spliterators.spliteratorUnknownSize(iteratorByRef(), 0);
-    }
-
-    public void forEachByRef(Consumer<? super E> action) {
-        Objects.requireNonNull(action);
-        CursorIterator iter = iteratorByRef();
-        while (iter.hasNext()) {
-            action.accept(iter.next());
-        }
     }
 
     /**
@@ -755,42 +817,61 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * be inspected to get additional information about the last item returned by {@link CursorIterator#next()}
      * such as its XYZ cuboid location and index in the data array.
      *
-     * <p>Behavior depends on how this Iterator was constructed.</p>
+     * <h2>Warning - this iterator yields values by reference</h2>
+     * This iterator yields palette values by reference! Do not modify the object returned by {@link #next()} or
+     * {@link #current()}. If you want to keep a copy of the yielded value {@code .clone()} it. If you want to modify
+     * the value at the current iteration position {@code .clone()} it first, then call {@link #set(Tag)}. You should
+     * not modify the cuboid while iterating over it other than through the iterator itself.
      *
-     * <h2>By Value Mode</h2>
-     * Gets a copy of the next palette value in this cuboid.
-     * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
+     * <p>The iterator will make a best-effort to detect palette corruption and throw a
+     * {@link PaletteCorruptedException} if detected and throw {@link ConcurrentModificationException} if the
+     * cuboid palette is modified during iteration.</p>
      *
-     * <h2>By Reference Mode</h2>
-     * Gets the next palette value in this cuboid BY REFERENCE.
-     * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette entry!</b></p>
-     * <p>Remember that all {@link Tag}'s support cloning. If you are careful it's always faster / more efficient
-     * to iterate by reference and clone entries as-needed. But this optimization comes at the risk of accidentally
-     * corrupting the palette.</p>
+     * <h2>Remember</h2>
+     * All {@link Tag}'s support cloning. If you are careful it's always faster / more efficient
+     * to iterate by reference and clone entries only when needed. But this optimization comes at the risk of
+     * accidentally corrupting the palette.
+     *
      * <h2>Filtering Mode</h2>
-     * In addition to by reference or by value modes this CursorIterator optionally supports filtering,
-     * see {@link PalettizedCuboid#iterator(Predicate)} and {@link PalettizedCuboid#iteratorByRef(Predicate)},
-     * <p>When a filter is provided {@link #next()} will only return the next matching entry, skipping as necessary.
-     * {@link #hasNext()} will behave appropriately and indicate if there is a next matching entry or not.</p>
+     * When a filter is provided {@link #next()} will only return the next matching entry, skipping as necessary.
+     * {@link #hasNext()} will behave appropriately and indicate if there is a next matching entry or not.
      * <p>While you could use a {@link Stream} to filter and process entries of interest, using a filter on a cursor
      * iterator allows you to get more information about the current entry, such as its xyz cuboid position.</p>
+     *
+     * @see PalettizedCuboid#iterator(Predicate)
      */
     public class CursorIterator implements java.util.Iterator<E> {
-        private final boolean byValue;
         private final Predicate<E> filter;  // nullable
         private int currentIndex = -1;
         private int nextIndex = 0;  // only used if filter isn't null
+        int currentPaletteHash;
+        int expectPaletteModCount = paletteModCount;
 
-        CursorIterator(boolean byValue, Predicate<E> filter) {
-            this.byValue = byValue;
+        CursorIterator(Predicate<E> filter) {
             this.filter = filter;
+        }
+
+        private void checkNotModified() {
+            if (expectPaletteModCount != paletteModCount) {
+                throw new ConcurrentModificationException();
+            }
+            if (currentIndex >= 0 && currentPaletteHash != get(currentIndex).hashCode()) {
+                throw new PaletteCorruptedException(
+                        "Palette modified during iteration! Be sure to .clone() on the yielded element before " +
+                        "modifying it and use .set() to update the data value at the current position.");
+            }
         }
 
         @Override
         public boolean hasNext() {
-            if (filter == null) return currentIndex < data.length - 1;
+            checkNotModified();
+            if (filter == null) {
+                return currentIndex < data.length - 1;
+            }
             while (nextIndex < data.length) {
-                if (filter.test(get(nextIndex))) return true;
+                if (filter.test(get(nextIndex))) {
+                    return true;
+                }
                 nextIndex ++;
             }
             return false;
@@ -798,45 +879,36 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
         @Override
         public E next() {
-            if (byValue) return nextByValue();
-            else return nextByRef();
-        }
-
-        private E nextByValue() {
-            if (!hasNext()) throw new NoSuchElementException();
-            if (filter == null) return get(++currentIndex);
-            return get(currentIndex = nextIndex++);
-        }
-
-        private E nextByRef() {
-            if (!hasNext()) throw new NoSuchElementException();
-            if (filter == null) return getByRef(++currentIndex);
-            return get(currentIndex = nextIndex++);
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            E ret;
+            if (filter == null) {
+                ret = getByRef(++currentIndex);
+            } else {
+                ret = get(currentIndex = nextIndex++);
+            }
+            currentPaletteHash = ret.hashCode();
+            return ret;
         }
 
         /**
          * Updates the cuboid entry at the index belonging to the last value returned by {@link #next()}.
          */
         public void set(E replacement) {
+            checkNotModified();
             PalettizedCuboid.this.set(currentIndex, replacement);
+            expectPaletteModCount = paletteModCount;
+            currentPaletteHash = replacement.hashCode();
         }
 
         /**
          * Gets the last entry returned by {@link #next()}.
-         * Note this call also respects the iterators by value / by ref setting!
          */
         public E current() {
-            if (byValue) return currentByValue();
-            else return currentByRef();
-        }
-
-        private E currentByValue() {
-            if (currentIndex < 0) throw new NoSuchElementException();
-            return get(currentIndex);
-        }
-
-        private E currentByRef() {
-            if (currentIndex < 0) throw new NoSuchElementException();
+            if (currentIndex < 0) {
+                throw new NoSuchElementException();
+            }
             return getByRef(currentIndex);
         }
 
@@ -867,9 +939,6 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     public static class PaletteCorruptedException extends RuntimeException {
-        public PaletteCorruptedException() {
-            super();
-        }
         public PaletteCorruptedException(String message) {
             super(message);
         }
