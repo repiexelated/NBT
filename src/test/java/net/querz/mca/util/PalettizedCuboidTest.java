@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
+import static net.querz.mca.util.IntPointXYZ.XYZ;
 
 public class PalettizedCuboidTest extends NBTTestCase {
 
@@ -141,18 +142,26 @@ public class PalettizedCuboidTest extends NBTTestCase {
     }
 
     public void testCountIf() {
-        StringTag bedrockTag = new StringTag("bedrock");
         StringTag airTag = new StringTag("air");
         StringTag stoneTag = new StringTag("stone");
         StringTag[] tags = new StringTag[2 * 2 * 2];
         Arrays.fill(tags, airTag);
-        tags[0] = bedrockTag;
+        tags[0] = new StringTag("a");
+        tags[1] = new StringTag("b");
+        tags[2] = new StringTag("c");
+        tags[3] = new StringTag("d");
+        tags[4] = new StringTag("e");
         tags[6] = stoneTag;
         tags[7] = stoneTag;
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(tags);
 
-        assertEquals(5, cuboid.countIf(airTag::equals));
-        assertEquals(0, cuboid.countIf(new StringTag("lava")::equals));
+        assertEquals(0, cuboid.countIf(new StringTag("lava")::equals));  // exercises shortcut case
+        assertEquals(1, cuboid.countIf(airTag::equals));  // exercises singleton case
+        assertEquals(7, cuboid.countIf(e -> !e.equals(airTag)));  // exercises hashset case
+        assertEquals(4, cuboid.countIf(e -> e.getValue().charAt(0) <= 'c'));  // exercises array list case (4 cuz air)
+
+        assertThrowsException(() -> cuboid.countIf(e -> {e.setValue("boom"); return false;}),
+                PalettizedCuboid.PaletteCorruptedException.class);
     }
 
     public void testToArray() {
@@ -414,6 +423,93 @@ public class PalettizedCuboidTest extends NBTTestCase {
         assertEquals(stoneTag, cuboid.get(0, 0, 0));
         // note that using set to replace all of one palette key will NOT remove that key from the palette
         // optimizePalette will clean those up - tested in #testOptimizePalette
+    }
+
+    public void testSetRange_fullVolume_isTheSameAsFill() {
+        StringTag airTag = new StringTag("air");
+        StringTag lavaTag = new StringTag("lava");
+        StringTag stoneTag = new StringTag("stone");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(4, airTag);
+        cuboid.set(0, 0, 0, lavaTag);
+        cuboid.set(1, 1, 1, lavaTag);
+        cuboid.set(2, 2, 2, stoneTag);
+        cuboid.set(3, 3, 3, lavaTag);
+
+        cuboid.set(XYZ(0, 0, 0), stoneTag, XYZ(3, 3, 3));  // exercise the wrapped call at least once
+        assertEquals(1, cuboid.paletteSize());
+        assertEquals(64, cuboid.countIf(stoneTag::equals));
+    }
+
+    public void testSetRange_fullVolume_XZPlainFill() {
+        StringTag airTag = new StringTag("air");
+        StringTag stoneTag = new StringTag("stone");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(16, airTag);
+
+        cuboid.set(0, 6, 0, stoneTag, 15, 8, 15);
+        assertEquals(16 * 16 * 3, cuboid.countIf(stoneTag::equals));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iteratorByRef();
+        while (iter.hasNext()) {
+            iter.next();
+            int y = iter.currentY();
+            if (y < 6 || y > 8) {
+                assertEquals(iter.current(), airTag);
+            } else {
+                assertEquals(iter.current(), stoneTag);
+            }
+        }
+    }
+
+    public void testSetRange_requiresElementArg() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("air"));
+        assertThrowsException(() -> cuboid.set(0, 0, 0, null, 0, 0,0), IllegalArgumentException.class);
+    }
+
+    public void testSetRange_throwsIfCoordsAreOutOfBounds() {
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(2, new StringTag("air"));
+
+        assertThrowsException(() -> cuboid.set(0, 0, -6, new StringTag("air"), 0, 0, 0), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> cuboid.set(0, -6, 0, new StringTag("air"), 0, 0, 0), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> cuboid.set(-6, 0, 0,  new StringTag("air"), 0, 0, 0), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> cuboid.set(0, 0, 0, new StringTag("air"), 3, 0, 0), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> cuboid.set(0, 0, 0, new StringTag("air"), 0, 3, 0), IndexOutOfBoundsException.class);
+        assertThrowsException(() -> cuboid.set(0, 0, 0,  new StringTag("air"), 0, 0, 3), IndexOutOfBoundsException.class);
+    }
+
+    public void testSetRange_fullVolume_singleVoxel() {
+        StringTag airTag = new StringTag("air");
+        StringTag stoneTag = new StringTag("stone");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(16, airTag);
+
+        cuboid.set(0, 6, 0, stoneTag, 0, 6, 0);
+        assertEquals(1, cuboid.countIf(stoneTag::equals));
+        assertEquals(stoneTag, cuboid.get(0, 6, 0));
+    }
+
+    public void testSetRange_fullVolume_cuboid() {
+        StringTag airTag = new StringTag("air");
+        StringTag stoneTag = new StringTag("stone");
+        PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(16, airTag);
+
+        cuboid.set(14, 14, 14, stoneTag, 1, 1, 1);  // require swapping all coords
+        assertEquals(14 * 14 * 14, cuboid.countIf(stoneTag::equals));
+        PalettizedCuboid<StringTag>.CursorIterator iter = cuboid.iteratorByRef();
+        assertEquals(airTag, cuboid.get(0, 0, 0));
+        assertEquals(airTag, cuboid.get(0, 0, 15));
+        assertEquals(airTag, cuboid.get(0, 15, 0));
+        assertEquals(airTag, cuboid.get(0, 15, 15));
+        assertEquals(airTag, cuboid.get(15, 0, 0));
+        assertEquals(airTag, cuboid.get(15, 0, 15));
+        assertEquals(airTag, cuboid.get(15, 15, 0));
+        assertEquals(airTag, cuboid.get(15, 15, 15));
+
+        assertEquals(stoneTag, cuboid.get(1, 1, 1));
+        assertEquals(stoneTag, cuboid.get(1, 1, 14));
+        assertEquals(stoneTag, cuboid.get(1, 14, 1));
+        assertEquals(stoneTag, cuboid.get(1, 14, 14));
+        assertEquals(stoneTag, cuboid.get(14, 1, 1));
+        assertEquals(stoneTag, cuboid.get(14, 1, 14));
+        assertEquals(stoneTag, cuboid.get(14, 14, 1));
+        assertEquals(stoneTag, cuboid.get(14, 14, 14));
     }
 
     public void testOptimizePalette() {

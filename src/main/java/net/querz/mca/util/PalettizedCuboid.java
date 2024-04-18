@@ -81,6 +81,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     private final int cordBitMask;
     private final int zShift;
     private final int yShift;
+    private final int cubeEdgeLength;
 
     /**
      * May be a sparse array and contain nulls, however, there should be no value which references a null palette index.
@@ -105,6 +106,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     @SuppressWarnings("unchecked")
     protected PalettizedCuboid(int cubeEdgeLength, E fillWith, Class<E> paletteEntryClass, boolean allowNullFill) {
         if (!allowNullFill) requireValue(fillWith, "fillWith");
+        this.cubeEdgeLength = cubeEdgeLength;
         this.paletteEntryClass = paletteEntryClass;
         int bits = calculatePowerOfTwoExponent(cubeEdgeLength, true);
         this.cordBitMask = calculateBitMask(bits);
@@ -176,12 +178,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     /**
-     * Length of one edge of the cuboid (ex. 4 for a 4x4x4 cuboid).<br>
-     * <b>Note: this is a somewhat expensive call as it computes the value with each call using
-     * {@link Math#pow(double, double)} and {@link Math#round(double)}.</b>
+     * Length of one edge of the cuboid (ex. 4 for a 4x4x4 cuboid).
      */
     public int cubeEdgeLength() {
-        return cubeRoot(data.length);
+        return cubeEdgeLength;
     }
 
     /** The current palette size. Note for an exact accurate palette count call {@link #optimizePalette()} first. */
@@ -194,13 +194,20 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     public int countIf(Predicate<E> filter) {
-        Set<Integer> counting = new HashSet<>();
+        Collection<Integer> counting = new HashSet<>();
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
-            if (paletteValue != null && filter.test(paletteValue)) {
+            if (paletteValue == null) continue;
+            final int hash = paletteValue.hashCode();
+            if (filter.test(paletteValue)) {
                 counting.add(i);
             }
+            if (paletteValue.hashCode() != hash)
+                throw new PaletteCorruptedException("Palette element modified by countIf filter call!");
         }
+        if (counting.isEmpty()) return 0;
+        if (counting.size() == 1) counting = Collections.singleton(counting.iterator().next());
+        else if (counting.size() < 5) counting = new ArrayList<>(counting);
         return (int) Arrays.stream(data).filter(counting::contains).count();
     }
 
@@ -477,6 +484,63 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         set(indexOf(xyz.x, xyz.y, xyz.z), element);
     }
 
+    /**
+     * Sets a range of entries. The given coordinates must be in cuboid space (not absolute) and be contained
+     * within the bounds of this cuboid as wrapping these bounds would cause strange artifacts.
+     * @param x1 inclusive bound
+     * @param y1 inclusive bound
+     * @param z1 inclusive bound
+     * @param element fill with
+     * @param x2 inclusive bound
+     * @param y2 inclusive bound
+     * @param z2 inclusive bound
+     */
+    public void set(int x1, int y1, int z1, E element, int x2, int y2, int z2 ) {
+        requireValue(element, "element");
+        checkBounds(x1, y1, z1);
+        checkBounds(x2, y2, z2);
+        if (x1 > x2) { int t = x2; x2 = x1 + 1; x1 = t; } else { x2++; }
+        if (y1 > y2) { int t = y2; y2 = y1 + 1; y1 = t; } else { y2++; }
+        if (z1 > z2) { int t = z2; z2 = z1 + 1; z1 = t; } else { z2++; }
+        if ((x2 - x1) * (y2 - y1) * (z2 - z1) == size()) {
+            fill(element);
+            return;
+        }
+
+        // detect and optimize XZ plain fills
+        if (x1 == 0 && z1 == 0 && x2 == cubeEdgeLength && z2 == cubeEdgeLength) {
+            final int endIndex = indexOf(x2 - 1, y2 - 1, z2 - 1);
+            for (int i = indexOf(x1, y1, z1); i <= endIndex; i++) {
+                set(i, element);
+            }
+            return;
+        }
+
+        // iteration order x, z, y
+        for (int y = y1; y < y2; y++) {
+            for (int z = z1; z < z2; z++) {
+                for (int x = x1; x < x2; x++) {
+                    set(x, y, z, element);
+                }
+            }
+        }
+    }
+
+    /**
+     * Sets a range of entries. The given coordinates must be in cuboid space (not absolute) and be contained
+     * within the bounds of this cuboid as wrapping these bounds would cause strange artifacts.
+     * @param xyz1 inclusive bound
+     * @param element fill with
+     * @param xyz2 inclusive bound
+     */
+    public void set(IntPointXYZ xyz1, E element, IntPointXYZ xyz2) {
+        set(xyz1.x, xyz1.y, xyz1.z, element, xyz2.x, xyz2.y, xyz2.z);
+    }
+
+    protected void checkBounds(int x, int y, int z) {
+        if (x < 0 || y < 0 || z < 0 || x >= cubeEdgeLength || y >= cubeEdgeLength || z >= cubeEdgeLength)
+            throw new IndexOutOfBoundsException();
+    }
 
     /**
      * Removes nulls from the palette and remaps value references as-needed.
@@ -757,13 +821,21 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             PalettizedCuboid.this.set(currentIndex, replacement);
         }
 
-        /** Gets the last entry returned by {@link #next()} */
+        /**
+         * Gets the last entry returned by {@link #next()}.
+         * Note this call also respects the iterators by value / by ref setting!
+         */
         public E current() {
+            if (byValue) return currentByValue();
+            else return currentByRef();
+        }
+
+        private E currentByValue() {
             if (currentIndex < 0) throw new NoSuchElementException();
             return get(currentIndex);
         }
 
-        public E currentByRef() {
+        private E currentByRef() {
             if (currentIndex < 0) throw new NoSuchElementException();
             return getByRef(currentIndex);
         }
@@ -791,6 +863,15 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         /** Gets the cuboid xyz position of the last entry returned by {@link #next()}. */
         public IntPointXYZ currentXYZ() {
             return xyzOf(currentIndex);
+        }
+    }
+
+    public static class PaletteCorruptedException extends RuntimeException {
+        public PaletteCorruptedException() {
+            super();
+        }
+        public PaletteCorruptedException(String message) {
+            super(message);
         }
     }
 }
