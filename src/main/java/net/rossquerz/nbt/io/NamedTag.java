@@ -32,6 +32,11 @@ public class NamedTag {
 		return tag;
 	}
 
+	@SuppressWarnings("unchecked")
+	public <T extends Tag<?>> T getTagAutoCast() {
+		return (T) tag;
+	}
+
 	/**
 	 * Wraps the name in quotes if it contains anything other than ascii letters (a-z), numbers, underscore, dash, or dot.
 	 * If name is null, then null is returned.
