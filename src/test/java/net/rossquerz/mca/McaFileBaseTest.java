@@ -45,9 +45,9 @@ public class McaFileBaseTest extends McaTestCase {
         // writing should have rebuilt the data tag fully and correctly
         for (int i = 0; i < chunksIn.size(); i++) {
             try {
-                TextNbtHelpers.writeTextNbtFile(Paths.get("TESTDBG", mcaResourcePath + "." + i + ".original.snbt"), originalChunkData.get(i), true, true);
+                TextNbtHelpers.writeTextNbtFile(Paths.get("TESTDBG", mcaResourcePath + "." + i + ".original.snbt"), originalChunkData.get(i));
                 if (!originalChunkData.get(i).equals(chunksIn.get(i).data)) {
-                    TextNbtHelpers.writeTextNbtFile(Paths.get("TESTDBG", mcaResourcePath + "." + i + ".regurgitated.snbt"), chunksIn.get(i).data, true, true);
+                    TextNbtHelpers.writeTextNbtFile(Paths.get("TESTDBG", mcaResourcePath + "." + i + ".regurgitated.snbt"), chunksIn.get(i).data);
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();

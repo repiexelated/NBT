@@ -7,10 +7,20 @@ public class StringPointer {
 
 	public StringPointer(String value) {
 		this.value = value;
+		skipUtf8Bom();
 	}
 
 	public void reset() {
 		index = 0;
+		skipUtf8Bom();
+	}
+
+	/** Skips the UTF8 BOM (byte order mark) if the current index is 0, else does nothing.*/
+	private void skipUtf8Bom() {
+		if (index != 0) return;
+		if (hasNext() && next() != '\uFEFF') {
+			index = 0;
+		}
 	}
 
 	public int getIndex() {

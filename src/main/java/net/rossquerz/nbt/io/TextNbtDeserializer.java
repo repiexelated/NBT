@@ -4,6 +4,7 @@ import net.rossquerz.io.Deserializer;
 import net.rossquerz.nbt.tag.Tag;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 public class TextNbtDeserializer implements Deserializer<NamedTag> {
@@ -28,7 +29,7 @@ public class TextNbtDeserializer implements Deserializer<NamedTag> {
 
 	@Override
 	public NamedTag fromStream(InputStream stream) throws IOException {
-		try (Reader reader = new InputStreamReader(stream)) {
+		try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
 			return fromReader(reader);
 		}
 	}

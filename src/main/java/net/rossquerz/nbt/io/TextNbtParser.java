@@ -44,6 +44,7 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 	public NamedTag readTag(int maxDepth) throws IOException {
 		ptr.reset();
 		ptr.skipWhitespace();
+		if (!ptr.hasNext()) return null;
 		String name = ptr.currentChar() == '"' ? ptr.parseQuotedString() : ptr.parseSimpleString();
 		// note to future self: if you're ever compelled to set NamedTag's name to null if it's empty
 		// consider changing TextNbtWriter#writeAnything(NamedTag, int)'s behavior to match
@@ -61,9 +62,19 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 	@Override
 	public Tag<?> readRawTag(int maxDepth) throws IOException {
 		ptr.reset();
+		ptr.skipWhitespace();
+		if (!ptr.hasNext()) return null;
 		return parseAnything(maxDepth);
 	}
 
+	/**
+	 *
+	 * @param maxDepth
+	 * @param lenient allows trailing content to follow the text nbt data - this could be useful if multiple
+	 *                   text nbt's are present without a ListTag being used.
+	 * @return
+	 * @throws ParseException
+	 */
 	public Tag<?> parse(int maxDepth, boolean lenient) throws ParseException {
 		Tag<?> tag = parseAnything(maxDepth);
 		if (!lenient) {
