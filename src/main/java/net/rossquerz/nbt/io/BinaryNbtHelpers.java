@@ -10,55 +10,56 @@ import java.util.zip.GZIPInputStream;
 public final class BinaryNbtHelpers {
 	private BinaryNbtHelpers() {}
 
-	// <editor-fold desc="Big Endian read/write">
-	public static void write(NamedTag tag, File file, boolean compressed) throws IOException {
+	// <editor-fold desc="Big Endian read/write (MC Java)">
+	public static Path write(NamedTag tag, File file, boolean compressed) throws IOException {
 		try (FileOutputStream fos = new FileOutputStream(file)) {
 			new BinaryNbtSerializer(compressed).toStream(tag, fos);
 		}
+		return file.toPath();
 	}
 
-	public static void write(NamedTag tag, String file, boolean compressed) throws IOException {
-		write(tag, new File(file), compressed);
+	public static Path write(NamedTag tag, String file, boolean compressed) throws IOException {
+		return write(tag, new File(file), compressed);
 	}
 
-	public static void write(NamedTag tag, Path path, boolean compressed) throws IOException {
-		write(tag, path.toFile(), compressed);
+	public static Path write(NamedTag tag, Path path, boolean compressed) throws IOException {
+		return write(tag, path.toFile(), compressed);
 	}
 
-	public static void write(NamedTag tag, File file) throws IOException {
-		write(tag, file, true);
+	public static Path write(NamedTag tag, File file) throws IOException {
+		return write(tag, file, true);
 	}
 
-	public static void write(NamedTag tag, String file) throws IOException {
-		write(tag, new File(file), true);
+	public static Path write(NamedTag tag, String file) throws IOException {
+		return write(tag, new File(file), true);
 	}
 
-	public static void write(NamedTag tag, Path path) throws IOException {
-		write(tag, path.toFile(), true);
+	public static Path write(NamedTag tag, Path path) throws IOException {
+		return write(tag, path.toFile(), true);
 	}
 
-	public static void write(Tag<?> tag, File file, boolean compressed) throws IOException {
-		write(new NamedTag(null, tag), file, compressed);
+	public static Path write(Tag<?> tag, File file, boolean compressed) throws IOException {
+		return write(new NamedTag(null, tag), file, compressed);
 	}
 
-	public static void write(Tag<?> tag, String file, boolean compressed) throws IOException {
-		write(new NamedTag(null, tag), new File(file), compressed);
+	public static Path write(Tag<?> tag, String file, boolean compressed) throws IOException {
+		return write(new NamedTag(null, tag), new File(file), compressed);
 	}
 
-	public static void write(Tag<?> tag, Path path, boolean compressed) throws IOException {
-		write(new NamedTag(null, tag), path.toFile(), compressed);
+	public static Path write(Tag<?> tag, Path path, boolean compressed) throws IOException {
+		return write(new NamedTag(null, tag), path.toFile(), compressed);
 	}
 
-	public static void write(Tag<?> tag, File file) throws IOException {
-		write(new NamedTag(null, tag), file, true);
+	public static Path write(Tag<?> tag, File file) throws IOException {
+		return write(new NamedTag(null, tag), file, true);
 	}
 
-	public static void write(Tag<?> tag, String file) throws IOException {
-		write(new NamedTag(null, tag), new File(file), true);
+	public static Path write(Tag<?> tag, String file) throws IOException {
+		return write(new NamedTag(null, tag), new File(file), true);
 	}
 
-	public static void write(Tag<?> tag, Path path) throws IOException {
-		write(new NamedTag(null, tag), path.toFile(), true);
+	public static Path write(Tag<?> tag, Path path) throws IOException {
+		return write(new NamedTag(null, tag), path.toFile(), true);
 	}
 
 	public static NamedTag read(File file, boolean compressed) throws IOException {
@@ -90,55 +91,56 @@ public final class BinaryNbtHelpers {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="Little Endian read/write">
-	public static void writeLittleEndian(NamedTag tag, File file, boolean compressed) throws IOException {
+	// <editor-fold desc="Little Endian read/write (MC Bedrock)">
+	public static Path writeLittleEndian(NamedTag tag, File file, boolean compressed) throws IOException {
 		try (FileOutputStream fos = new FileOutputStream(file)) {
 			new BinaryNbtSerializer(compressed, true).toStream(tag, fos);
 		}
+		return file.toPath();
 	}
 
-	public static void writeLittleEndian(NamedTag tag, String file, boolean compressed) throws IOException {
-		writeLittleEndian(tag, new File(file), compressed);
+	public static Path writeLittleEndian(NamedTag tag, String file, boolean compressed) throws IOException {
+		return writeLittleEndian(tag, new File(file), compressed);
 	}
 
-	public static void writeLittleEndian(NamedTag tag, Path path, boolean compressed) throws IOException {
-		writeLittleEndian(tag, path.toFile(), compressed);
+	public static Path writeLittleEndian(NamedTag tag, Path path, boolean compressed) throws IOException {
+		return writeLittleEndian(tag, path.toFile(), compressed);
 	}
 
-	public static void writeLittleEndian(NamedTag tag, File file) throws IOException {
-		writeLittleEndian(tag, file, true);
+	public static Path writeLittleEndian(NamedTag tag, File file) throws IOException {
+		return writeLittleEndian(tag, file, true);
 	}
 
-	public static void writeLittleEndian(NamedTag tag, String file) throws IOException {
-		writeLittleEndian(tag, new File(file), true);
+	public static Path writeLittleEndian(NamedTag tag, String file) throws IOException {
+		return writeLittleEndian(tag, new File(file), true);
 	}
 
-	public static void writeLittleEndian(NamedTag tag, Path path) throws IOException {
-		writeLittleEndian(tag, path.toFile(), true);
+	public static Path writeLittleEndian(NamedTag tag, Path path) throws IOException {
+		return writeLittleEndian(tag, path.toFile(), true);
 	}
 
-	public static void writeLittleEndian(Tag<?> tag, File file, boolean compressed) throws IOException {
-		writeLittleEndian(new NamedTag(null, tag), file, compressed);
+	public static Path writeLittleEndian(Tag<?> tag, File file, boolean compressed) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), file, compressed);
 	}
 
-	public static void writeLittleEndian(Tag<?> tag, String file, boolean compressed) throws IOException {
-		writeLittleEndian(new NamedTag(null, tag), new File(file), compressed);
+	public static Path writeLittleEndian(Tag<?> tag, String file, boolean compressed) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), new File(file), compressed);
 	}
 
-	public static void writeLittleEndian(Tag<?> tag, Path path, boolean compressed) throws IOException {
-		writeLittleEndian(new NamedTag(null, tag), path.toFile(), compressed);
+	public static Path writeLittleEndian(Tag<?> tag, Path path, boolean compressed) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), path.toFile(), compressed);
 	}
 
-	public static void writeLittleEndian(Tag<?> tag, File file) throws IOException {
-		writeLittleEndian(new NamedTag(null, tag), file, true);
+	public static Path writeLittleEndian(Tag<?> tag, File file) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), file, true);
 	}
 
-	public static void writeLittleEndian(Tag<?> tag, String file) throws IOException {
-		writeLittleEndian(new NamedTag(null, tag), new File(file), true);
+	public static Path writeLittleEndian(Tag<?> tag, String file) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), new File(file), true);
 	}
 
-	public static void writeLittleEndian(Tag<?> tag, Path path) throws IOException {
-		writeLittleEndian(new NamedTag(null, tag), path.toFile(), true);
+	public static Path writeLittleEndian(Tag<?> tag, Path path) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), path.toFile(), true);
 	}
 
 	public static NamedTag readLittleEndian(File file, boolean compressed) throws IOException {
@@ -170,11 +172,13 @@ public final class BinaryNbtHelpers {
 	}
 	// </editor-fold>
 	
-	private static InputStream detectDecompression(InputStream is) throws IOException {
+	static InputStream detectDecompression(InputStream is) throws IOException {
 		PushbackInputStream pbis = new PushbackInputStream(is, 2);
-		int signature = (pbis.read() & 0xFF) + (pbis.read() << 8);
-		pbis.unread(signature >> 8);
-		pbis.unread(signature & 0xFF);
+		int b0 = pbis.read();
+		int b1 = pbis.read();
+		int signature = (b0 & 0xFF) | (b1 << 8);
+		if (b1 >= 0) pbis.unread(b1);
+		if (b0 >= 0) pbis.unread(b0);
 		if (signature == GZIPInputStream.GZIP_MAGIC) {
 			return new GZIPInputStream(pbis);
 		}
