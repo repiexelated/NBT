@@ -17,7 +17,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	}
 
 	public CompoundTag(int initialCapacity) {
-		super(new HashMap<>(initialCapacity));
+		super(new LinkedHashMap<>(initialCapacity));
 	}
 
 	@Override
@@ -26,7 +26,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	}
 
 	private static Map<String, Tag<?>> createEmptyValue() {
-		return new HashMap<>(8);
+		return new LinkedHashMap<>(8);
 	}
 
 	public int size() {
