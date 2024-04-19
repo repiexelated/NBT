@@ -18,6 +18,7 @@ import net.rossquerz.nbt.tag.Tag;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -34,9 +35,12 @@ public final class TextNbtWriter implements MaxDepthIO {
 		this.writer = writer;
 	}
 
+	public static void write(NamedTag tag, Writer writer, boolean sortCompoundTagEntries, int maxDepth) throws IOException {
+		new TextNbtWriter(writer).writeAnything(tag, sortCompoundTagEntries, maxDepth);
+	}
 
 	public static void write(NamedTag tag, Writer writer, int maxDepth) throws IOException {
-		new TextNbtWriter(writer).writeAnything(tag, maxDepth);
+		new TextNbtWriter(writer).writeAnything(tag, false, maxDepth);
 	}
 
 	public static void write(NamedTag tag, Writer writer) throws IOException {
@@ -44,24 +48,24 @@ public final class TextNbtWriter implements MaxDepthIO {
 	}
 
 	public static void write(Tag<?> tag, Writer writer, int maxDepth) throws IOException {
-		new TextNbtWriter(writer).writeAnything(tag, maxDepth);
+		new TextNbtWriter(writer).writeAnything(tag, false, maxDepth);
 	}
 
 	public static void write(Tag<?> tag, Writer writer) throws IOException {
 		write(tag, writer, Tag.DEFAULT_MAX_DEPTH);
 	}
 
-	private void writeAnything(NamedTag tag, int maxDepth) throws IOException {
+	private void writeAnything(NamedTag tag, boolean sortCompoundTagEntries, int maxDepth) throws IOException {
 		// note to future self: if you're ever compelled not write an empty name be sure to
 		// consider what that means for TextNbtParser#readTag(int)
 		if (tag.getName() != null) {
 			writer.write(tag.getEscapedName());
 			writer.write(':');
 		}
-		writeAnything(tag.getTag(), maxDepth);
+		writeAnything(tag.getTag(), sortCompoundTagEntries, maxDepth);
 	}
 
-	private void writeAnything(Tag<?> tag, int maxDepth) throws IOException {
+	private void writeAnything(Tag<?> tag, boolean sortCompoundTagEntries, int maxDepth) throws IOException {
 		switch (tag.getID()) {
 		case EndTag.ID:
 			//do nothing
@@ -94,17 +98,21 @@ public final class TextNbtWriter implements MaxDepthIO {
 			writer.write('[');
 			for (int i = 0; i < ((ListTag<?>) tag).size(); i++) {
 				writer.write(i == 0 ? "" : ",");
-				writeAnything(((ListTag<?>) tag).get(i), decrementMaxDepth(maxDepth));
+				writeAnything(((ListTag<?>) tag).get(i), sortCompoundTagEntries, decrementMaxDepth(maxDepth));
 			}
 			writer.write(']');
 			break;
 		case CompoundTag.ID:
 			writer.write('{');
 			boolean first = true;
-			for (Map.Entry<String, Tag<?>> entry : (CompoundTag) tag) {
+			Iterator<Map.Entry<String, Tag<?>>> iter;
+			if (sortCompoundTagEntries) iter = ((CompoundTag) tag).stream().sorted(Map.Entry.comparingByKey()).iterator();
+			else iter = ((CompoundTag) tag).iterator();
+			while (iter.hasNext()) {
+				Map.Entry<String, Tag<?>> entry = iter.next();
 				writer.write(first ? "" : ",");
 				writer.append(escapeString(entry.getKey())).write(':');
-				writeAnything(entry.getValue(), decrementMaxDepth(maxDepth));
+				writeAnything(entry.getValue(), sortCompoundTagEntries, decrementMaxDepth(maxDepth));
 				first = false;
 			}
 			writer.write('}');

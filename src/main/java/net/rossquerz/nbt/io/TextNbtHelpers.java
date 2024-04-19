@@ -15,23 +15,54 @@ public final class TextNbtHelpers {
 	private TextNbtHelpers() {}
 
 	// <editor-fold desc="to/from string">
-	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint) throws IOException {
-		String snbt = new TextNbtSerializer().toString(namedTag);
+	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+		String snbt = new TextNbtSerializer(sortCompoundTagEntries).toString(namedTag);
 		return !prettyPrint ? snbt : JsonPrettyPrinter.prettyPrintJson(snbt);
 	}
 
-	/** defaults to prettyPrint=true */
+	/** defaults to sortCompoundTagEntries=true */
+	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint) throws IOException {
+		return toTextNbt(namedTag, prettyPrint, true);
+	}
+
+	/** defaults to sortCompoundTagEntries=true */
+	public static String toTextNbtUnsorted(NamedTag namedTag, boolean prettyPrint) throws IOException {
+		return toTextNbt(namedTag, prettyPrint, false);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
 	public static String toTextNbt(NamedTag namedTag) throws IOException {
 		return toTextNbt(namedTag, true);
 	}
 
-	public static String toTextNbt(Tag<?> tag, boolean prettyPrint) throws IOException {
-		return toTextNbt(new NamedTag(null, tag), prettyPrint);
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
+	public static String toTextNbtUnsorted(NamedTag namedTag) throws IOException {
+		return toTextNbt(namedTag, true, false);
 	}
 
-	/** defaults to prettyPrint=true */
+	/** defaults to sortCompoundTagEntries=true */
+	public static String toTextNbt(Tag<?> tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+		return toTextNbt(new NamedTag(null, tag), prettyPrint, sortCompoundTagEntries);
+	}
+
+	/** defaults to sortCompoundTagEntries=true */
+	public static String toTextNbt(Tag<?> tag, boolean prettyPrint) throws IOException {
+		return toTextNbt(new NamedTag(null, tag), prettyPrint, true);
+	}
+
+	/** defaults to sortCompoundTagEntries=false */
+	public static String toTextNbtUnsorted(Tag<?> tag, boolean prettyPrint) throws IOException {
+		return toTextNbt(new NamedTag(null, tag), prettyPrint, false);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
 	public static String toTextNbt(Tag<?> tag) throws IOException {
 		return toTextNbt(new NamedTag(null, tag), true);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
+	public static String toTextNbtUnsorted(Tag<?> tag) throws IOException {
+		return toTextNbtUnsorted(tag, true);
 	}
 
 	public static NamedTag fromTextNbt(String string) throws IOException {
@@ -40,6 +71,14 @@ public final class TextNbtHelpers {
 	// </editor-fold>
 
 	// <editor-fold desc="write to file">
+	public static Path writeTextNbtFile(Path filePath, Tag<?> tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+		if (!filePath.getParent().toFile().exists()) {
+			ArgValidator.check(filePath.getParent().toFile().mkdirs(),
+					"Failed to create parent directory for " + filePath.toAbsolutePath());
+		}
+		Files.write(filePath, toTextNbt(tag, prettyPrint, sortCompoundTagEntries).getBytes(StandardCharsets.UTF_8));
+		return filePath;
+	}
 	public static Path writeTextNbtFile(Path filePath, Tag<?> tag, boolean prettyPrint) throws IOException {
 		if (!filePath.getParent().toFile().exists()) {
 			ArgValidator.check(filePath.getParent().toFile().mkdirs(),

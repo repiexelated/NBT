@@ -717,6 +717,21 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             } else {
                 // TODO - it's a hot tight packing mess! see TerrainSectionBase#setPaletteIndex
                 throw new UnsupportedOperationException("currently only support dataVersion >= JAVA_1_16_20W17A");
+//                static long updateBits(long n, long m, int i, int j) {
+//                    // updateBits(blockStates[blockStatesIndex], paletteIndex, startBit, startBit + bits)
+//                    //replace i to j in n with j - i bits of m
+//                    long mShifted = i > 0 ? (m & ((1L << j - i) - 1)) << i : (m & ((1L << j - i) - 1)) >>> -i;
+//                    return ((n & ((j > 63 ? 0 : (~0L << j)) | (i < 0 ? 0 : ((1L << i) - 1L)))) | mShifted);
+//                }
+//                double blockStatesIndex = blockIndex / (4096D / blockStates.length);
+//                int longIndex = (int) blockStatesIndex;
+//                int startBit = (int) ((blockStatesIndex - Math.floor(longIndex)) * 64D);
+//                if (startBit + bits > 64) {
+//                    blockStates[longIndex] = updateBits(blockStates[longIndex], paletteIndex, startBit, 64);
+//                    blockStates[longIndex + 1] = updateBits(blockStates[longIndex + 1], paletteIndex, startBit - 64, startBit + bits - 64);
+//                } else {
+//                    blockStates[longIndex] = updateBits(blockStates[longIndex], paletteIndex, startBit, startBit + bits);
+//                }
             }
 
             rootTag.put("data", new LongArrayTag(longs));
@@ -782,6 +797,36 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         } else {
             // TODO - it's a hot tight packing mess! see TerrainSectionBase#setPaletteIndex
             throw new UnsupportedOperationException("currently only support dataVersion >= JAVA_1_16_20W17A");
+//            private void upgradeFromBefore20W17A(final int targetVersion) {
+//                if (dataVersion <= JAVA_1_12_2.id())
+//                    throw new UnsupportedOperationException("Non block palette MC versions are unsupported!");
+//                int newBits = 32 - Integer.numberOfLeadingZeros(blockPalette.size() - 1);
+//                newBits = Math.max(newBits, 4);
+//                long[] newBlockStates;
+//
+//                int newLength = (int) Math.ceil(4096D / (Math.floor(64D / newBits)));
+//                newBlockStates = newBits == blockStates.length / 64 ? blockStates : new long[newLength];
+//
+//                for (int i = 0; i < 4096; i++) {
+//                    setPaletteIndex(i, getBlockPaletteIndex(i), newBlockStates);
+//                }
+//                this.blockStates = newBlockStates;
+//            }
+//            static long bitRange(long value, int from, int to) {
+//                // bitRange(blockStates[blockStatesIndex], startBit, startBit + bits)
+//                int waste = 64 - to;
+//                return (value << waste) >>> (waste + from);
+//            }
+//            double blockStatesIndex = blockStateIndex / (4096D / blockStates.length);
+//            int longIndex = (int) blockStatesIndex;
+//            int startBit = (int) ((blockStatesIndex - Math.floor(blockStatesIndex)) * 64D);
+//            if (startBit + bits > 64) {
+//                long prev = bitRange(blockStates[longIndex], startBit, 64);
+//                long next = bitRange(blockStates[longIndex + 1], 0, startBit + bits - 64);
+//                return (int) ((next << 64 - startBit) + prev);
+//            } else {
+//                return (int) bitRange(blockStates[longIndex], startBit, startBit + bits);
+//            }
         }
     }
 

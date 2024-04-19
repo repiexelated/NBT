@@ -52,8 +52,10 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
-		String ctExpected = "{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
-		assertEquals(ctExpected, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct, false)));
+		String ctExpectedUnsorted = "{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
+		String ctExpectedSorted = "{array:[B;-128,0,127],byte:127b,key:value,list:[foo,bar]}";
+		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(ct, false)));
+		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct, false)));
 
 		// write compound tag containing an empty string value
 		CompoundTag ct2 = new CompoundTag();
@@ -72,7 +74,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
-		String ctExpected =
+		String ctExpectedUnsorted =
 				"{\n" +
 				"  key: value,\n" +
 				"  byte: 127b,\n" +
@@ -86,7 +88,23 @@ public class TextNbtWriterTest extends NbtTestCase {
 				"    bar\n" +
 				"  ]\n" +
 				"}";
-		assertEquals(ctExpected, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct)));
+
+		String ctExpectedSorted =
+				"{\n" +
+						"  array: [B;\n" +
+						"    -128,\n" +
+						"    0,\n" +
+						"    127\n" +
+						"  ],\n" +
+						"  byte: 127b,\n" +
+						"  key: value,\n" +
+						"  list: [\n" +
+						"    foo,\n" +
+						"    bar\n" +
+						"  ]\n" +
+						"}";
+		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(ct)));
+		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct)));
 	}
 
 
@@ -135,8 +153,10 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
-		String ctExpected = "1:{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
-		assertEquals(ctExpected, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("1", ct), false)));
+		String ctExpectedUnsorted = "1:{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
+		String ctExpectedSorted = "1:{array:[B;-128,0,127],byte:127b,key:value,list:[foo,bar]}";
+		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(new NamedTag("1", ct), false)));
+		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("1", ct), false)));
 
 		// write compound tag containing an empty string value + float looking name
 		CompoundTag ct2 = new CompoundTag();
@@ -155,7 +175,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
-		String ctExpected =
+		String ctExpectedUnsorted =
 				"my-name-is: {\n" +
 						"  key: value,\n" +
 						"  byte: 127b,\n" +
@@ -169,6 +189,21 @@ public class TextNbtWriterTest extends NbtTestCase {
 						"    bar\n" +
 						"  ]\n" +
 						"}";
-		assertEquals(ctExpected, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("my-name-is", ct))));
+		String ctExpectedSorted =
+				"my-name-is: {\n" +
+						"  array: [B;\n" +
+						"    -128,\n" +
+						"    0,\n" +
+						"    127\n" +
+						"  ],\n" +
+						"  byte: 127b,\n" +
+						"  key: value,\n" +
+						"  list: [\n" +
+						"    foo,\n" +
+						"    bar\n" +
+						"  ]\n" +
+						"}";
+		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(new NamedTag("my-name-is", ct))));
+		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("my-name-is", ct))));
 	}
 }

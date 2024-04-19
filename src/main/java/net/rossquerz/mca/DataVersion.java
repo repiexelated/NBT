@@ -6,7 +6,7 @@ import java.util.Comparator;
 // source: version.json file, found in the root directory of the client and server jars
 // table of versions can also be found on https://minecraft.fandom.com/wiki/Data_version#List_of_data_versions
 // google sheet to help generate enum values https://docs.google.com/spreadsheets/d/1VVGUPe9sfsd3rsFYcBGDnt1bTifBh3dUkKV9vQvNWQY
-//   - paste rows from the fandom table into the sheet and sort ascending by data version (if you don't sort it the mc version may be wrong!)
+//   - paste rows from the fandom table into the sheet and sort ascending by data version (if you don't sort it the mc version WILL BE WRONG!)
 
 /**
  * List of MC versions and MCA data versions back to 1.9.0
@@ -261,7 +261,7 @@ public enum DataVersion {
     JAVA_1_16_20W14A(2524, 16, 0, "20w14a"),
     JAVA_1_16_20W15A(2525, 16, 0, "20w15a"),
     JAVA_1_16_20W16A(2526, 16, 0, "20w16a"),
-    /** Block pallet packing changed in this version - see {@link TerrainSection} */
+    /** Block palette packing changed in this version - see {@link TerrainSection} */
     JAVA_1_16_20W17A(2529, 16, 0, "20w17a"),
     JAVA_1_16_20W18A(2532, 16, 0, "20w18a"),
     JAVA_1_16_20W19A(2534, 16, 0, "20w19a"),
@@ -319,12 +319,12 @@ public enum DataVersion {
     JAVA_1_17_CT6(2701, 17, 0, "CT6"),
     JAVA_1_17_CT7(2702, 17, 0, "CT7"),
     JAVA_1_17_21W11A(2703, 17, 0, "21w11a"),
-//    JAVA_1_17_CT7B(2703, 17, 0, "CT7b"),
+//    JAVA_1_17_CT7B(2703, 17, 0, "CT7b"), -- ambiguous data version
     JAVA_1_17_CT7C(2704, 17, 0, "CT7c"),
     JAVA_1_17_21W13A(2705, 17, 0, "21w13a"),
-//    JAVA_1_17_CT8(2705, 17, 0, "CT8"),
+//    JAVA_1_17_CT8(2705, 17, 0, "CT8"), -- ambiguous data version
     JAVA_1_17_21W14A(2706, 17, 0, "21w14a"),
-//    JAVA_1_17_CT8B(2706, 17, 0, "CT8b"),
+//    JAVA_1_17_CT8B(2706, 17, 0, "CT8b"), -- ambiguous data version
     JAVA_1_17_CT8C(2707, 17, 0, "CT8c"),
     JAVA_1_17_21W15A(2709, 17, 0, "21w15a"),
     JAVA_1_17_21W16A(2711, 17, 0, "21w16a"),
@@ -516,7 +516,8 @@ public enum DataVersion {
     private final String str;
 
     static {
-        ids = Arrays.stream(values()).sorted().mapToInt(DataVersion::id).toArray();
+        // enum is maintained in order with a unit test to enforce the convention - so no need to sort
+        ids = Arrays.stream(values()).mapToInt(DataVersion::id).toArray();
         latestFullReleaseVersion = Arrays.stream(values())
                 .sorted(Comparator.reverseOrder())
                 .filter(DataVersion::isFullRelease)
@@ -632,7 +633,27 @@ public enum DataVersion {
     }
 
     /**
-     * @return The latest full release version defined.
+     * @return The previous known data version or null if there is none.
+     */
+    public DataVersion previous() {
+        if (this.ordinal() > 0)
+            return values()[this.ordinal() - 1];
+        else
+            return null;
+    }
+
+    /**
+     * @return The next known data version or null if there is none.
+     */
+    public DataVersion next() {
+        if (this.ordinal() < ids.length - 1)
+            return values()[this.ordinal() + 1];
+        else
+            return null;
+    }
+
+    /**
+     * @return The latest full release (non-weekly, non pre-release, etc) version defined.
      */
     public static DataVersion latest() {
         return latestFullReleaseVersion;

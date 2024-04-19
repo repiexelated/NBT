@@ -27,8 +27,14 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			.register(0, NbtPath.of("Level.InhabitedTime"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("InhabitedTime"));
 
-	protected int[] biomes;
-	protected static final VersionAware<NbtPath> BIOMES_PATH = new VersionAware<NbtPath>()
+	/**
+	 * Only populated for data versions < JAVA_1_18_21W39A. For later data versions use
+	 * {@link net.rossquerz.mca.util.PalettizedCuboid} and load biomes from
+	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/IDs_before_1.13>minecraft.fandom.com/wiki/Biome/IDs_before_1.13</a>
+	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/ID>minecraft.fandom.com/wiki/Biome/ID</a>
+	 */
+	protected int[] legacyBiomes;
+	protected static final VersionAware<NbtPath> LEGACY_BIOMES_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Biomes"))
 			.register(JAVA_1_18_21W39A.id(), null);  // biomes are now paletted and live in a similar container structure in sections[].biomes
 
@@ -185,15 +191,15 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		lastUpdate = getTagValue(LAST_UPDATE_PATH, LongTag::asLong, 0L);
 		if (dataVersion < JAVA_1_18_21W39A.id() && (loadFlags & BIOMES) != 0) {
 			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
-				biomes = getTagValue(BIOMES_PATH, IntArrayTag::getValue);
+				legacyBiomes = getTagValue(LEGACY_BIOMES_PATH, IntArrayTag::getValue);
 			} else {
-				byte[] byteBiomes = getTagValue(BIOMES_PATH, ByteArrayTag::getValue);
-				biomes = new int[byteBiomes.length];
-				for (int i = 0; i < biomes.length; i++) {
-					biomes[i] = byteBiomes[i];
+				byte[] byteBiomes = getTagValue(LEGACY_BIOMES_PATH, ByteArrayTag::getValue);
+				legacyBiomes = new int[byteBiomes.length];
+				for (int i = 0; i < legacyBiomes.length; i++) {
+					legacyBiomes[i] = byteBiomes[i];
 				}
 			}
-			if (biomes != null && biomes.length == 0) biomes = null;
+			if (legacyBiomes != null && legacyBiomes.length == 0) legacyBiomes = null;
 		} else {
 			// palette biomes
 
@@ -268,18 +274,17 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	/**
 	 * May only be used for data versions LT 2203 which includes all of 1.14
 	 * and up until 19w36a (a 1.15 weekly snapshot).
-	 * @deprecated Use {@link #getBiomeAt(int, int, int)} instead for 1.15 and beyond
+	 * @deprecated unsupported after JAVA_1_15_19W35A use {@link #getBiomeAt(int, int, int)} instead for 1.15 and beyond
 	 */
 	@Deprecated
 	public int getBiomeAt(int blockX, int blockZ) {
-		if (dataVersion < JAVA_1_15_19W36A.id()) {
-			if (biomes == null || biomes.length != 256) {
-				return -1;
-			}
-			return biomes[getBlockIndex(blockX, blockZ)];
-		} else {
-			throw new IllegalStateException("cannot get biome using Chunk#getBiomeAt(int,int) from biome data with DataVersion of 2203 or higher (1.15+), use Chunk#getBiomeAt(int,int,int) instead");
+		if (dataVersion > JAVA_1_15_19W35A.id())
+			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_15_19W35A,
+					"cannot get biome using Chunk#getBiomeAt(int,int) from biome data with DataVersion of 2203 or higher (1.15+), use Chunk#getBiomeAt(int,int,int) instead");
+		if (legacyBiomes == null || legacyBiomes.length != 256) {
+			return -1;
 		}
+		return legacyBiomes[getBlockIndex(blockX, blockZ)];
 	}
 
 	/**
@@ -289,18 +294,21 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * @param blockY The y-coordinate of the block.
 	 * @param blockZ The z-coordinate of the block.
 	 * @return The biome id or -1 if the biomes are not correctly initialized.
+	 * @deprecated unsupported after JAVA_1_18_21W38A
 	 */
 	public int getBiomeAt(int blockX, int blockY, int blockZ) {
-		if (dataVersion >= JAVA_1_15_19W36A.id()) {
-			if (biomes == null || biomes.length != 1024) {
+		if (dataVersion > JAVA_1_18_21W38A.id())
+			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_18_21W38A, "legacy biomes");
+		if (dataVersion >= JAVA_1_15_19W36A.id()) {  // 3D biomes
+			if (legacyBiomes == null || legacyBiomes.length != 1024) {
 				return -1;
 			}
 			int biomeX = (blockX & 0xF) >> 2;
 			int biomeY = (blockY & 0xF) >> 2;
 			int biomeZ = (blockZ & 0xF) >> 2;
 
-			return biomes[getBiomeIndex(biomeX, biomeY, biomeZ)];
-		} else {
+			return legacyBiomes[getBiomeIndex(biomeX, biomeY, biomeZ)];
+		} else {  // 2D biomes
 			return getBiomeAt(blockX, blockZ);
 		}
 	}
@@ -308,114 +316,50 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	/**
 	 * Should only be used for data versions LT 2203 which includes all of 1.14
 	 * and up until 19w36a (a 1.15 weekly snapshot).
-	 * @deprecated Use {@link #setBiomeAt(int, int, int, int)} instead for 1.15 and beyond
+	 * @deprecated unsupported after JAVA_1_18_21W38A
 	 */
 	@Deprecated
 	public void setBiomeAt(int blockX, int blockZ, int biomeID) {
 		checkRaw();
-		if (dataVersion < JAVA_1_15_19W36A.id()) {
-			if (biomes == null || biomes.length != 256) {
-				biomes = new int[256];
-				Arrays.fill(biomes, -1);
+		if (dataVersion > JAVA_1_18_21W38A.id())
+			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_18_21W38A, "2D legacy biomes");
+		if (dataVersion < JAVA_1_15_19W36A.id()) {  // 2D biomes
+			if (legacyBiomes == null || legacyBiomes.length != 256) {
+				legacyBiomes = new int[256];
+				Arrays.fill(legacyBiomes, -1);
 			}
-			biomes[getBlockIndex(blockX, blockZ)] = biomeID;
-		} else {
-			if (biomes == null || biomes.length != 1024) {
-				biomes = new int[1024];
-				Arrays.fill(biomes, -1);
+			legacyBiomes[getBlockIndex(blockX, blockZ)] = biomeID;
+		} else {  // 3D biomes
+			if (legacyBiomes == null || legacyBiomes.length != 1024) {
+				legacyBiomes = new int[1024];
+				Arrays.fill(legacyBiomes, -1);
 			}
 
 			int biomeX = (blockX & 0xF) >> 2;
 			int biomeZ = (blockZ & 0xF) >> 2;
 
 			for (int y = 0; y < 64; y++) {
-				biomes[getBiomeIndex(biomeX, y, biomeZ)] = biomeID;
+				legacyBiomes[getBiomeIndex(biomeX, y, biomeZ)] = biomeID;
 			}
 		}
 	}
 
-
-	public void setBiomeAt(int blockX, int blockY, int blockZ, String biomeName) {
-		throw new UnsupportedOperationException("not yet implemented");
-	}
-
-	/**
-	  * Sets a biome id at a specific block.
-	  * The coordinates can be absolute coordinates or relative to the region or chunk.
-	  *
-	  * <h2>data version &lt; JAVA_1_15_19W36A (non-3D biomes)</h2>
-	  * The blockY value has no effect and the biome is set for the entire column, filling a cuboid of 1x256x1.
-	  *
-	  * <h2>data version &gt;= JAVA_1_15_19W36A (3D biomes)</h2>
-	  * 3D biomes occupy a 4x4x4 cuboid so setting the biome for a single block within a cuboid sets it for all
-	  * blocks within the same cuboid.
-	  *
-	  * <h2>data version &gt;= JAVA_1_18_21W39A (palette based 3D biomes)</h2>
-	  * This method is NOT supported for data versions &gt;= JAVA_1_18_21W39A, use
-	  * {@link #setBiomeAt(int, int, int, String)} instead.
-	  *
-	  * @param blockX The x-coordinate of the block column.
-	  * @param blockY The y-coordinate of the block column.
-	  * @param blockZ The z-coordinate of the block column.
-	  * @param biomeID The biome id to be set.
-	  *                When set to a negative number, Minecraft will replace it with the block column's default biome.
-	  */
 	public void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
-		checkRaw();
-		// TODO: see about finding an id to string mapping somewhere
-		if (dataVersion >= JAVA_1_18_21W39A.id())
-			throw new UnsupportedOperationException(
-					"JAVA_1_18_21W39A and above no longer use biomeID ints. " +
-					"You must use #setBiomeAt(int, int, int, String) instead.");
-		if (dataVersion >= JAVA_1_15_19W36A.id()) {
-			if (biomes == null || biomes.length != 1024) {
-				biomes = new int[1024];
-				Arrays.fill(biomes, -1);
-			}
-			int biomeX = (blockX & 0xF) >> 2;
-			int biomeZ = (blockZ & 0xF) >> 2;
-			biomes[getBiomeIndex(biomeX, blockY, biomeZ)] = biomeID;
-		} else {
-			if (biomes == null || biomes.length != 256) {
-				biomes = new int[256];
-				Arrays.fill(biomes, -1);
-			}
-			biomes[getBlockIndex(blockX, blockZ)] = biomeID;
+		if (dataVersion < JAVA_1_15_19W36A.id() || dataVersion > JAVA_1_18_21W38A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_15_19W36A, JAVA_1_18_21W38A, "3D legacy biomes");
+		if (legacyBiomes == null || legacyBiomes.length != 1024) {
+			legacyBiomes = new int[1024];
+			Arrays.fill(legacyBiomes, -1);
 		}
+
+		int biomeX = (blockX & 0x0F) >> 2;
+		int biomeY = blockY >> 2;
+		int biomeZ = (blockZ & 0x0F) >> 2;
+		legacyBiomes[getBiomeIndex(biomeX, biomeY, biomeZ)] = biomeID;
 	}
 
-	int getBiomeIndex(int biomeX, int biomeY, int biomeZ) {
+	protected int getBiomeIndex(int biomeX, int biomeY, int biomeZ) {
 		return biomeY * 16 + biomeZ * 4 + biomeX;
-	}
-
-	public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-		T section = getSection(McaFileHelpers.blockToChunk(blockY));
-		if (section == null) {
-			return null;
-		}
-		return section.getBlockStateAt(blockX, blockY, blockZ);
-	}
-
-	/**
-	 * Sets a block state at a specific location.
-	 * The block coordinates can be absolute or relative to the region or chunk.
-	 * @param blockX The x-coordinate of the block.
-	 * @param blockY The y-coordinate of the block.
-	 * @param blockZ The z-coordinate of the block.
-	 * @param state The block state to be set.
-	 * @param cleanup When <code>true</code>, it will cleanup all palettes of this chunk.
-	 *                This option should only be used moderately to avoid unnecessary recalculation of the palette indices.
-	 *                Recalculating the Palette should only be executed once right before saving the Chunk to file.
-	 */
-	public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-		checkRaw();
-		int sectionIndex = McaFileHelpers.blockToChunk(blockY);
-		T section = getSection(sectionIndex);
-		if (section == null) {
-			putSection(sectionIndex, section = createSection(sectionIndex), false);
-			section.syncDataVersion(dataVersion);
-		}
-		section.setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
 	}
 
 	/**
@@ -524,25 +468,25 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	/**
 	 * @return A matrix of biome IDs for all block columns in this chunk.
 	 */
-	public int[] getBiomes() {
-		return biomes;
+	public int[] getLegacyBiomes() {
+		return legacyBiomes;
 	}
 
 	/**
 	 * Sets the biome IDs for this chunk.
-	 * @param biomes The biome ID matrix of this chunk. Must have a length of {@code 1024} for 1.15+ or {@code 256}
+	 * @param legacyBiomes The biome ID matrix of this chunk. Must have a length of {@code 1024} for 1.15+ or {@code 256}
 	 *                  for prior versions.
 	 * @throws IllegalArgumentException When the biome matrix is {@code null} or does not have a version appropriate length.
 	 */
-	public void setBiomes(int[] biomes) {
+	public void setLegacyBiomes(int[] legacyBiomes) {
 		checkRaw();
-		if (biomes != null) {
+		if (legacyBiomes != null) {
 			final int requiredSize = dataVersion <= 0 || dataVersion >= JAVA_1_15_19W36A.id() ? 1024 : 256;
-			if (biomes.length != requiredSize) {
+			if (legacyBiomes.length != requiredSize) {
 				throw new IllegalArgumentException("biomes array must have a length of " + requiredSize);
 			}
 		}
-		this.biomes = biomes;
+		this.legacyBiomes = legacyBiomes;
 	}
 
 	/**
@@ -729,17 +673,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		this.structures = structures;
 	}
 
-	int getBlockIndex(int blockX, int blockZ) {
+	protected int getBlockIndex(int blockX, int blockZ) {
 		return (blockZ & 0xF) * 16 + (blockX & 0xF);
-	}
-
-	public void cleanupPalettesAndBlockStates() {
-		checkRaw();
-		for (T section : this) {
-			if (section != null) {
-				section.cleanupPaletteAndBlockStates();
-			}
-		}
 	}
 
 	/**
@@ -776,21 +711,21 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		super.updateHandle();
 		setTag(LAST_UPDATE_PATH, new LongTag(lastUpdate));
 		setTag(INHABITED_TIME_PATH, new LongTag(inhabitedTime));
-		if (biomes != null && dataVersion < JAVA_1_18_21W39A.id()) {
+		if (legacyBiomes != null && dataVersion < JAVA_1_18_21W39A.id()) {
 			final int requiredSize = dataVersion <= 0 || dataVersion >= JAVA_1_15_19W36A.id() ? 1024 : 256;
-			if (biomes.length != requiredSize)
+			if (legacyBiomes.length != requiredSize)
 				throw new IllegalStateException(
 						String.format("Biomes array must be %d bytes for version %d, array size is %d",
-								requiredSize, dataVersion, biomes.length));
+								requiredSize, dataVersion, legacyBiomes.length));
 
 			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
-				setTag(BIOMES_PATH, new IntArrayTag(biomes));
+				setTag(LEGACY_BIOMES_PATH, new IntArrayTag(legacyBiomes));
 			} else {
-				byte[] byteBiomes = new byte[biomes.length];
-				for (int i = 0; i < biomes.length; i++) {
-					byteBiomes[i] = (byte) biomes[i];
+				byte[] byteBiomes = new byte[legacyBiomes.length];
+				for (int i = 0; i < legacyBiomes.length; i++) {
+					byteBiomes[i] = (byte) legacyBiomes[i];
 				}
-				setTag(BIOMES_PATH, new ByteArrayTag(byteBiomes));
+				setTag(LEGACY_BIOMES_PATH, new ByteArrayTag(byteBiomes));
 			}
 		}
 		setTagIfNotNull(LEGACY_HEIGHT_MAP_PATH, legacyHeightMap);

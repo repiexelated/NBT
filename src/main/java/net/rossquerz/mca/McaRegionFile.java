@@ -84,6 +84,7 @@ public class McaRegionFile extends McaFileBase<TerrainChunk> implements Iterable
 	 * @param blockY The y-coordinate of the block.
 	 * @param blockZ The z-coordinate of the block.
 	 * @return The biome id if the chunk exists and the chunk has biomes, otherwise -1.
+	 * @deprecated unsupported after JAVA_1_18_21W38A
 	 */
 	public int getBiomeAt(int blockX, int blockY, int blockZ) {
 		int chunkX = McaFileHelpers.blockToChunk(blockX), chunkZ = McaFileHelpers.blockToChunk(blockZ);
@@ -94,44 +95,44 @@ public class McaRegionFile extends McaFileBase<TerrainChunk> implements Iterable
 		return chunk.getBiomeAt(blockX,blockY, blockZ);
 	}
 
-	/**
-	 * Set a block state at a specific block location.
-	 * The block coordinates can be absolute coordinates or they can be relative to the region.
-	 * @param blockX The x-coordinate of the block.
-	 * @param blockY The y-coordinate of the block.
-	 * @param blockZ The z-coordinate of the block.
-	 * @param state The block state to be set.
-	 * @param cleanup Whether the Palette and the BLockStates should be recalculated after adding the block state.
-	 */
-	public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-		createChunkIfMissing(blockX, blockZ).setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
-	}
-
-	/**
-	 * Fetches a block state at a specific block location.
-	 * The block coordinates can be absolute coordinates or they can be relative to the region.
-	 * @param blockX The x-coordinate of the block.
-	 * @param blockY The y-coordinate of the block.
-	 * @param blockZ The z-coordinate of the block.
-	 * @return The block state or <code>null</code> if the chunk or the section do not exist.
-	 */
-	public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-		int chunkX = McaFileHelpers.blockToChunk(blockX), chunkZ = McaFileHelpers.blockToChunk(blockZ);
-		TerrainChunk chunk = getChunk(chunkX, chunkZ);
-		if (chunk == null) {
-			return null;
-		}
-		return chunk.getBlockStateAt(blockX, blockY, blockZ);
-	}
-
-	/**
-	 * Recalculates the Palette and the BlockStates of all chunks and sections of this region.
-	 */
-	public void cleanupPalettesAndBlockStates() {
-		for (TerrainChunk chunk : chunks) {
-			if (chunk != null) {
-				chunk.cleanupPalettesAndBlockStates();
-			}
-		}
-	}
+//	/**
+//	 * Set a block state at a specific block location.
+//	 * The block coordinates can be absolute coordinates or they can be relative to the region.
+//	 * @param blockX The x-coordinate of the block.
+//	 * @param blockY The y-coordinate of the block.
+//	 * @param blockZ The z-coordinate of the block.
+//	 * @param state The block state to be set.
+//	 * @param cleanup Whether the Palette and the BLockStates should be recalculated after adding the block state.
+//	 */
+//	public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
+//		createChunkIfMissing(blockX, blockZ).setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
+//	}
+//
+//	/**
+//	 * Fetches a block state at a specific block location.
+//	 * The block coordinates can be absolute coordinates or they can be relative to the region.
+//	 * @param blockX The x-coordinate of the block.
+//	 * @param blockY The y-coordinate of the block.
+//	 * @param blockZ The z-coordinate of the block.
+//	 * @return The block state or <code>null</code> if the chunk or the section do not exist.
+//	 */
+//	public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
+//		int chunkX = McaFileHelpers.blockToChunk(blockX), chunkZ = McaFileHelpers.blockToChunk(blockZ);
+//		TerrainChunk chunk = getChunk(chunkX, chunkZ);
+//		if (chunk == null) {
+//			return null;
+//		}
+//		return chunk.getBlockStateAt(blockX, blockY, blockZ);
+//	}
+//
+//	/**
+//	 * Recalculates the Palette and the BlockStates of all chunks and sections of this region.
+//	 */
+//	public void cleanupPalettesAndBlockStates() {
+//		for (TerrainChunk chunk : chunks) {
+//			if (chunk != null) {
+//				chunk.cleanupPalettesAndBlockStates();
+//			}
+//		}
+//	}
 }

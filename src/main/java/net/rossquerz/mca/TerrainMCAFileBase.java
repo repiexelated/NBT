@@ -91,44 +91,44 @@ public class TerrainMCAFileBase extends McaFileBase<TerrainChunk> implements Ite
 		return chunk.getBiomeAt(blockX,blockY, blockZ);
 	}
 
-	/**
-	 * Set a block state at a specific block location.
-	 * The block coordinates can be absolute coordinates or they can be relative to the region.
-	 * @param blockX The x-coordinate of the block.
-	 * @param blockY The y-coordinate of the block.
-	 * @param blockZ The z-coordinate of the block.
-	 * @param state The block state to be set.
-	 * @param cleanup Whether the Palette and the BLockStates should be recalculated after adding the block state.
-	 */
-	public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
-		createChunkIfMissing(blockX, blockZ).setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
-	}
+//	/**
+//	 * Set a block state at a specific block location.
+//	 * The block coordinates can be absolute coordinates or they can be relative to the region.
+//	 * @param blockX The x-coordinate of the block.
+//	 * @param blockY The y-coordinate of the block.
+//	 * @param blockZ The z-coordinate of the block.
+//	 * @param state The block state to be set.
+//	 * @param cleanup Whether the Palette and the BLockStates should be recalculated after adding the block state.
+//	 */
+//	public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
+//		createChunkIfMissing(blockX, blockZ).setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
+//	}
+//
+//	/**
+//	 * Fetches a block state at a specific block location.
+//	 * The block coordinates can be absolute coordinates or they can be relative to the region.
+//	 * @param blockX The x-coordinate of the block.
+//	 * @param blockY The y-coordinate of the block.
+//	 * @param blockZ The z-coordinate of the block.
+//	 * @return The block state or <code>null</code> if the chunk or the section do not exist.
+//	 */
+//	public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
+//		int chunkX = McaFileHelpers.blockToChunk(blockX), chunkZ = McaFileHelpers.blockToChunk(blockZ);
+//		TerrainChunk chunk = getChunk(chunkX, chunkZ);
+//		if (chunk == null) {
+//			return null;
+//		}
+//		return chunk.getBlockStateAt(blockX, blockY, blockZ);
+//	}
 
-	/**
-	 * Fetches a block state at a specific block location.
-	 * The block coordinates can be absolute coordinates or they can be relative to the region.
-	 * @param blockX The x-coordinate of the block.
-	 * @param blockY The y-coordinate of the block.
-	 * @param blockZ The z-coordinate of the block.
-	 * @return The block state or <code>null</code> if the chunk or the section do not exist.
-	 */
-	public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-		int chunkX = McaFileHelpers.blockToChunk(blockX), chunkZ = McaFileHelpers.blockToChunk(blockZ);
-		TerrainChunk chunk = getChunk(chunkX, chunkZ);
-		if (chunk == null) {
-			return null;
-		}
-		return chunk.getBlockStateAt(blockX, blockY, blockZ);
-	}
-
-	/**
-	 * Recalculates the Palette and the BlockStates of all chunks and sections of this region.
-	 */
-	public void cleanupPalettesAndBlockStates() {
-		for (TerrainChunk chunk : chunks) {
-			if (chunk != null) {
-				chunk.cleanupPalettesAndBlockStates();
-			}
-		}
-	}
+//	/**
+//	 * Recalculates the Palette and the BlockStates of all chunks and sections of this region.
+//	 */
+//	public void cleanupPalettesAndBlockStates() {
+//		for (TerrainChunk chunk : chunks) {
+//			if (chunk != null) {
+//				chunk.cleanupPalettesAndBlockStates();
+//			}
+//		}
+//	}
 }

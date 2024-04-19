@@ -22,4 +22,10 @@ public class ParseException extends IOException {
 		builder.append("<--[HERE]");
 		return builder.toString();
 	}
+
+	public static class SilentParseException extends RuntimeException {
+		public SilentParseException(ParseException cause) {
+			super(cause);
+		}
+	}
 }

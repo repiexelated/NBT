@@ -1,16 +1,23 @@
 package net.rossquerz.nbt.io;
 
 import net.rossquerz.io.Serializer;
+import net.rossquerz.nbt.tag.Tag;
+
 import java.io.*;
 
 public class TextNbtSerializer implements Serializer<NamedTag> {
+	private boolean sortCompoundTagEntries;
+
+	public TextNbtSerializer(boolean sortCompoundTagEntries) {
+		this.sortCompoundTagEntries = sortCompoundTagEntries;
+	}
 
 	public void toWriter(NamedTag tag, Writer writer) throws IOException {
-		TextNbtWriter.write(tag, writer);
+		TextNbtWriter.write(tag, writer, sortCompoundTagEntries, Tag.DEFAULT_MAX_DEPTH);
 	}
 
 	public void toWriter(NamedTag tag, Writer writer, int maxDepth) throws IOException {
-		TextNbtWriter.write(tag, writer, maxDepth);
+		TextNbtWriter.write(tag, writer, sortCompoundTagEntries, maxDepth);
 	}
 
 	public String toString(NamedTag object) throws IOException {

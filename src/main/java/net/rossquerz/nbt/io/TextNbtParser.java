@@ -83,6 +83,21 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 		return parse(Tag.DEFAULT_MAX_DEPTH, false);
 	}
 
+	/**
+	 * Useful for parsing a text nbt tag used in code - generally {@link #parse()}, or one of its overloads,
+	 * should be used for all other situations.
+	 * <p>Traps and rethrows any checked {@link ParseException}'s as a runtime
+	 * {@link ParseException.SilentParseException}.</p>
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T extends Tag<?>> T parseInline(String nbtText) throws ParseException.SilentParseException {
+		try {
+			return (T) new TextNbtParser(nbtText).parse();
+		} catch (ParseException ex) {
+			throw new ParseException.SilentParseException(ex);
+		}
+	}
+
 	public int getReadChars() {
 		return ptr.getIndex() + 1;
 	}

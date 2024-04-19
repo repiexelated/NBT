@@ -103,4 +103,14 @@ public class DataVersionTest extends McaTestCase {
                 UnsupportedVersionChangeException.class);
         assertThrowsNoException(() -> JAVA_1_15_19W36A.throwUnsupportedVersionChangeIfCrossed(JAVA_1_15_19W36A.id(), JAVA_1_15_19W36A.id()));
     }
+
+    public void testPrevious() {
+        assertSame(JAVA_1_9_1_PRE2, JAVA_1_9_1_PRE3.previous());
+        assertNull(DataVersion.values()[0].previous());
+    }
+
+    public void testNext() {
+        assertSame(JAVA_1_9_1, JAVA_1_9_1_PRE3.next());
+        assertNull(DataVersion.values()[values().length - 1].next());
+    }
 }
