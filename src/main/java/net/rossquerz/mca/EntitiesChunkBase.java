@@ -196,18 +196,18 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     /** {@inheritDoc} */
     @Override
     public boolean moveChunkImplemented() {
-        return !raw;
+        return entities != null || entitiesTag != null || ENTITIES_PATH.get(dataVersion).exists(data);
     }
 
     /** {@inheritDoc} */
     @Override
     public boolean moveChunkHasFullVersionSupport() {
-        return !raw;
+        return moveChunkImplemented();
     }
 
     /**
      * Sets this chunks absolute XZ and calls {@link #fixEntityLocations()} returning its result.
-     *
+     * <p>Moving while in RAW mode is supported.</p>
      * @param chunkX new absolute chunk-x
      * @param chunkZ new absolute chunk-z
      * @param force unused
@@ -216,7 +216,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
      */
     @Override
     public boolean moveChunk(int chunkX, int chunkZ, boolean force) {
-        checkRaw();
+        if (!moveChunkImplemented())
+            throw new UnsupportedOperationException("Missing the data required to move this chunk!");
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         return fixEntityLocations();
@@ -225,11 +226,13 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     /**
      * Scans all entities and moves any which are outside this chunks bounds into it preserving their
      * relative location from their source chunk.
+     * <p>Fixing entity locations while in RAW mode is supported.</p>
      * @return true if any entity locations were changed; false if no changes were made.
      * @throws UnsupportedOperationException if loaded in raw mode
      */
     public boolean fixEntityLocations() {
-        checkRaw();
+        if (!moveChunkImplemented())
+            throw new UnsupportedOperationException("Missing the data required to move this chunk!");
         if (this.chunkX == NO_CHUNK_COORD_SENTINEL || this.chunkZ == NO_CHUNK_COORD_SENTINEL) {
             throw new IllegalStateException("Chunk XZ not known");
         }
@@ -243,8 +246,15 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                     changed = true;
                 }
             }
-        } else {
+        } else if (entitiesTag != null) {
             changed = fixEntityLocations(entitiesTag, new ChunkBoundingRectangle(chunkX, chunkZ));
+        } else if (raw) {
+            ListTag<CompoundTag> tag = getTag(ENTITIES_PATH);
+            if (tag == null)
+                throw new UnsupportedOperationException("Missing the data required to move this chunk! Didn't find '" +
+                        ENTITIES_PATH.get(dataVersion) +
+                        "' tag while in RAW mode.");
+            changed = fixEntityLocations(tag, new ChunkBoundingRectangle(chunkX, chunkZ));
         }
         return changed;
     }

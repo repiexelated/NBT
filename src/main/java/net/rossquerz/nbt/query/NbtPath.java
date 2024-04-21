@@ -386,6 +386,6 @@ public class NbtPath {
     }
 
     public boolean exists(Tag<?> root) {
-        return get(root) != null;
+        return root != null && get(root) != null;
     }
 }

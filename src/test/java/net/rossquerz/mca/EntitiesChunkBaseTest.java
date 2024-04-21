@@ -3,11 +3,13 @@ package net.rossquerz.mca;
 import net.rossquerz.mca.entities.EntityBase;
 import net.rossquerz.mca.entities.EntityBaseImpl;
 import net.rossquerz.mca.entities.EntityFactory;
+import net.rossquerz.nbt.io.TextNbtHelpers;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import org.junit.Assert;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,7 +83,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertThrowsException(chunk::initEntities, IllegalStateException.class);
     }
 
-    public void testRawLoad() {
+    public void testRawLoad() throws IOException {
         final int dataVersion = DataVersion.JAVA_1_17_1.id();
         CompoundTag mutableTag = createTag(dataVersion, -4, 2);
         CompoundTag originalTag = mutableTag.clone();
@@ -91,19 +93,22 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertThrowsUnsupportedOperationException(chunk::getEntities);
         assertThrowsUnsupportedOperationException(chunk::getEntitiesTag);
         assertThrowsUnsupportedOperationException(chunk::clearEntities);
-        assertThrowsUnsupportedOperationException(chunk::fixEntityLocations);
+        assertThrowsException(chunk::fixEntityLocations, IllegalStateException.class);
         assertThrowsUnsupportedOperationException(chunk::iterator);
         assertThrowsUnsupportedOperationException(chunk::spliterator);
         assertThrowsUnsupportedOperationException(chunk::stream);
         assertThrowsUnsupportedOperationException(() -> chunk.forEach((c) -> {throw new RuntimeException();}));
 
-        assertFalse(chunk.moveChunkImplemented());
-        assertFalse(chunk.moveChunkHasFullVersionSupport());
-        assertThrowsUnsupportedOperationException(() -> chunk.moveChunk(1, 1, true));
-
         assertEquals(originalTag, chunk.updateHandle(5, 6));
         assertEquals(ChunkBase.NO_CHUNK_COORD_SENTINEL, chunk.getChunkX());
         assertEquals(ChunkBase.NO_CHUNK_COORD_SENTINEL, chunk.getChunkZ());
+
+        // moving is supported in raw if we have an entities tag
+        assertTrue(chunk.moveChunkImplemented());
+        assertTrue(chunk.moveChunkHasFullVersionSupport());
+        assertThrowsNoException(() -> chunk.moveChunk(1, -2, true));
+        assertEquals(1, chunk.getChunkX());
+        assertEquals(-2, chunk.getChunkZ());
 
         List<ET> entities = new ArrayList<>();
         ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(-4, 2);
@@ -118,6 +123,10 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertSame(newEntitiesTag, mutableTag.get("Entities"));
         assertThrowsUnsupportedOperationException(chunk::getEntities);
         assertThrowsUnsupportedOperationException(chunk::getEntitiesTag);
+
+        // ... but we can now fix entity locations (because we previously moved the chunk so XZ is known)
+        assertTrue(chunk.fixEntityLocations());
+        // System.out.println(TextNbtHelpers.toTextNbt(mutableTag));
     }
 
     public void testSetEntities() {
