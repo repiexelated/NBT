@@ -126,4 +126,18 @@ public class IntPointXZ {
     public String toString(String format) {
         return String.format(format, x, z);
     }
+
+    public static IntPointXZ unpack(long xzLong) {
+        int x = (int) (xzLong & 0xFFFFFFFFL);
+        int z = (int) ((xzLong >>> 32) & 0xFFFFFFFFL);
+        return new IntPointXZ(x, z);
+    }
+
+    public static long pack(int x, int z) {
+        return (((long) z) << 32) | ((long) x & 0xFFFFFFFFL);
+    }
+
+    public static long pack(IntPointXZ xz) {
+        return pack(xz.x, xz.z);
+    }
 }
