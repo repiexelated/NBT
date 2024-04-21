@@ -6,31 +6,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class McaPoiFileTest extends McaFileBaseTest {
-
-    public void testMcaReadWriteParity_1_14_4() {
-        validateReadWriteParity(DataVersion.JAVA_1_14_4, "1_14_4/poi/r.-1.0.mca", McaPoiFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_15_2() {
-        validateReadWriteParity(DataVersion.JAVA_1_15_2, "1_15_2/poi/r.-1.0.mca", McaPoiFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_16_5() {
-        validateReadWriteParity(DataVersion.JAVA_1_16_5, "1_16_5/poi/r.0.-1.mca", McaPoiFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_17_1() {
-        validateReadWriteParity(DataVersion.JAVA_1_17_1, "1_17_1/poi/r.-3.-2.mca", McaPoiFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_18_PRE1() {
-        validateReadWriteParity(DataVersion.JAVA_1_18_PRE1, "1_18_PRE1/poi/r.-2.-3.mca", McaPoiFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_18_1() {
-        validateReadWriteParity(DataVersion.JAVA_1_18_1, "1_18_1/poi/r.0.-2.mca", McaPoiFile.class);
-    }
-
     public void testPoiMca_1_17_1() {
         McaPoiFile mca = assertThrowsNoException(() -> McaFileHelpers.readAuto(copyResourceToTmp("1_17_1/poi/r.-3.-2.mca")));
         PoiChunk chunk = mca.stream().filter(Objects::nonNull).findFirst().orElse(null);

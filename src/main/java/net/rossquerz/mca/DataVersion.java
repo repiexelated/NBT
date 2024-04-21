@@ -608,11 +608,12 @@ public enum DataVersion {
     }
 
     /**
-     * TRUE as of 1.14
+     * TRUE as of JAVA_1_14_0
      * Indicates if point of interest .mca files exist. E.g. 'poi/r.0.0.mca'
+     * @since {@link #JAVA_1_14_0}
      */
     public boolean hasPoiMca() {
-        return minor >= 14;
+        return this.id >= JAVA_1_14_0.id;
     }
 
     /**
@@ -620,7 +621,7 @@ public enum DataVersion {
      * Entities were pulled out of terrain 'region/r.X.Z.mca' files into their own .mca files. E.g. 'entities/r.0.0.mca'
      */
     public boolean hasEntitiesMca() {
-        return minor >= 17;
+        return this.id >= JAVA_1_17_20W45A.id;
     }
 
     public static DataVersion bestFor(int dataVersion) {

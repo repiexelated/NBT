@@ -1,5 +1,7 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.util.IntPointXZ;
+import net.rossquerz.mca.util.TracksUnreadDataTags;
 import net.rossquerz.nbt.io.BinaryNbtDeserializer;
 import net.rossquerz.nbt.io.BinaryNbtSerializer;
 import net.rossquerz.nbt.io.NamedTag;
@@ -7,13 +9,14 @@ import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.Tag;
 import net.rossquerz.mca.util.VersionAware;
+import net.rossquerz.nbt.util.ObservedCompoundTag;
 
 import java.io.*;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
-import static net.rossquerz.mca.LoadFlags.ALL_DATA;
-import static net.rossquerz.mca.LoadFlags.RAW;
+import static net.rossquerz.mca.LoadFlags.*;
 
 /**
  * Abstraction for the base of all chunk types. Not all chunks types are sectioned, that layer comes further up
@@ -33,7 +36,7 @@ import static net.rossquerz.mca.LoadFlags.RAW;
  *     ramifications just don't do it.
  * </p>
  */
-public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
+public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, TracksUnreadDataTags {
 
 	public static final int NO_CHUNK_COORD_SENTINEL = Integer.MIN_VALUE;
 
@@ -41,13 +44,40 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	protected int dataVersion;
 	protected int chunkX = NO_CHUNK_COORD_SENTINEL;
 	protected int chunkZ = NO_CHUNK_COORD_SENTINEL;
+	// TODO: this partial state thing is questionable - evaluate if the semantics are valid or broken
 	protected boolean partial;
 	protected boolean raw;
 	protected int lastMCAUpdate;
+	/** Should be treated as effectively read-only by child classes until after {@link #initReferences}
+	 * invocation has returned. */
 	protected CompoundTag data;
+	protected Set<String> unreadDataTagKeys;
 
 	/**
-	 * Due to how Java initializes objects and how this class hierarchy is setup it is ill advised to use inline member
+	 * @inheritDoc
+	 */
+	public Set<String> getUnreadDataTagKeys() {
+		return unreadDataTagKeys;
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return NotNull - if LoadFlags specified {@link LoadFlags#RAW} then the raw data is returned - else a new
+	 * CompoundTag populated, by reference, with values that were not read during {@link #initReferences(long)}.</p>
+	 */
+	public CompoundTag getUnreadDataTags() {
+		if (raw) return data;
+		CompoundTag unread = new CompoundTag(unreadDataTagKeys.size());
+		data.forEach((k, v) -> {
+			if (unreadDataTagKeys.contains(k)) {
+				unread.put(k, v);
+			}
+		});
+		return unread;
+	}
+
+	/**
+	 * Due to how Java initializes objects and how this class hierarchy is setup it is ill-advised to use inline member
 	 * initialization because {@link #initReferences(long)} will be called before members are initialized which WILL
 	 * result in very confusing {@link NullPointerException}'s being thrown from within {@link #initReferences(long)}.
 	 * This is not a problem that can be solved by moving initialization into your constructors, because you must call
@@ -61,7 +91,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	protected ChunkBase(int dataVersion) {
 		this.dataVersion = dataVersion;
-		this.originalLoadFlags = ALL_DATA;
+		this.originalLoadFlags = LOAD_ALL_DATA;
 		this.lastMCAUpdate = (int)(System.currentTimeMillis() / 1000);
 		initMembers();
 	}
@@ -71,7 +101,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	 * @param data The raw base data to be used.
 	 */
 	public ChunkBase(CompoundTag data) {
-		this(data, ALL_DATA);
+		this(data, LOAD_ALL_DATA);
 	}
 
 	/**
@@ -88,21 +118,32 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 
 	private void initReferences0(long loadFlags) {
 		Objects.requireNonNull(data, "data cannot be null");
-		dataVersion = data.getInt("DataVersion");
-
-		if ((loadFlags != ALL_DATA) && (loadFlags & RAW) != 0) {
+		if ((loadFlags & RAW) != 0) {
+			dataVersion = data.getInt("DataVersion");
 			raw = true;
 		} else {
+			final ObservedCompoundTag observedData = new ObservedCompoundTag(data);
+			dataVersion = observedData.getInt("DataVersion");
 			if (dataVersion == 0) {
 				throw new IllegalArgumentException("data does not contain \"DataVersion\" tag");
 			}
 
+			data = observedData;
 			initReferences(loadFlags);
+			if (data != observedData) {
+				throw new IllegalStateException("this.data was replaced during initReferences execution - this breaks unreadDataTagKeys behavior!");
+			}
+			unreadDataTagKeys = observedData.unreadKeys();
 
-			// If we haven't requested the full set of data we can drop the underlying raw data to let the GC handle it.
-			if (loadFlags != ALL_DATA) {
+			if ((loadFlags & RELEASE_CHUNK_DATA_TAG) != 0) {
 				data = null;
-				partial = true;
+				// this is questionable... maybe if we also check that data version is within the known bounds too
+				// (to count it as non-partial) we could be reasonably confidant that the saved chunk would at least
+				// have a vanilla level of data.
+				if ((loadFlags & LOAD_ALL_DATA) != LOAD_ALL_DATA) partial = true;
+			} else {
+				// stop observing the data tag
+				data = observedData.wrappedTag();
 			}
 		}
 	}
@@ -144,6 +185,13 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 		return chunkZ;
 	}
 
+	/**
+	 * Gets this chunk's chunk-xz coordinates. Returns x = z = {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
+	 * @see #moveChunk(int, int, boolean)
+	 */
+	public IntPointXZ getChunkXZ() {
+		return new IntPointXZ(chunkX, chunkZ);
+	}
 
 	/**
 	 * Indicates if this chunk implementation supports calling {@link #moveChunk(int, int, boolean)}.
@@ -214,7 +262,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	 * @throws IOException When something went wrong during reading.
 	 */
 	public void deserialize(RandomAccessFile raf) throws IOException {
-		deserialize(raf, ALL_DATA);
+		deserialize(raf, LOAD_ALL_DATA);
 	}
 
 	/**
@@ -285,6 +333,11 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper {
 	}
 
 	public CompoundTag updateHandle() {
+		if (data == null) {
+			throw new UnsupportedOperationException(
+					"Cannot updateHandle() because data tag is null. This is probably because "+
+					"the LoadFlag RELEASE_CHUNK_DATA_TAG was specified");
+		}
 		if (!raw) {
 			data.putInt("DataVersion", dataVersion);
 		}

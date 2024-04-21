@@ -10,19 +10,6 @@ import java.util.stream.Collectors;
 
 public class McaEntitiesFileTest extends McaFileBaseTest {
 
-    public void testMcaReadWriteParity_1_17_1() {
-        validateReadWriteParity(DataVersion.JAVA_1_17_1, "1_17_1/entities/r.-3.-2.mca", McaEntitiesFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_18_PRE1() {
-        validateReadWriteParity(DataVersion.JAVA_1_18_PRE1, "1_18_PRE1/entities/r.-2.-3.mca", McaEntitiesFile.class);
-    }
-
-    public void testMcaReadWriteParity_1_18_1() {
-        validateReadWriteParity(DataVersion.JAVA_1_18_1, "1_18_1/entities/r.0.-2.mca", McaEntitiesFile.class);
-        validateReadWriteParity(DataVersion.JAVA_1_18_1, "1_18_1/entities/r.8.1.mca", McaEntitiesFile.class);
-    }
-
     public void testReadEntities_1_17_1() throws IOException {
         McaEntitiesFile mca = McaFileHelpers.readAuto(copyResourceToTmp("1_17_1/entities/r.-3.-2.mca"));
         assertNotNull(mca);

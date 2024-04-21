@@ -52,7 +52,7 @@ public final class McaFileHelpers {
 	 */
 	@Deprecated
 	public static McaRegionFile read(String file) throws IOException {
-		return read(new File(file), LoadFlags.ALL_DATA);
+		return read(new File(file), LoadFlags.LOAD_ALL_DATA);
 	}
 
 	/**
@@ -64,7 +64,7 @@ public final class McaFileHelpers {
 	 */
 	@Deprecated
 	public static McaRegionFile read(File file) throws IOException {
-		return read(file, LoadFlags.ALL_DATA);
+		return read(file, LoadFlags.LOAD_ALL_DATA);
 	}
 
 	/**
@@ -102,15 +102,15 @@ public final class McaFileHelpers {
 	//<editor-fold desc="POI MCA Readers (/poi/r.X.Z.mca files added in MC 1.14)">
 
 	public static McaPoiFile readPoi(String file) throws IOException {
-		return readPoi(new File(file), LoadFlags.ALL_DATA);
+		return readPoi(new File(file), LoadFlags.LOAD_ALL_DATA);
 	}
 
 	public static McaPoiFile readPoi(Path file) throws IOException {
-		return readPoi(file.toFile(),  LoadFlags.ALL_DATA);
+		return readPoi(file.toFile(),  LoadFlags.LOAD_ALL_DATA);
 	}
 
 	public static McaPoiFile readPoi(File file) throws IOException {
-		return readPoi(file,  LoadFlags.ALL_DATA);
+		return readPoi(file,  LoadFlags.LOAD_ALL_DATA);
 	}
 
 	public static McaPoiFile readPoi(String file, long loadFlags) throws IOException {
@@ -135,15 +135,15 @@ public final class McaFileHelpers {
 	//<editor-fold desc="Entities MCA Readers (/entities/r.X.Z.mca files added in MC 1.17)">
 
 	public static McaEntitiesFile readEntities(String file) throws IOException {
-		return readEntities(new File(file), LoadFlags.ALL_DATA);
+		return readEntities(new File(file), LoadFlags.LOAD_ALL_DATA);
 	}
 
 	public static McaEntitiesFile readEntities(Path file) throws IOException {
-		return readEntities(file.toFile(),  LoadFlags.ALL_DATA);
+		return readEntities(file.toFile(),  LoadFlags.LOAD_ALL_DATA);
 	}
 
 	public static McaEntitiesFile readEntities(File file) throws IOException {
-		return readEntities(file,  LoadFlags.ALL_DATA);
+		return readEntities(file,  LoadFlags.LOAD_ALL_DATA);
 	}
 
 	public static McaEntitiesFile readEntities(String file, long loadFlags) throws IOException {
@@ -174,7 +174,7 @@ public final class McaFileHelpers {
 	 * @throws IOException if something during deserialization goes wrong.
 	 */
 	public static <T extends McaFileBase<?>> T readAuto(String file) throws IOException {
-		return readAuto(new File(file), LoadFlags.ALL_DATA);
+		return readAuto(new File(file), LoadFlags.LOAD_ALL_DATA);
 	}
 
 	/**
@@ -184,7 +184,7 @@ public final class McaFileHelpers {
 	 * @throws IOException if something during deserialization goes wrong.
 	 */
 	public static <T extends McaFileBase<?>> T readAuto(File file) throws IOException {
-		return readAuto(file, LoadFlags.ALL_DATA);
+		return readAuto(file, LoadFlags.LOAD_ALL_DATA);
 	}
 
 	/**
@@ -194,7 +194,7 @@ public final class McaFileHelpers {
 	 * @throws IOException if something during deserialization goes wrong.
 	 */
 	public static <T extends McaFileBase<?>> T readAuto(Path path) throws IOException {
-		return readAuto(path, LoadFlags.ALL_DATA);
+		return readAuto(path, LoadFlags.LOAD_ALL_DATA);
 	}
 
 	/**

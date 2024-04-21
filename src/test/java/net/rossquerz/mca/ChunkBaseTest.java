@@ -73,7 +73,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NbtTestCase {
             CompoundTag tag = createTag(dataVersion.id(), 0, 0);
             assertNotNull(tag);
             tagRemover.accept(tag);
-            createChunk(tag, LoadFlags.ALL_DATA);
+            createChunk(tag, LoadFlags.LOAD_ALL_DATA);
         }, IllegalArgumentException.class);
     }
 
@@ -93,7 +93,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NbtTestCase {
             CompoundTag tag = createTag(dataVersion.id(), 0, 0);
             assertNotNull(tag);
             tagRemover.accept(tag);
-            out.set(createChunk(tag, LoadFlags.ALL_DATA));
+            out.set(createChunk(tag, LoadFlags.LOAD_ALL_DATA));
         });
         return out.get();
     }
@@ -101,7 +101,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NbtTestCase {
     final public void testConstructor_allData() {
         CompoundTag tag = createTag(DataVersion.JAVA_1_17_1.id(), -4, 7);
         assertNotNull(tag);
-        T chunk = createChunk(tag, LoadFlags.ALL_DATA);
+        T chunk = createChunk(tag, LoadFlags.LOAD_ALL_DATA);
         assertEquals(DataVersion.JAVA_1_17_1.id(), chunk.getDataVersion());
         assertEquals(DataVersion.JAVA_1_17_1, chunk.getDataVersionEnum());
         assertFalse(chunk.partial);
@@ -125,7 +125,7 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NbtTestCase {
     public void testConstructor_allData_throwsIfDataVersionNotFound() {
         CompoundTag tag = createTag(-1, 0, 0);
         assertNotNull(tag);
-        assertThrowsException(() -> createChunk(tag, LoadFlags.ALL_DATA), IllegalArgumentException.class);
+        assertThrowsException(() -> createChunk(tag, LoadFlags.LOAD_ALL_DATA), IllegalArgumentException.class);
     }
 
     public void testConstructor_raw_noThrowIfDataVersionNotFound() {

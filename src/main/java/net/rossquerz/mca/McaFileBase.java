@@ -202,7 +202,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 	 * @throws IOException If something went wrong during deserialization.
 	 */
 	public void deserialize(RandomAccessFile raf) throws IOException {
-		deserialize(raf, LoadFlags.ALL_DATA);
+		deserialize(raf, LoadFlags.LOAD_ALL_DATA);
 	}
 
 	/**
@@ -491,6 +491,11 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 		}
 
 		@Override
+		public IntPointXZ currentXZ() {
+			return new IntPointXZ(currentX(), currentZ());
+		}
+
+		@Override
 		public int currentAbsoluteX() {
 			return currentX() + owner.getRegionX() * 32;
 		}
@@ -498,6 +503,11 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 		@Override
 		public int currentAbsoluteZ() {
 			return currentZ() + owner.getRegionZ() * 32;
+		}
+
+		@Override
+		public IntPointXZ currentAbsoluteXZ() {
+			return new IntPointXZ(currentAbsoluteX(), currentAbsoluteZ());
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.util.IntPointXZ;
+
 import java.util.Iterator;
 
 /**
@@ -35,6 +37,8 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      */
     int currentZ();
 
+    IntPointXZ currentXZ();
+
     /**
      * Note this value is calculated from the iterators position not read from {@link ChunkBase#getChunkX()} and is
      * therefore known even if the chunk is null. If the chunk is not null and there is a mismatch between this
@@ -56,4 +60,6 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      * @see ChunkBase#moveChunk(int, int)
      */
     int currentAbsoluteZ();
+
+    IntPointXZ currentAbsoluteXZ();
 }

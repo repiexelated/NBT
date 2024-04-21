@@ -151,7 +151,11 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 
 	/**
 	 * Gets the minimum section y-coordinate.
+	 * <p>NOTE: fully generated terrain chunks MAY have a dummy section -1 below the world, the returned value
+	 * WILL be this value - {@link TerrainSection} will exist for this Y but it will be completely empty of the
+	 * standard tags you would expect to see (blocks, biomes, etc).</p>
 	 * @return The y of the lowest populated section in the chunk or {@link SectionBase#NO_HEIGHT_SENTINEL} if there is none.
+	 * @see #getSectionY(SectionBase)
 	 */
 	public int getMinSectionY() {
 		if (!sections.isEmpty()) {

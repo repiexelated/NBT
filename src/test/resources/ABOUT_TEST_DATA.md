@@ -99,3 +99,12 @@ lush caves, loot minecart
 
 Chunks:
 - 275 33
+
+### 1_20_4 / r.-3.-3.mca
+pillager outpost and a section of a mineshaft - world seed: -4846182428012336372L
+
+Chunks:
+- XZ(-94, -85)
+- XZ(-94, -86)
+- XZ(-95, -85)
+- XZ(-95, -86)

@@ -46,25 +46,25 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
     }
 
     public TerrainSectionBase(CompoundTag sectionRoot, int dataVersion) {
-        this(sectionRoot, dataVersion, ALL_DATA);
+        this(sectionRoot, dataVersion, LOAD_ALL_DATA);
     }
 
     public TerrainSectionBase(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
-        super(sectionRoot, dataVersion);
-        if (dataVersion <= 0) {
-            throw new IllegalArgumentException("Invalid data version - must be GT 0");
-        }
-        height = sectionRoot.getNumber("Y").byteValue();
+        super(sectionRoot, dataVersion, loadFlags);
+    }
+
+    protected void initReferences(final long loadFlags) {
+        height = data.getNumber("Y").byteValue();
 
         if ((loadFlags & BIOMES) != 0) {
             // Prior to JAVA_1_18_21W39A biomes were stored at the chunk level in a ByteArrayTag and used fixed ID's
             // Currently they are stored in a palette object at the section level
             if (dataVersion >= JAVA_1_18_21W39A.id()) {
-                biomesTag = sectionRoot.getCompoundTag("biomes");
+                biomesTag = data.getCompoundTag("biomes");
             }
         }
         if ((loadFlags & BLOCK_LIGHTS) != 0) {
-            ByteArrayTag blockLight = sectionRoot.getByteArrayTag("BlockLight");
+            ByteArrayTag blockLight = data.getByteArrayTag("BlockLight");
             if (blockLight != null) this.blockLight = blockLight.getValue();
         }
         if ((loadFlags & BLOCK_STATES) != 0) {
@@ -72,25 +72,25 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
             // In JAVA_1_16_20W17A palette data bit packing scheme changed
             // In JAVA_1_18_21W39A the section tag structure changed significantly and 'BlockStates' and 'Palette' were moved inside 'block_states' and renamed.
             if (dataVersion <= JAVA_1_12_2.id()) {
-                ByteArrayTag legacyBlockIds = sectionRoot.getByteArrayTag("Blocks");
+                ByteArrayTag legacyBlockIds = data.getByteArrayTag("Blocks");
                 if (legacyBlockIds != null) this.legacyBlockIds = legacyBlockIds.getValue();
-                ByteArrayTag legacyBlockDataValues = sectionRoot.getByteArrayTag("Data");
+                ByteArrayTag legacyBlockDataValues = data.getByteArrayTag("Data");
                 if (legacyBlockDataValues != null) this.legacyBlockDataValues = legacyBlockDataValues.getValue();
             } else if (dataVersion <= JAVA_1_18_21W38A.id()) {
-                if (sectionRoot.containsKey("Palette")) {
-                    ListTag<CompoundTag> palette = sectionRoot.getListTag("Palette").asCompoundTagList();
-                    LongArrayTag data = sectionRoot.getLongArrayTag("BlockStates");  // may be null
+                if (data.containsKey("Palette")) {
+                    ListTag<CompoundTag> palette = data.getListTag("Palette").asCompoundTagList();
+                    LongArrayTag blockStates = data.getLongArrayTag("BlockStates");  // may be null
                     // up-convert to the modern block_states structure to simplify handling
                     blockStatesTag = new CompoundTag(2);
                     blockStatesTag.put("palette", palette);
-                    if (data != null && data.length() > 0) blockStatesTag.put("data", data);
+                    if (blockStates != null && blockStates.length() > 0) blockStatesTag.put("data", blockStates);
                 }
             } else {
-                blockStatesTag = sectionRoot.getCompoundTag("block_states");
+                blockStatesTag = data.getCompoundTag("block_states");
             }
         }
         if ((loadFlags & SKY_LIGHT) != 0) {
-            ByteArrayTag skyLight = sectionRoot.getByteArrayTag("SkyLight");
+            ByteArrayTag skyLight = data.getByteArrayTag("SkyLight");
             if (skyLight != null) this.skyLight = skyLight.getValue();
         }
     }
@@ -227,6 +227,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
     @Override
     public CompoundTag updateHandle() {
         checkY(height);
+        this.data = super.updateHandle();
         data.putByte("Y", (byte) height);
         if (dataVersion <= JAVA_1_12_2.id()) {
             if (legacyBlockIds != null) {

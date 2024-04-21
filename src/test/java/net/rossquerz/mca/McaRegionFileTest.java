@@ -435,7 +435,7 @@ public class McaRegionFileTest extends McaTestCase {
 		}
 	}
 
-	public void testPartialLoad() {
+	public void testReleaseChunkDataTagFlag_preventsUpdatingHandle_whilePartialLoadingAloneDoseNot() {
 		long[] flags = new long[] {
 				BIOMES,
 				HEIGHTMAPS,
@@ -450,7 +450,8 @@ public class McaRegionFileTest extends McaTestCase {
 				TO_BE_TICKED,
 				BLOCK_STATES,
 				BLOCK_LIGHTS,
-				SKY_LIGHT
+				SKY_LIGHT,
+				LOAD_ALL_DATA
 		};
 
 		McaRegionFile f = assertThrowsNoException(() -> McaFileHelpers.read(copyResourceToTmp("1_13_1/region/r.2.2.mca")));
@@ -470,10 +471,17 @@ public class McaRegionFileTest extends McaTestCase {
 		assertThrowsNoException(() -> McaFileHelpers.write(f, tmp));
 
 		for (long flag : flags) {
-			McaRegionFile mcaFile = assertThrowsNoException(() -> McaFileHelpers.read(tmp, flag));
+			McaRegionFile mcaFile = assertThrowsNoException(() -> McaFileHelpers.read(tmp, flag | RELEASE_CHUNK_DATA_TAG));
 			c = mcaFile.getChunk(0, 0);
 			assertPartialChunk(c, flag);
 			assertThrowsException(() -> McaFileHelpers.write(mcaFile, getNewTmpFile("r.12.34.mca")), UnsupportedOperationException.class);
+		}
+
+		for (long flag : flags) {
+			McaRegionFile mcaFile = assertThrowsNoException(() -> McaFileHelpers.read(tmp, flag));
+			c = mcaFile.getChunk(0, 0);
+			assertPartialChunk(c, flag);
+			assertThrowsNoException(() -> McaFileHelpers.write(mcaFile, getNewTmpFile("r.12.34.mca")));
 		}
 	}
 

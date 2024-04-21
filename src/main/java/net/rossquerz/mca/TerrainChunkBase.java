@@ -137,10 +137,12 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			.register(0, NbtPath.of("Level.zPos"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("zPos"));
 
-	// PRIVATE - this field is only used when we didn't load section data, prefer #getYPos() to reading this value
-	/** @since 1.18 */
-	private int yPos;
-	protected static final VersionAware<Integer> DEFAULT_Y_POS = new VersionAware<Integer>()
+	/**
+	 * Represents world bottom - note there may exist a dummy chunk -1 below this depending on MC flavor and current chunk state.
+	 *  @since 1.18
+	 */
+	protected int yPos = NO_CHUNK_COORD_SENTINEL;
+	protected static final VersionAware<Integer> DEFAULT_WORLD_BOTTOM_Y_POS = new VersionAware<Integer>()
 			.register(0, 0)
 			.register(JAVA_1_18_XS1.id(), -4);  // IDK if they actually enabled deep worlds here or not...
 	protected static final VersionAware<NbtPath> Y_POS_PATH = new VersionAware<NbtPath>()
@@ -176,7 +178,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	@Override
 	protected void initMembers() {
 		// give this a reasonable default... better than nothing...
-		yPos = DEFAULT_Y_POS.get(dataVersion);
+		yPos = DEFAULT_WORLD_BOTTOM_Y_POS.get(dataVersion);
 	}
 
 	@Override
@@ -248,9 +250,10 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			hasLegacyStructureData = getTagValue(HAS_LEGACY_STRUCTURE_DATA_PATH, ByteTag::asBoolean);
 		}
 
-		boolean loadSections = (loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0;
-		loadSections |= dataVersion >= JAVA_1_18_21W39A.id()
-				&& ((loadFlags & BIOMES) != 0);
+		yPos = getTagValue(Y_POS_PATH, IntTag::asInt, DEFAULT_WORLD_BOTTOM_Y_POS.get(dataVersion));
+
+		boolean loadSections = ((loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0)
+				|| (dataVersion >= JAVA_1_18_21W39A.id() && ((loadFlags & BIOMES) != 0));
 		if (loadSections) {
 			ListTag<CompoundTag> sections = getTag(SECTIONS_PATH);
 			if (sections != null) {
@@ -259,10 +262,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 					putSection(newSection.getHeight(), newSection, false);
 				}
 			}
-		} else {
-			yPos = getTagValue(Y_POS_PATH, IntTag::asInt, 0);
 		}
-
 		if ((loadFlags & WORLD_UPGRADE_HINTS) != 0) {
 			belowZeroRetrogen = getTag(BELOW_ZERO_RETROGEN_PATH);
 			blendingData = getTag(BLENDING_DATA_PATH);
@@ -678,12 +678,11 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	}
 
 	/**
-	 * Gets the minimum section y position in the chunk.
-	 * @since 1.18
+	 * Gets the world-bottom section y in the chunk.
 	 */
-	public int getYPos() {
-		if (hasSections()) return getMinSectionY();
-		else return yPos;
+	public int getChunkY() {
+		if (yPos != NO_CHUNK_COORD_SENTINEL) return yPos;
+		return DEFAULT_WORLD_BOTTOM_Y_POS.get(dataVersion);
 	}
 
 	/**
@@ -708,7 +707,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		if (raw) {
 			return data;
 		}
-		super.updateHandle();
+		this.data = super.updateHandle();
 		setTag(LAST_UPDATE_PATH, new LongTag(lastUpdate));
 		setTag(INHABITED_TIME_PATH, new LongTag(inhabitedTime));
 		if (legacyBiomes != null && dataVersion < JAVA_1_18_21W39A.id()) {
@@ -756,7 +755,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		setTag(SECTIONS_PATH, sections);
 
 		if (dataVersion >= JAVA_1_18_21W43A.id()) {
-			setTag(Y_POS_PATH, new IntTag(getMinSectionY()));
+			setTag(Y_POS_PATH, new IntTag(getChunkY()));
 			setTagIfNotNull(BELOW_ZERO_RETROGEN_PATH, belowZeroRetrogen);
 			setTagIfNotNull(BLENDING_DATA_PATH, blendingData);
 		}
@@ -770,6 +769,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		}
 		updateHandle();
 		setTag(X_POS_PATH, new IntTag(xPos));
+		// Y_POS_PATH is set in updateHandle() - was added in 1.18
 		setTag(Z_POS_PATH, new IntTag(zPos));
 		return data;
 	}
