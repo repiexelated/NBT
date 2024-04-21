@@ -156,6 +156,11 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return get(key, CompoundTag.class);
 	}
 
+	@SuppressWarnings("unchecked")
+	public ListTag<CompoundTag> getCompoundList(String key) {
+		return (ListTag<CompoundTag>) get(key, ListTag.class);
+	}
+
 	public boolean getBoolean(String key) {
 		Tag<?> t = get(key);
 		return t instanceof ByteTag && ((ByteTag) t).asByte() > 0;

@@ -42,22 +42,6 @@ public class TerrainChunk extends TerrainChunkBase<TerrainSection> {
 	}
 
 	@Override
-	public boolean moveChunkImplemented() {
-		return false;
-	}
-
-	@Override
-	public boolean moveChunkHasFullVersionSupport() {
-		return false;
-	}
-
-	@Override
-	public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
-		throw new UnsupportedOperationException();
-	}
-
-
-	@Override
 	protected TerrainSection createSection(CompoundTag section, int dataVersion, long loadFlags) {
 		return new TerrainSection(section, dataVersion, loadFlags);
 	}

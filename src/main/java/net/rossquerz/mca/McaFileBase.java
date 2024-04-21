@@ -114,40 +114,18 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 
 	/**
 	 * @return The x-value currently set for this mca file in region coordinates.
+	 * @see #moveRegion(int, int, boolean)
 	 */
 	public int getRegionX() {
 		return regionX;
 	}
 
 	/**
-	 * Sets a new x-value for this mca file in region coordinates.
-	 */
-	public void setRegionX(int regionX) {
-		this.regionX = regionX;
-	}
-
-	/**
 	 * @return The z-value currently set for this mca file in region coordinates.
+	 * @see #moveRegion(int, int, boolean)
 	 */
 	public int getRegionZ() {
 		return regionZ;
-	}
-
-	/**
-	 * Sets a new z-value for this mca file in region coordinates.
-	 */
-	public void setRegionZ(int regionZ) {
-		this.regionZ = regionZ;
-	}
-
-	/**
-	 * Sets both the x and z values for this mca file in region coordinates.
-	 * @param regionX New x-value for this mca file in region coordinates.
-	 * @param regionZ New z-value for this mca file in region coordinates.
-	 */
-	public void setRegionXZ(int regionX, int regionZ) {
-		this.regionX = regionX;
-		this.regionZ = regionZ;
 	}
 
 	/**
@@ -434,6 +412,23 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 			setChunk(getChunkIndex(chunkX, chunkZ), chunk);
 		}
 		return chunk;
+	}
+
+	public boolean moveRegion(int newRegionX, int newRegionZ, boolean force) {
+		// Testing note: don't forget that updateHandle() needs to be called to see the results of this move!
+		boolean changed = false;
+		IntPointXZ newRegionMinChunkXZ = new IntPointXZ(newRegionX, newRegionZ).transformRegionToChunk();
+		ChunkIterator<T> iter = this.iterator();
+		while (iter.hasNext()) {
+			T chunk = iter.next();
+			if (chunk != null) {
+				IntPointXZ newChunkXZ = iter.currentXZ().add(newRegionMinChunkXZ);
+				changed |= chunk.moveChunk(newChunkXZ.getX(), newChunkXZ.getZ(), force);
+			}
+		}
+		this.regionX = newRegionX;
+		this.regionZ = newRegionZ;
+		return changed;
 	}
 
 	@Override

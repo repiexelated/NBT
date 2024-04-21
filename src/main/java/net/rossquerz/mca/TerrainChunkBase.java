@@ -1,10 +1,12 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.util.ChunkBoundingRectangle;
+import net.rossquerz.mca.util.IntPointXZ;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
 import net.rossquerz.mca.util.VersionAware;
 
-import java.util.Arrays;
+import java.util.*;
 
 import static net.rossquerz.mca.DataVersion.*;
 import static net.rossquerz.mca.LoadFlags.*;
@@ -699,6 +701,171 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		return blendingData;
 	}
 
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean moveChunkImplemented() {
+		return raw || ((this.chunkX != NO_CHUNK_COORD_SENTINEL && this.chunkZ != NO_CHUNK_COORD_SENTINEL) &&
+				(data != null || (getStructures() != null && getTileEntities() != null && getTileTicks() != null && getLiquidTicks() != null)));
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean moveChunkHasFullVersionSupport() {
+		// TODO: this can probably safely be dropped to 1.18.0 or lower - need to investigate
+		return dataVersion >= JAVA_1_20_0.id();
+	}
+
+	// For RAW support
+	private ListTag<CompoundTag> tagOrFetch(ListTag<CompoundTag> tag, VersionAware<NbtPath> path) {
+		if (tag != null) return tag;
+		return getTag(path);
+	}
+	private CompoundTag tagOrFetch(CompoundTag tag, VersionAware<NbtPath> path) {
+		if (tag != null) return tag;
+		return getTag(path);
+	}
+
+	@Override
+	public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
+		if (!moveChunkImplemented())
+			throw new UnsupportedOperationException("Missing the data required to move this chunk!");
+		if (this.chunkX == newChunkX && this.chunkZ == newChunkZ) return false;
+
+		IntPointXZ deltaXZ;
+		if (raw) {
+			this.chunkX = getTagValue(X_POS_PATH, IntTag::asInt);
+			this.chunkZ = getTagValue(Z_POS_PATH, IntTag::asInt);
+			setTag(X_POS_PATH, new IntTag(newChunkX));
+			setTag(Z_POS_PATH, new IntTag(newChunkZ));
+		}
+		deltaXZ = new IntPointXZ(newChunkX - chunkX, newChunkZ - chunkZ);
+		this.chunkX = newChunkX;
+		this.chunkZ = newChunkZ;
+		deltaXZ = deltaXZ.multiply(16);  // scale to block cords
+
+		boolean changed = false;
+		ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
+		changed |= fixTileLocations(cbr, tagOrFetch(getTileEntities(), TILE_ENTITIES_PATH));
+		changed |= fixTileLocations(cbr, tagOrFetch(getTileTicks(), TILE_TICKS_PATH));
+		changed |= fixTileLocations(cbr, tagOrFetch(getLiquidTicks(), LIQUID_TICKS_PATH));
+		changed |= moveStructures(tagOrFetch(getStructures(), STRUCTURES_PATH), deltaXZ);
+		// TODO: move legacy entities (and maybe those in partially generated terrain chunks?) and poi's
+		return changed;
+
+	}
+
+	protected boolean fixTileLocations(ChunkBoundingRectangle cbr, ListTag<CompoundTag> tagList) {
+		boolean changed = false;
+		for (CompoundTag tag : tagList) {
+			int x = tag.getInt("x");
+			int z = tag.getInt("z");
+			if (!cbr.contains(x, z)) {
+				changed = true;
+				tag.putInt("x", cbr.relocateX(x));
+				tag.putInt("z", cbr.relocateX(z));
+			}
+		}
+		return changed;
+	}
+
+	protected boolean moveStructures(CompoundTag structuresTag, IntPointXZ deltaXZ) {
+		CompoundTag references = structuresTag.getCompoundTag("References");
+		boolean changed = false;
+		if (references != null && !references.isEmpty()) {
+			for (Tag<?> tag : references.values()) {
+				long[] longs = ((LongArrayTag) tag).getValue();
+				for (int i = 0; i < longs.length; i++) {
+					longs[i] = IntPointXZ.pack(IntPointXZ.unpack(longs[i]).add(deltaXZ));
+				}
+			}
+			changed = true;
+		}
+		return changed | deepMoveAll(structuresTag.getCompoundTag("starts"), deltaXZ);
+
+//		CompoundTag starts = structuresTag.getCompoundTag("starts");
+//		if (starts != null && !starts.isEmpty()) {
+//			for (Tag<?> tag : starts.values()) {
+//				CompoundTag ct = (CompoundTag) tag;
+//				if (ct.containsKey("ChunkX")) ct.putInt("ChunkX", this.chunkX);
+//				if (ct.containsKey("ChunkZ")) ct.putInt("ChunkZ", this.chunkZ);
+//				ListTag<CompoundTag> children = ct.getCompoundList("Children");
+//				if (children != null) {
+//					for (CompoundTag child :  children) {
+//						moveBoundingBox(child.getIntArrayTag("BB"), deltaXZ);
+//					}
+//				}
+//			}
+//		}
+//		return changed;
+	}
+
+	private void moveBoundingBox(IntArrayTag boundsTag, IntPointXZ deltaXZ) {
+		if (boundsTag != null) {
+			int[] bounds = boundsTag.getValue();
+			bounds[0] = bounds[0] + deltaXZ.getX();
+			bounds[2] = bounds[2] + deltaXZ.getZ();
+			bounds[3] = bounds[3] + deltaXZ.getX();
+			bounds[5] = bounds[5] + deltaXZ.getZ();
+		}
+	}
+
+	// sinks into every compound and list tag looking for "BB" bounding boxes an any IntTag that has a name ending in x or z.
+	@SuppressWarnings("unchecked")
+	private boolean deepMoveAll(CompoundTag root, IntPointXZ deltaXZ) {
+		if (root == null || root.isEmpty()) return false;
+		Deque<Object> stack = new LinkedList<>();
+		stack.push(root);
+		boolean changed = false;
+		while (!stack.isEmpty()) {
+			Object o = stack.pop();
+			if (o instanceof CompoundTag) {
+				CompoundTag tag = (CompoundTag) o;
+				for (Map.Entry<String, Tag<?>> e : tag) {
+					final String key = e.getKey().toLowerCase();
+					if (key.equals("bb")) {
+						moveBoundingBox((IntArrayTag) e.getValue(), deltaXZ);
+						changed = true;
+					} else if (key.equals("entrances")) {
+						ListTag<IntArrayTag> list = (ListTag<IntArrayTag>) e.getValue();
+						for (IntArrayTag bb : list) {
+							moveBoundingBox(bb, deltaXZ);
+							changed = true;
+						}
+					} else if (e.getValue() instanceof IntTag) {
+						IntTag intTag = (IntTag) e.getValue();
+						if (key.endsWith("x")) {
+							if (!key.toLowerCase().startsWith("chunk")) {
+								intTag.setValue(intTag.asInt() + deltaXZ.getX());
+							} else {
+								intTag.setValue(chunkX);
+							}
+							changed = true;
+						} else if (key.endsWith("z")) {
+							if (!key.toLowerCase().startsWith("chunk")) {
+								intTag.setValue(intTag.asInt() + deltaXZ.getZ());
+							} else {
+								intTag.setValue(chunkZ);
+							}
+							changed = true;
+						}
+					} else if (e.getValue() instanceof CompoundTag || e.getValue() instanceof ListTag<?>) {
+						stack.push(e.getValue());
+					}
+				}
+			} else if (o instanceof ListTag) {
+				ListTag<?> tag = (ListTag<?>) o;
+				for (Tag<?> t : tag) {
+					if (t instanceof CompoundTag || t instanceof ListTag<?>) {
+						stack.push(t);
+					}
+				}
+			}
+		}
+		return changed;
+	}
+
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -754,6 +921,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		}
 		setTag(SECTIONS_PATH, sections);
 
+		setTag(X_POS_PATH, new IntTag(getChunkX()));
+		setTag(Z_POS_PATH, new IntTag(getChunkZ()));
 		if (dataVersion >= JAVA_1_18_21W43A.id()) {
 			setTag(Y_POS_PATH, new IntTag(getChunkY()));
 			setTagIfNotNull(BELOW_ZERO_RETROGEN_PATH, belowZeroRetrogen);
@@ -767,6 +936,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		if (raw) {
 			return data;
 		}
+		// TODO: moveChunk or die if given xPos != chunkX and same for z?
 		updateHandle();
 		setTag(X_POS_PATH, new IntTag(xPos));
 		// Y_POS_PATH is set in updateHandle() - was added in 1.18
