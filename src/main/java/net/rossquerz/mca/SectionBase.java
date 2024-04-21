@@ -24,14 +24,14 @@ public abstract class SectionBase<T extends SectionBase<?>> implements Comparabl
 	protected int height = NO_HEIGHT_SENTINEL;
 
 	/**
-	 * @inheritDoc
+	 * {@inheritDoc}
 	 */
 	public Set<String> getUnreadDataTagKeys() {
 		return unreadDataTagKeys;
 	}
 
 	/**
-	 * @inheritDoc
+	 * {@inheritDoc}
 	 * @return NotNull - if LoadFlags specified {@link LoadFlags#RAW} then the raw data is returned - else a new
 	 * CompoundTag populated, by reference, with values that were not read during {@link #initReferences(long)}.</p>
 	 */

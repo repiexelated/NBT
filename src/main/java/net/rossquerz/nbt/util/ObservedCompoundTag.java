@@ -54,414 +54,414 @@ public class ObservedCompoundTag extends CompoundTag {
         return unread;
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public byte getID() {
         return wrappedTag.getID();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public int size() {
         return wrappedTag.size();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public boolean isEmpty() {
         return wrappedTag.isEmpty();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> remove(String key) {
         return wrappedTag.remove(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public void clear() {
         wrappedTag.clear();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public boolean containsKey(String key) {
         return wrappedTag.containsKey(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public boolean containsValue(Tag<?> value) {
         return wrappedTag.containsValue(value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Collection<Tag<?>> values() {
         return wrappedTag.values();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Set<String> keySet() {
         return wrappedTag.keySet();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Set<Map.Entry<String, Tag<?>>> entrySet() {
         return wrappedTag.entrySet();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public Iterator<Map.Entry<String, Tag<?>>> iterator() {
         return wrappedTag.iterator();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public Spliterator<Map.Entry<String, Tag<?>>> spliterator() {
         return wrappedTag.spliterator();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Stream<Map.Entry<String, Tag<?>>> stream() {
         return wrappedTag.stream();
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public void forEach(BiConsumer<String, Tag<?>> action) {
         wrappedTag.forEach(action);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public <C extends Tag<?>> C get(String key, Class<C> type) {
         readKeys.add(key);
         return wrappedTag.get(key, type);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> get(String key) {
         readKeys.add(key);
         return wrappedTag.get(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public NumberTag<?> getNumberTag(String key) {
         readKeys.add(key);
         return wrappedTag.getNumberTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Number getNumber(String key) {
         readKeys.add(key);
         return wrappedTag.getNumber(key);
 
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public ByteTag getByteTag(String key) {
         readKeys.add(key);
         return wrappedTag.getByteTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public ShortTag getShortTag(String key) {
         readKeys.add(key);
         return wrappedTag.getShortTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public IntTag getIntTag(String key) {
         readKeys.add(key);
         return wrappedTag.getIntTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public LongTag getLongTag(String key) {
         readKeys.add(key);
         return wrappedTag.getLongTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public FloatTag getFloatTag(String key) {
         readKeys.add(key);
         return wrappedTag.getFloatTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public DoubleTag getDoubleTag(String key) {
         readKeys.add(key);
         return wrappedTag.getDoubleTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public StringTag getStringTag(String key) {
         readKeys.add(key);
         return wrappedTag.getStringTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public ByteArrayTag getByteArrayTag(String key) {
         readKeys.add(key);
         return wrappedTag.getByteArrayTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public IntArrayTag getIntArrayTag(String key) {
         readKeys.add(key);
         return wrappedTag.getIntArrayTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public LongArrayTag getLongArrayTag(String key) {
         readKeys.add(key);
         return wrappedTag.getLongArrayTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public ListTag<?> getListTag(String key) {
         readKeys.add(key);
         return wrappedTag.getListTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public <R extends ListTag<?>> R getListTagAutoCast(String key) {
         readKeys.add(key);
         return wrappedTag.getListTagAutoCast(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public CompoundTag getCompoundTag(String key) {
         readKeys.add(key);
         return wrappedTag.getCompoundTag(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public boolean getBoolean(String key) {
         readKeys.add(key);
         return wrappedTag.getBoolean(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public boolean getBoolean(String key, boolean defaultValue) {
         readKeys.add(key);
         return wrappedTag.getBoolean(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public byte getByte(String key) {
         readKeys.add(key);
         return wrappedTag.getByte(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public byte getByte(String key, byte defaultValue) {
         readKeys.add(key);
         return wrappedTag.getByte(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public short getShort(String key) {
         readKeys.add(key);
         return wrappedTag.getShort(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public short getShort(String key, short defaultValue) {
         readKeys.add(key);
         return wrappedTag.getShort(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public int getInt(String key) {
         readKeys.add(key);
         return wrappedTag.getInt(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public int getInt(String key, int defaultValue) {
         readKeys.add(key);
         return wrappedTag.getInt(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public long getLong(String key) {
         readKeys.add(key);
         return wrappedTag.getLong(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public long getLong(String key, long defaultValue) {
         readKeys.add(key);
         return wrappedTag.getLong(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public float getFloat(String key) {
         readKeys.add(key);
         return wrappedTag.getFloat(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public float getFloat(String key, float defaultValue) {
         readKeys.add(key);
         return wrappedTag.getFloat(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public double getDouble(String key) {
         readKeys.add(key);
         return wrappedTag.getDouble(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public double getDouble(String key, double defaultValue) {
         readKeys.add(key);
         return wrappedTag.getDouble(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public String getString(String key) {
         readKeys.add(key);
         return wrappedTag.getString(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public String getString(String key, String defaultValue) {
         readKeys.add(key);
         return wrappedTag.getString(key, defaultValue);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public byte[] getByteArray(String key) {
         readKeys.add(key);
         return wrappedTag.getByteArray(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public int[] getIntArray(String key) {
         readKeys.add(key);
         return wrappedTag.getIntArray(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public long[] getLongArray(String key) {
         readKeys.add(key);
         return wrappedTag.getLongArray(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public float[] getFloatTagListAsArray(String key) {
         readKeys.add(key);
         return wrappedTag.getFloatTagListAsArray(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public double[] getDoubleTagListAsArray(String key) {
         readKeys.add(key);
         return wrappedTag.getDoubleTagListAsArray(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public List<String> getStringTagListValues(String key) {
         readKeys.add(key);
         return wrappedTag.getStringTagListValues(key);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> put(String key, Tag<?> tag) {
         return wrappedTag.put(key, tag);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putIfNotNull(String key, Tag<?> tag) {
         return wrappedTag.putIfNotNull(key, tag);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putBoolean(String key, boolean value) {
         return wrappedTag.putBoolean(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putByte(String key, byte value) {
         return wrappedTag.putByte(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putShort(String key, short value) {
         return wrappedTag.putShort(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putInt(String key, int value) {
         return wrappedTag.putInt(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putLong(String key, long value) {
         return wrappedTag.putLong(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putFloat(String key, float value) {
         return wrappedTag.putFloat(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putDouble(String key, double value) {
         return wrappedTag.putDouble(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putString(String key, String value) {
         return wrappedTag.putString(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putByteArray(String key, byte[] value) {
         return wrappedTag.putByteArray(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putIntArray(String key, int[] value) {
         return wrappedTag.putIntArray(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putLongArray(String key, long[] value) {
         return wrappedTag.putLongArray(key, value);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putFloatArrayAsTagList(String key, float... values) {
         return wrappedTag.putFloatArrayAsTagList(key, values);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putDoubleArrayAsTagList(String key, double... values) {
         return wrappedTag.putDoubleArrayAsTagList(key, values);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     public Tag<?> putStringsAsTagList(String key, List<String> values) {
         return wrappedTag.putStringsAsTagList(key, values);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public String valueToString(int maxDepth) {
         return wrappedTag.valueToString(maxDepth);
 
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public boolean equals(Object other) {
         return wrappedTag.equals(other);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public int compareTo(CompoundTag o) {
         return wrappedTag.compareTo(o);
     }
 
-    /** @inheritDoc */
+    /** {@inheritDoc} */
     @Override
     public CompoundTag clone() {
         return wrappedTag.clone();
