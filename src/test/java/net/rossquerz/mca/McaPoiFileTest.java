@@ -1,5 +1,9 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.nbt.io.TextNbtHelpers;
+
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,4 +29,24 @@ public class McaPoiFileTest extends McaFileBaseTest {
         // it'd be better if we had a bell in this chunk to test a non-zero value here
         assertEquals(0, recordsByType.get("minecraft:home").get(0).getFreeTickets());
     }
+
+    // TODO: make this a real test
+//    public void testMoveChunk_1_20_4() throws IOException {
+//        String mcaResourcePath = "1_20_4/poi/r.-3.-3.mca";
+//        McaPoiFile mca = assertThrowsNoException(() -> McaFileHelpers.readAuto(getResourceFile(mcaResourcePath))); // , LoadFlags.RAW
+//        assertNotNull(mca);
+//
+//        assertTrue(mca.moveRegion(0, 0, false));
+//
+//        String newMcaName = mca.createRegionName();
+//        assertEquals("r.0.0.mca", newMcaName);
+//        int i = 0;
+//        for (PoiChunk chunk : mca) {
+//            if (chunk != null) {
+//                chunk.updateHandle();
+//                TextNbtHelpers.writeTextNbtFile(Paths.get("TESTDBG", mcaResourcePath + ".MOVEDTO." + newMcaName + ".i" + String.format("%04d", i) + "." + chunk.getChunkXZ().toString("x%dz%d") + ".original.snbt"), chunk.data, /*pretty print*/ true, /*sorted*/ true);
+//            }
+//            i++;
+//        }
+//    }
 }

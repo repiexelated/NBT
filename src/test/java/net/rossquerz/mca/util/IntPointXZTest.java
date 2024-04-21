@@ -152,6 +152,7 @@ public class IntPointXZTest extends TestCase {
 
     public void testUnpackLong() {
         assertEquals(new IntPointXZ(-95, -85), IntPointXZ.unpack(-360777252959L));
+        assertEquals(new IntPointXZ(-91, -87), IntPointXZ.unpack(-369367187547L));
     }
 
     public void testPackLong() {

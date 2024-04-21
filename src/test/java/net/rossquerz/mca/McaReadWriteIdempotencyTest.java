@@ -180,6 +180,7 @@ public class McaReadWriteIdempotencyTest extends McaFileBaseTest {
     }
 
     public void testMcaReadWriteParity_1_20_4() throws IOException {
+//        DUMP_TESTDBG_OUTPUT = true;
         validateReadWriteParity(DataVersion.JAVA_1_20_4, "1_20_4/region/r.-3.-3.mca", McaRegionFile.class);
         validateReadWriteParity(DataVersion.JAVA_1_20_4, "1_20_4/poi/r.-3.-3.mca", McaPoiFile.class);
         validateReadWriteParity(DataVersion.JAVA_1_20_4, "1_20_4/entities/r.-3.-3.mca", McaEntitiesFile.class);
@@ -193,7 +194,7 @@ public class McaReadWriteIdempotencyTest extends McaFileBaseTest {
 //    public void testStripAndImportRegionFiles() throws IOException {
 //        // easyImport("1_18_1", 275, 33);
 //        // pillager outpost and a chunk of a mineshaft - world seed: -4846182428012336372L
-//        easyImport("1_20_4", XZ(-94, -85), XZ(-94, -86), XZ(-95, -85), XZ(-95, -86));
+//        easyImport("1_20_4", XZ(-94, -85), XZ(-94, -86), XZ(-95, -85), XZ(-95, -86), XZ(-91, -87));
 //    }
 
     // <editor-fold defaultstate="collapsed">
