@@ -9,6 +9,11 @@ public class IntPointXZ {
     protected final int x;
     protected final int z;
 
+    /** Shorthand way of constructing a new  {@link IntPointXZ}. */
+    public static IntPointXZ XZ(int x, int z) {
+        return new IntPointXZ(x, z);
+    }
+
     public IntPointXZ(int x, int z) {
         this.x = x;
         this.z = z;
@@ -113,5 +118,12 @@ public class IntPointXZ {
     @Override
     public String toString() {
         return x + " " + z;
+    }
+
+    /**
+     * @param format must contain exactly 2 {@code %d} placeholders.
+     */
+    public String toString(String format) {
+        return String.format(format, x, z);
     }
 }
