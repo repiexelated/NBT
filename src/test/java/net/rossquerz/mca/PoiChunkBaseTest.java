@@ -448,6 +448,5 @@ public abstract class PoiChunkBaseTest<RT extends PoiRecord, T extends PoiChunkB
         newSection.put("Records", new ListTag<>(CompoundTag.class));
         expectedTag.getCompoundTag("Sections").put(Integer.toString(Byte.MAX_VALUE), newSection);
         assertEquals(expectedTag, chunk.updateHandle());
-
     }
 }

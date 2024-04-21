@@ -1,6 +1,8 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import net.rossquerz.nbt.tag.CompoundTag;
+import net.rossquerz.nbt.tag.IntArrayTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.nbt.tag.Tag;
 
@@ -21,12 +23,13 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
 
     @Override
     protected void initMembers() {
-        records = new ArrayList<>();
+        records = null;
         poiSectionValidity = new HashMap<>();
     }
 
     protected PoiChunkBase(int dataVersion) {
         super(dataVersion);
+        records = new ArrayList<>();
     }
 
     public PoiChunkBase(CompoundTag data) {
@@ -40,6 +43,7 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
     @Override
     protected void initReferences(long loadFlags) {
         if ((loadFlags & POI_RECORDS) != 0) {
+            records = new ArrayList<>();
             CompoundTag sectionsTag = data.getCompoundTag("Sections");
             if (sectionsTag == null) {
                 throw new IllegalArgumentException("Sections tag not found!");
@@ -62,20 +66,77 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
         }
     }
 
-    // TODO: support chunk moves
     @Override
     public boolean moveChunkImplemented() {
-        return false;
+        return records != null || data != null;
     }
 
     @Override
     public boolean moveChunkHasFullVersionSupport() {
-        return false;
+        return records != null || data != null;
     }
 
     @Override
     public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
-        throw new UnsupportedOperationException();
+        if (!moveChunkImplemented())
+            throw new UnsupportedOperationException("Missing the data required to move this chunk!");
+        this.chunkX = newChunkX;
+        this.chunkZ = newChunkZ;
+        return fixPoiLocations();
+    }
+
+    public boolean fixPoiLocations() {
+        if (!moveChunkImplemented())
+            throw new UnsupportedOperationException("Missing the data required to move this chunk!");
+        if (this.chunkX == NO_CHUNK_COORD_SENTINEL || this.chunkZ == NO_CHUNK_COORD_SENTINEL) {
+            throw new IllegalStateException("Chunk XZ not known");
+        }
+        boolean changed = false;
+        if (records != null) {
+            final ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
+            for (T entity : records) {
+                if (!cbr.contains(entity.getX(), entity.getZ())) {
+                    entity.setX(cbr.relocateX(entity.getX()));
+                    entity.setZ(cbr.relocateZ(entity.getZ()));
+                    changed = true;
+                }
+            }
+        } else {
+            changed = fixPoiLocations(new ChunkBoundingRectangle(chunkX, chunkZ));
+        }
+        return changed;
+    }
+
+
+    private boolean fixPoiLocations(ChunkBoundingRectangle cbr) {
+        if (data == null) {
+            throw new UnsupportedOperationException(
+                    "Cannot fix POI locations when RELEASE_CHUNK_DATA_TAG was set and POI_RECORDS was not set.");
+        }
+        boolean changed = false;
+        CompoundTag sectionsTag = data.getCompoundTag("Sections");
+        if (sectionsTag == null) {
+            throw new IllegalArgumentException("Sections tag not found!");
+        }
+        for (Map.Entry<String, Tag<?>> sectionTag : sectionsTag.entrySet()) {
+            int sectionY = Integer.parseInt(sectionTag.getKey());
+            ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getValue()).getListTagAutoCast("Records");
+            if (recordTags != null) {
+                for (CompoundTag recordTag : recordTags) {
+                    IntArrayTag posTag = recordTag.getIntArrayTag("pos");
+                    int[] pos = posTag.getValue();  // by ref
+                    int x = pos[0];
+                    int z = pos[2];
+                    if (!cbr.contains(x, z)) {
+                        pos[0] = cbr.relocateX(x);
+                        pos[2] = cbr.relocateZ(z);
+                        changed = true;
+                        // Don't need to call recordTag.getIntArrayTag("Pos").setValue(pos);
+                    }
+                }
+            }
+        }
+        return changed;
     }
 
     /**
