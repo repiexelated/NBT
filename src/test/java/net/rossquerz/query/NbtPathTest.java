@@ -1,8 +1,10 @@
 package net.rossquerz.query;
 
 import net.rossquerz.NbtTestCase;
+import net.rossquerz.nbt.io.TextNbtParser;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
+import org.junit.Assert;
 
 public class NbtPathTest extends NbtTestCase {
 
@@ -211,5 +213,12 @@ public class NbtPathTest extends NbtTestCase {
 
         // can't add a child to a primitive tag
         assertThrowsIllegalArgumentException(() -> NbtPath.of("long.foo.bar").putTag(root, new CompoundTag(), true));
+    }
+
+    public void testGetTypedArrayTags() {
+        CompoundTag root = TextNbtParser.parseInline("{stuff:{ints:[I;11223344,5,7],bytes:[B;-100,50],longs:[L;2490852214246277761,17616930435]}}");
+        Assert.assertArrayEquals(new int[] {11223344, 5, 7}, NbtPath.of("stuff.ints").getIntArray(root));
+        Assert.assertArrayEquals(new byte[] {(byte) -100, (byte) 50}, NbtPath.of("stuff.bytes").getByteArray(root));
+        Assert.assertArrayEquals(new long[] {2490852214246277761L, 17616930435L}, NbtPath.of("stuff.longs").getLongArray(root));
     }
 }

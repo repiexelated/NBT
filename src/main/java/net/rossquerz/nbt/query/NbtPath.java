@@ -194,8 +194,8 @@ public class NbtPath {
     }
 
     /**
-     * Gets the value found by this path as a byte. Note that this method can be used on any {@link NumberTag},
-     * {@link ArrayTag}, not just {@link ByteTag}'s.
+     * Gets the value found by this path as a byte. Note that this method can be used on any {@link NumberTag} or
+     * an index into any {@link ArrayTag}, not just {@link ByteTag}'s.
      * @param root tag to begin traversal from.
      * @return value cast to a byte
      */
@@ -208,9 +208,17 @@ public class NbtPath {
         return (byte) value;
     }
 
+    public byte[] getByteArray(Tag<?> root) {
+        Object value = get(root);
+        if (value instanceof ByteArrayTag) {
+            return ((ByteArrayTag) value).getValue();
+        }
+        return null;
+    }
+
     /**
-     * Gets the value found by this path as a short. Note that this method can be used on any {@link NumberTag},
-     * {@link ArrayTag}, not just {@link ShortTag}'s.
+     * Gets the value found by this path as a short. Note that this method can be used on any {@link NumberTag} or
+     * an index into any {@link ArrayTag}, not just {@link ShortTag}'s.
      * @param root tag to begin traversal from.
      * @return value cast to a short
      */
@@ -224,8 +232,8 @@ public class NbtPath {
     }
 
     /**
-     * Gets the value found by this path as an int. Note that this method can be used on any {@link NumberTag},
-     * {@link ArrayTag}, not just {@link IntTag}'s.
+     * Gets the value found by this path as an int. Note that this method can be used on any {@link NumberTag} or
+     * an index into any {@link ArrayTag}, not just {@link IntTag}'s.
      * @param root tag to begin traversal from.
      * @return value cast to an int
      */
@@ -238,9 +246,17 @@ public class NbtPath {
         return (int) value;
     }
 
+    public int[] getIntArray(Tag<?> root) {
+        Object value = get(root);
+        if (value instanceof IntArrayTag) {
+            return ((IntArrayTag) value).getValue();
+        }
+        return null;
+    }
+
     /**
-     * Gets the value found by this path as a long. Note that this method can be used on any {@link NumberTag},
-     * {@link ArrayTag}, not just {@link LongTag}'s.
+     * Gets the value found by this path as a long. Note that this method can be used on any {@link NumberTag} or
+     * an index into any {@link ArrayTag}, not just {@link LongTag}'s.
      * @param root tag to begin traversal from.
      * @return value cast to a long
      */
@@ -253,9 +269,18 @@ public class NbtPath {
         return (long) value;
     }
 
+    public long[] getLongArray(Tag<?> root) {
+        Object value = get(root);
+        if (value instanceof LongArrayTag) {
+            return ((LongArrayTag) value).getValue();
+        }
+        return null;
+    }
+
+
     /**
-     * Gets the value found by this path as a float. Note that this method can be used on any {@link NumberTag},
-     * {@link ArrayTag}, not just {@link FloatTag}'s.
+     * Gets the value found by this path as a float. Note that this method can be used on any {@link NumberTag} or
+     * an index into any {@link ArrayTag}, not just {@link FloatTag}'s.
      * @param root tag to begin traversal from.
      * @return value cast to a float
      */
@@ -269,8 +294,8 @@ public class NbtPath {
     }
 
     /**
-     * Gets the value found by this path as a double. Note that this method can be used on any {@link NumberTag},
-     * {@link ArrayTag}, not just {@link DoubleTag}'s.
+     * Gets the value found by this path as a double. Note that this method can be used on any {@link NumberTag} or
+     * an index into any {@link ArrayTag}, not just {@link DoubleTag}'s.
      * @param root tag to begin traversal from.
      * @return value cast to a double
      */
