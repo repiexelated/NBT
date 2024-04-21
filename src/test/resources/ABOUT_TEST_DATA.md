@@ -104,7 +104,10 @@ Chunks:
 pillager outpost and a section of a mineshaft - world seed: -4846182428012336372L
 
 Chunks:
-- XZ(-94, -85)
-- XZ(-94, -86)
-- XZ(-95, -85)
-- XZ(-95, -86)
+- pillager outpost
+  - XZ(-94, -85)
+  - XZ(-94, -86)
+  - XZ(-95, -85)
+  - XZ(-95, -86)
+- mineshaft "starts" data - runs under pillager outpost chunks
+  - XZ(-91, -87)
