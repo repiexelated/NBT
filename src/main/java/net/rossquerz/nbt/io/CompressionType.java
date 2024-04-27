@@ -10,6 +10,7 @@ import java.util.zip.InflaterInputStream;
 
 public enum CompressionType {
 	NONE(0, t -> t, t -> t),
+	/** Most used compression type. */
 	GZIP(1, GZIPOutputStream::new, GZIPInputStream::new),
 	ZLIB(2, DeflaterOutputStream::new, InflaterInputStream::new);
 
