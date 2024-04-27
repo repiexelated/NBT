@@ -1,6 +1,7 @@
 package net.rossquerz.mca;
 
 import net.rossquerz.mca.util.IntPointXZ;
+import net.rossquerz.nbt.io.CompressionType;
 
 import java.io.File;
 import java.io.IOException;
@@ -317,7 +318,7 @@ public final class McaFileHelpers {
 		}
 		int chunks;
 		try (RandomAccessFile raf = new RandomAccessFile(to, "rw")) {
-			chunks = mcaFile.serialize(raf, changeLastUpdate);
+			chunks = mcaFile.serialize(raf, CompressionType.GZIP, changeLastUpdate);
 		}
 
 		// TODO(bug): This logic is flawed - why would we ever want an empty region file?

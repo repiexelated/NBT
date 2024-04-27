@@ -226,14 +226,26 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 	}
 
 	/**
-	 * Calls {@link McaFileBase#serialize(RandomAccessFile, boolean)} without updating any timestamps.
-	 * @see McaFileBase#serialize(RandomAccessFile, boolean)
+	 * Calls {@link McaFileBase#serialize(RandomAccessFile, CompressionType, boolean)} with GZIP chunk compression and
+	 * without updating any timestamps.
+	 * @see McaFileBase#serialize(RandomAccessFile, CompressionType, boolean)
 	 * @param raf The {@code RandomAccessFile} to write to.
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something went wrong during serialization.
 	 */
 	public int serialize(RandomAccessFile raf) throws IOException {
-		return serialize(raf, false);
+		return serialize(raf, CompressionType.GZIP, false);
+	}
+
+	/**
+	 * Calls {@link McaFileBase#serialize(RandomAccessFile, CompressionType, boolean)} without updating any timestamps.
+	 * @see McaFileBase#serialize(RandomAccessFile, CompressionType, boolean)
+	 * @param raf The {@code RandomAccessFile} to write to.
+	 * @return The amount of chunks written to the file.
+	 * @throws IOException If something went wrong during serialization.
+	 */
+	public int serialize(RandomAccessFile raf, CompressionType chunkCompressionType) throws IOException {
+		return serialize(raf, chunkCompressionType, false);
 	}
 
 	/**
@@ -245,7 +257,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 	 * @return The amount of chunks written to the file.
 	 * @throws IOException If something went wrong during serialization.
 	 */
-	public int serialize(RandomAccessFile raf, boolean changeLastUpdate) throws IOException {
+	public int serialize(RandomAccessFile raf, CompressionType chunkCompressionType, boolean changeLastUpdate) throws IOException {
 		ArgValidator.requireValue(raf, "raf");
 		int globalOffset = 2;
 		int lastWritten = 0;
@@ -270,7 +282,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 					continue;
 				}
 				raf.seek(4096L * globalOffset);
-				lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz, CompressionType.GZIP, true);
+				lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz, chunkCompressionType, true);
 
 				chunksWritten++;
 
