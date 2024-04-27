@@ -504,7 +504,9 @@ public enum DataVersion {
     JAVA_1_20_2_RC2(3577, 20, 2, "RC2"),
     JAVA_1_20_2(3578, 20, 2),  // fully complete list up to here
     JAVA_1_20_3(3698, 20, 3),
-    JAVA_1_20_4(3700, 20, 4);
+    JAVA_1_20_4(3700, 20, 4),
+    JAVA_1_20_5(3837, 20, 5),
+    JAVA_1_20_6_RC1(3838, 20, 6, "RC1");
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
