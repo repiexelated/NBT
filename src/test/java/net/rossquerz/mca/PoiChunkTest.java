@@ -46,7 +46,7 @@ public class PoiChunkTest extends PoiChunkBaseTest<PoiRecord, PoiChunk> {
         chunk.chunkX = -77;
         chunk.chunkZ = -84;
         assertTrue(chunk.moveChunk(-3, 4));
-        System.out.println(TextNbtHelpers.toTextNbt(chunk.getHandle()));
+//        System.out.println(TextNbtHelpers.toTextNbt(chunk.getHandle()));
         int[] newPos = NbtPath.of("Sections.5.Records[0].pos").getIntArray(chunk.getHandle());
         assertEquals(-35, newPos[0]);
         assertEquals(83, newPos[1]);
