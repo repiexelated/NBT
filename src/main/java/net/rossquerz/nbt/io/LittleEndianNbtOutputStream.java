@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/** Use for Minecraft Bedrock edition data. */
 public class LittleEndianNbtOutputStream implements DataOutput, NbtOutput, MaxDepthIO, Closeable {
 
 	private final DataOutputStream output;

@@ -1,4 +1,4 @@
-package net.rossquerz.mca;
+package net.rossquerz.nbt.io;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,18 +9,22 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
 public enum CompressionType {
-
 	NONE(0, t -> t, t -> t),
 	GZIP(1, GZIPOutputStream::new, GZIPInputStream::new),
 	ZLIB(2, DeflaterOutputStream::new, InflaterInputStream::new);
 
-	private byte id;
-	private ExceptionFunction<OutputStream, ? extends OutputStream, IOException> compressor;
-	private ExceptionFunction<InputStream, ? extends InputStream, IOException> decompressor;
+	@FunctionalInterface
+	private interface IOExceptionFunction<T, R> {
+		R accept(T t) throws IOException;
+	}
+
+	private final byte id;
+	private final IOExceptionFunction<OutputStream, ? extends OutputStream> compressor;
+	private final IOExceptionFunction<InputStream, ? extends InputStream> decompressor;
 
 	CompressionType(int id,
-					ExceptionFunction<OutputStream, ? extends OutputStream, IOException> compressor,
-					ExceptionFunction<InputStream, ? extends InputStream, IOException> decompressor) {
+					IOExceptionFunction<OutputStream, ? extends OutputStream> compressor,
+					IOExceptionFunction<InputStream, ? extends InputStream> decompressor) {
 		this.id = (byte) id;
 		this.compressor = compressor;
 		this.decompressor = decompressor;
@@ -36,6 +40,16 @@ public enum CompressionType {
 
 	public InputStream decompress(InputStream in) throws IOException {
 		return decompressor.accept(in);
+	}
+
+	/**
+	 * Finishes writing compressed data to the output stream without closing it.
+	 * @exception IOException if an I/O error has occurred
+	 */
+	public void finish(OutputStream out) throws IOException {
+		if (out instanceof DeflaterOutputStream) {
+			((DeflaterOutputStream) out).finish();
+		}
 	}
 
 	public static CompressionType getFromID(byte id) {

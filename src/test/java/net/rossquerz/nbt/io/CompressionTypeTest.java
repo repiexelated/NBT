@@ -1,6 +1,8 @@
-package net.rossquerz.mca;
+package net.rossquerz.nbt.io;
 
-public class CompressionTypeTest extends McaTestCase {
+import junit.framework.TestCase;
+
+public class CompressionTypeTest extends TestCase {
 
 	public void testGetFromID() {
 		assertEquals(CompressionType.NONE, CompressionType.getFromID(CompressionType.NONE.getID()));

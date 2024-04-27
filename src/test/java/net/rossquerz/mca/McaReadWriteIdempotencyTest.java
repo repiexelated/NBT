@@ -49,7 +49,7 @@ public class McaReadWriteIdempotencyTest extends McaFileBaseTest {
      */
     private <CT extends ChunkBase, FT extends McaFileBase<CT>> void validateReadWriteParity(DataVersion minExpectedDataVersion, DataVersion maxExpectedDataVersion, String mcaResourcePath, Class<FT> clazz) throws IOException {
         long flags = LoadFlags.LOAD_ALL_DATA;  // | LoadFlags.RELEASE_CHUNK_DATA_TAG;
-        System.out.printf("LoadFlags: 0x%8X %8X%n", (int)(flags >> 32), flags & 0xFFFF_FFFFL);
+//        System.out.printf("LoadFlags: 0x%08X_%08X%n", (int)(flags >> 32), flags & 0xFFFF_FFFFL);
         FT mcaA = assertThrowsNoException(() -> McaFileHelpers.readAuto(
                 getResourceFile(mcaResourcePath),
                 flags));

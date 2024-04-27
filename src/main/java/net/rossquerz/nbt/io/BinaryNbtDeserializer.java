@@ -4,39 +4,32 @@ import net.rossquerz.io.Deserializer;
 import net.rossquerz.nbt.tag.Tag;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
 
 public class BinaryNbtDeserializer implements Deserializer<NamedTag> {
+	private CompressionType compression;
+	private boolean littleEndian;
 
-	private boolean compressed, littleEndian;
-
-	public BinaryNbtDeserializer() {
-		this(true);
+	public BinaryNbtDeserializer(CompressionType compression) {
+		this(compression, false);
 	}
 
-	public BinaryNbtDeserializer(boolean compressed) {
-		this.compressed = compressed;
-	}
-
-	public BinaryNbtDeserializer(boolean compressed, boolean littleEndian) {
-		this.compressed = compressed;
+	/**
+	 * @param compression Compressions strategy to use.
+	 * @param littleEndian Minecraft bedrock data is stored in little endian while MC Java is stored big endian.
+	 */
+	public BinaryNbtDeserializer(CompressionType compression, boolean littleEndian) {
+		this.compression = compression;
 		this.littleEndian = littleEndian;
 	}
 
 	@Override
 	public NamedTag fromStream(InputStream stream) throws IOException {
 		NbtInput nbtIn;
-		InputStream input;
-		if (compressed) {
-			input = new GZIPInputStream(stream);
+		InputStream input = compression.decompress(stream);
+		if (!littleEndian) {
+			nbtIn = new BigEndianNbtInputStream(input);
 		} else {
-			input = stream;
-		}
-
-		if (littleEndian) {
 			nbtIn = new LittleEndianNbtInputStream(input);
-		} else {
-			nbtIn = new BinaryNbtInputStream(input);
 		}
 		return nbtIn.readTag(Tag.DEFAULT_MAX_DEPTH);
 	}

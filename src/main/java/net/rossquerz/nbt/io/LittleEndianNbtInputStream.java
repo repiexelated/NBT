@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/** Use for Minecraft Bedrock edition data. */
 public class LittleEndianNbtInputStream implements DataInput, NbtInput, MaxDepthIO, Closeable {
 
 	private final DataInputStream input;

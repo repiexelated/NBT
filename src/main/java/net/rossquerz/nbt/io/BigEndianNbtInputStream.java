@@ -22,9 +22,10 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BinaryNbtInputStream extends DataInputStream implements NbtInput, MaxDepthIO {
+/** Use for Minecraft Java edition data. */
+public class BigEndianNbtInputStream extends DataInputStream implements NbtInput, MaxDepthIO {
 
-	private static Map<Byte, ExceptionBiFunction<BinaryNbtInputStream, Integer, ? extends Tag<?>, IOException>> readers = new HashMap<>();
+	private static Map<Byte, ExceptionBiFunction<BigEndianNbtInputStream, Integer, ? extends Tag<?>, IOException>> readers = new HashMap<>();
 	private static Map<Byte, Class<?>> idClassMapping = new HashMap<>();
 
 	static {
@@ -37,18 +38,18 @@ public class BinaryNbtInputStream extends DataInputStream implements NbtInput, M
 		put(DoubleTag.ID, (i, d) -> readDouble(i), DoubleTag.class);
 		put(ByteArrayTag.ID, (i, d) -> readByteArray(i), ByteArrayTag.class);
 		put(StringTag.ID, (i, d) -> readString(i), StringTag.class);
-		put(ListTag.ID, BinaryNbtInputStream::readListTag, ListTag.class);
-		put(CompoundTag.ID, BinaryNbtInputStream::readCompound, CompoundTag.class);
+		put(ListTag.ID, BigEndianNbtInputStream::readListTag, ListTag.class);
+		put(CompoundTag.ID, BigEndianNbtInputStream::readCompound, CompoundTag.class);
 		put(IntArrayTag.ID, (i, d) -> readIntArray(i), IntArrayTag.class);
 		put(LongArrayTag.ID, (i, d) -> readLongArray(i), LongArrayTag.class);
 	}
 
-	private static void put(byte id, ExceptionBiFunction<BinaryNbtInputStream, Integer, ? extends Tag<?>, IOException> reader, Class<?> clazz) {
+	private static void put(byte id, ExceptionBiFunction<BigEndianNbtInputStream, Integer, ? extends Tag<?>, IOException> reader, Class<?> clazz) {
 		readers.put(id, reader);
 		idClassMapping.put(id, clazz);
 	}
 
-	public BinaryNbtInputStream(InputStream in) {
+	public BigEndianNbtInputStream(InputStream in) {
 		super(in);
 	}
 
@@ -63,48 +64,48 @@ public class BinaryNbtInputStream extends DataInputStream implements NbtInput, M
 	}
 
 	private Tag<?> readTag(byte type, int maxDepth) throws IOException {
-		ExceptionBiFunction<BinaryNbtInputStream, Integer, ? extends Tag<?>, IOException> f;
+		ExceptionBiFunction<BigEndianNbtInputStream, Integer, ? extends Tag<?>, IOException> f;
 		if ((f = readers.get(type)) == null) {
 			throw new IOException("invalid tag id \"" + type + "\"");
 		}
 		return f.accept(this, maxDepth);
 	}
 
-	private static ByteTag readByte(BinaryNbtInputStream in) throws IOException {
+	private static ByteTag readByte(BigEndianNbtInputStream in) throws IOException {
 		return new ByteTag(in.readByte());
 	}
 
-	private static ShortTag readShort(BinaryNbtInputStream in) throws IOException {
+	private static ShortTag readShort(BigEndianNbtInputStream in) throws IOException {
 		return new ShortTag(in.readShort());
 	}
 
-	private static IntTag readInt(BinaryNbtInputStream in) throws IOException {
+	private static IntTag readInt(BigEndianNbtInputStream in) throws IOException {
 		return new IntTag(in.readInt());
 	}
 
-	private static LongTag readLong(BinaryNbtInputStream in) throws IOException {
+	private static LongTag readLong(BigEndianNbtInputStream in) throws IOException {
 		return new LongTag(in.readLong());
 	}
 
-	private static FloatTag readFloat(BinaryNbtInputStream in) throws IOException {
+	private static FloatTag readFloat(BigEndianNbtInputStream in) throws IOException {
 		return new FloatTag(in.readFloat());
 	}
 
-	private static DoubleTag readDouble(BinaryNbtInputStream in) throws IOException {
+	private static DoubleTag readDouble(BigEndianNbtInputStream in) throws IOException {
 		return new DoubleTag(in.readDouble());
 	}
 
-	private static StringTag readString(BinaryNbtInputStream in) throws IOException {
+	private static StringTag readString(BigEndianNbtInputStream in) throws IOException {
 		return new StringTag(in.readUTF());
 	}
 
-	private static ByteArrayTag readByteArray(BinaryNbtInputStream in) throws IOException {
+	private static ByteArrayTag readByteArray(BigEndianNbtInputStream in) throws IOException {
 		ByteArrayTag bat = new ByteArrayTag(new byte[in.readInt()]);
 		in.readFully(bat.getValue());
 		return bat;
 	}
 
-	private static IntArrayTag readIntArray(BinaryNbtInputStream in) throws IOException {
+	private static IntArrayTag readIntArray(BigEndianNbtInputStream in) throws IOException {
 		int l = in.readInt();
 		int[] data = new int[l];
 		IntArrayTag iat = new IntArrayTag(data);
@@ -114,7 +115,7 @@ public class BinaryNbtInputStream extends DataInputStream implements NbtInput, M
 		return iat;
 	}
 
-	private static LongArrayTag readLongArray(BinaryNbtInputStream in) throws IOException {
+	private static LongArrayTag readLongArray(BigEndianNbtInputStream in) throws IOException {
 		int l = in.readInt();
 		long[] data = new long[l];
 		LongArrayTag iat = new LongArrayTag(data);
@@ -124,7 +125,7 @@ public class BinaryNbtInputStream extends DataInputStream implements NbtInput, M
 		return iat;
 	}
 
-	private static ListTag<?> readListTag(BinaryNbtInputStream in, int maxDepth) throws IOException {
+	private static ListTag<?> readListTag(BigEndianNbtInputStream in, int maxDepth) throws IOException {
 		byte listType = in.readByte();
 		ListTag<?> list = ListTag.createUnchecked(idClassMapping.get(listType));
 		int length = in.readInt();
@@ -137,7 +138,7 @@ public class BinaryNbtInputStream extends DataInputStream implements NbtInput, M
 		return list;
 	}
 
-	private static CompoundTag readCompound(BinaryNbtInputStream in, int maxDepth) throws IOException {
+	private static CompoundTag readCompound(BigEndianNbtInputStream in, int maxDepth) throws IOException {
 		CompoundTag comp = new CompoundTag();
 		for (int id = in.readByte() & 0xFF; id != 0; id = in.readByte() & 0xFF) {
 			String key = in.readUTF();

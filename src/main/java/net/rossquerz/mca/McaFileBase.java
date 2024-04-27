@@ -1,6 +1,7 @@
 package net.rossquerz.mca;
 
 
+import net.rossquerz.nbt.io.CompressionType;
 import net.rossquerz.util.ArgValidator;
 import net.rossquerz.mca.util.IntPointXZ;
 
@@ -269,11 +270,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 					continue;
 				}
 				raf.seek(4096L * globalOffset);
-				lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz);
-
-				if (lastWritten == 0) {
-					continue;
-				}
+				lastWritten = chunk.serialize(raf, chunkXOffset + cx, chunkZOffset + cz, CompressionType.GZIP, true);
 
 				chunksWritten++;
 

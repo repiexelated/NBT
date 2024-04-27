@@ -32,7 +32,7 @@ public abstract class NbtTestCase extends TestCase {
 	protected byte[] serialize(Tag<?> tag) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try (DataOutputStream dos = new DataOutputStream(baos)) {
-			new BinaryNbtSerializer(false).toStream(new NamedTag(null, tag), dos);
+			new BinaryNbtSerializer(CompressionType.NONE).toStream(new NamedTag(null, tag), dos);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			fail(ex.getMessage());
@@ -42,7 +42,7 @@ public abstract class NbtTestCase extends TestCase {
 
 	protected Tag<?> deserialize(byte[] data) {
 		try (DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data))) {
-			return new BinaryNbtDeserializer(false).fromStream(dis).getTag();
+			return new BinaryNbtDeserializer(CompressionType.NONE).fromStream(dis).getTag();
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			fail(ex.getMessage());
@@ -66,7 +66,7 @@ public abstract class NbtTestCase extends TestCase {
 	protected NamedTag deserializeFromFile(String f) {
 		if (!f.endsWith(".snbt") && !f.endsWith(".snbt.gz")) {
 			try {
-				return BinaryNbtHelpers.read(getResourceFile(f));
+				return BinaryNbtHelpers.read(getResourceFile(f), CompressionType.NONE);
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				fail(ex.getMessage());

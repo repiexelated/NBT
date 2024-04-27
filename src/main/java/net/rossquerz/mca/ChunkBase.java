@@ -4,6 +4,7 @@ import net.rossquerz.mca.util.IntPointXZ;
 import net.rossquerz.mca.util.TracksUnreadDataTags;
 import net.rossquerz.nbt.io.BinaryNbtDeserializer;
 import net.rossquerz.nbt.io.BinaryNbtSerializer;
+import net.rossquerz.nbt.io.CompressionType;
 import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
@@ -26,7 +27,7 @@ import static net.rossquerz.mca.LoadFlags.*;
  *     Define all member initialization in {@link #initMembers()} or be very confused!
  * </p><p>
  *     Due to how Java initializes objects, this base class will call {@link #initReferences(long)} before any inline
- *     member initialization has occurred. The symptom of using in line member initialization is that you will get
+ *     member initialization has occurred. The symptom of using inline member initialization is that you will get
  *     very confusing {@link NullPointerException}'s from within {@link #initReferences(long)} for members which
  *     are accessed by your {@link #initReferences(long)} implementation that you have defined inline initializers for
  *     because those initializers will not run until AFTER {@link #initReferences(long)} returns.
@@ -231,33 +232,40 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 		return moveChunk(chunkX, chunkZ, false);
 	}
 
-
 	/**
-	 * Serializes this chunk to a <code>RandomAccessFile</code>.
-	 * @param raf The RandomAccessFile to be written to.
+	 * Serializes this chunk to a <code>DataOutput</code> sink.
+	 * @param sink The DataOutput to be written to.
 	 * @param xPos The x-coordinate of the chunk.
-	 * @param zPos The z-coodrinate of the chunk.
-	 * @return The amount of bytes written to the RandomAccessFile.
+	 * @param zPos The z-coordinate of the chunk.
+	 * @param compressionType Chunk compression strategy to use.
+	 * @param writeByteLengthPrefixInt when true the first thing written to the sink will be the total bytes written
+	 *                                 (a value equal to 4 less than the return value).
+	 * @return The amount of bytes written to the DataOutput.
 	 * @throws UnsupportedOperationException When something went wrong during writing.
 	 * @throws IOException When something went wrong during writing.
 	 */
-	public int serialize(RandomAccessFile raf, int xPos, int zPos) throws IOException {
+	public int serialize(DataOutput sink, int xPos, int zPos, CompressionType compressionType, boolean writeByteLengthPrefixInt) throws IOException {
 		if (partial) {
 			throw new UnsupportedOperationException("Partially loaded chunks cannot be serialized");
 		}
 		ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
-		try (BufferedOutputStream nbtOut = new BufferedOutputStream(CompressionType.ZLIB.compress(baos))) {
-			new BinaryNbtSerializer(false).toStream(new NamedTag(null, updateHandle(xPos, zPos)), nbtOut);
-		}
+		new BinaryNbtSerializer(compressionType).toStream(new NamedTag(null, updateHandle(xPos, zPos)), baos);
+//		try (BufferedOutputStream nbtOut = new BufferedOutputStream(compressionType.compress(baos))) {
+//			new BinaryNbtSerializer(false).toStream(new NamedTag(null, updateHandle(xPos, zPos)), nbtOut);
+//		}
 		byte[] rawData = baos.toByteArray();
-		raf.writeInt(rawData.length + 1); // including the byte to store the compression type
-		raf.writeByte(CompressionType.ZLIB.getID());
-		raf.write(rawData);
-		return rawData.length + 5;
+		if (writeByteLengthPrefixInt)
+			sink.writeInt(rawData.length + 1); // including the byte to store the compression type
+		sink.writeByte(compressionType.getID());
+		sink.write(rawData);
+		return rawData.length + (writeByteLengthPrefixInt ? 5 : 1);
 	}
 
 	/**
 	 * Reads chunk data from a RandomAccessFile. The RandomAccessFile must already be at the correct position.
+	 * <p>It is expected that the byte size int has already been read and the next byte indicates the compression
+	 * used. Essentially this method is symmetrical to {@link #serialize(DataOutput, int, int, CompressionType, boolean)}
+	 * when passing writeByteLengthPrefixInt=false</p>
 	 * @param raf The RandomAccessFile to read the chunk data from.
 	 * @throws IOException When something went wrong during reading.
 	 */
@@ -267,18 +275,35 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 
 	/**
 	 * Reads chunk data from a RandomAccessFile. The RandomAccessFile must already be at the correct position.
+	 * <p>It is expected that the byte size int has already been read and the next byte indicates the compression
+	 * used. Essentially this method is symmetrical to {@link #serialize(DataOutput, int, int, CompressionType, boolean)}
+	 * when passing writeByteLengthPrefixInt=false</p>
 	 * @param raf The RandomAccessFile to read the chunk data from.
 	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
 	 * @throws IOException When something went wrong during reading.
 	 */
 	public void deserialize(RandomAccessFile raf, long loadFlags) throws IOException {
-		byte compressionTypeByte = raf.readByte();
-		CompressionType compressionType = CompressionType.getFromID(compressionTypeByte);
+		deserialize(new FileInputStream(raf.getFD()), loadFlags);
+	}
+
+	/**
+	 * Reads chunk data from an InputStream. The InputStream must already be at the correct position.
+	 * <p>It is expected that the byte size int has already been read and the next byte indicates the compression
+	 * used. Essentially this method is symmetrical to {@link #serialize(DataOutput, int, int, CompressionType, boolean)}
+	 * when passing writeByteLengthPrefixInt=false</p>
+	 * @param inputStream The stream to read the chunk data from.
+	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+	 * @throws IOException When something went wrong during reading.
+	 */
+	public void deserialize(InputStream inputStream, long loadFlags) throws IOException {
+		int compressionTypeByte = inputStream.read();
+		if (compressionTypeByte < 0)
+			throw new EOFException();
+		CompressionType compressionType = CompressionType.getFromID((byte) compressionTypeByte);
 		if (compressionType == null) {
 			throw new IOException("invalid compression type " + compressionTypeByte);
 		}
-		BufferedInputStream dis = new BufferedInputStream(compressionType.decompress(new FileInputStream(raf.getFD())));
-		NamedTag tag = new BinaryNbtDeserializer(false).fromStream(dis);
+		NamedTag tag = new BinaryNbtDeserializer(compressionType).fromStream(inputStream);
 		if (tag != null && tag.getTag() instanceof CompoundTag) {
 			data = (CompoundTag) tag.getTag();
 			initReferences0(loadFlags);
