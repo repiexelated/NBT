@@ -58,4 +58,13 @@ public class TextNbtHelpersTest extends NbtTestCase {
         StringTag readTag = readTextNbtFile(tempFile).getTagAutoCast();
         assertEquals(tag, readTag);
     }
+
+    public void testWriteTextNbt_writeGzFile() throws IOException {
+        NamedTag namedTagGolden = readTextNbtFile(getResourceFile("text_nbt_samples/named_tag_sample-with_bom.snbt"));
+        File tempFile = getNewTmpFile("text_nbt_helpers_test/write_gz_file.snbt.gz");
+        assertEquals(tempFile.toPath(), writeTextNbtFile(tempFile, namedTagGolden));
+        NamedTag readTag = readTextNbtFile(tempFile);
+        assertEquals(namedTagGolden, readTag);
+        verify(readTag.getTagAutoCast());
+    }
 }

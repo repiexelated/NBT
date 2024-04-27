@@ -9,11 +9,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Utilities for converting {@link Tag}'s  and {@link NamedTag}'s to and from string NBT text data and files.
  * <p>NOTE: {@link #readTextNbtFile(File)}, and its variants, can read both uncompressed (plain text) and GZ
- * compressed files (usually ending in .gz file extension).</p>
+ * compressed files (usually ending in .gz file extension - but the extension itself is not evaluated, instead
+ * the gzip magic number/bom is looked for).</p>
+ * <p>NOTE: {@link #writeTextNbtFile(File, Tag)}, and its variants, can write both uncompressed (plain text) and GZ
+ * compressed files. If the given file name ends in the '.gz' extension it will be written as a compressed file,
+ * otherwise it will be written as plain text.</p>
  */
 public final class TextNbtHelpers {
 	private TextNbtHelpers() {}
@@ -73,14 +79,31 @@ public final class TextNbtHelpers {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="write to file">
-	public static Path writeTextNbtFile(Path filePath, Tag<?> tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+
+	private static Path writeTextNbtFile0(Path filePath, Object tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
 		if (!filePath.getParent().toFile().exists()) {
 			ArgValidator.check(filePath.getParent().toFile().mkdirs(),
 					"Failed to create parent directory for " + filePath.toAbsolutePath());
 		}
-		Files.write(filePath, toTextNbt(tag, prettyPrint, sortCompoundTagEntries).getBytes(StandardCharsets.UTF_8));
+		byte[] data;
+		if (tag instanceof NamedTag) {
+			data = toTextNbt((NamedTag) tag, prettyPrint, sortCompoundTagEntries).getBytes(StandardCharsets.UTF_8);
+		} else {
+			data = toTextNbt((Tag<?>) tag, prettyPrint, sortCompoundTagEntries).getBytes(StandardCharsets.UTF_8);
+		}
+		if (!filePath.getFileName().toString().toLowerCase().endsWith(".gz")) {
+			Files.write(filePath, data);
+		} else {
+			try (GZIPOutputStream gzOut = new GZIPOutputStream(new FileOutputStream(filePath.toFile()))) {
+				gzOut.write(data);
+			}
+		}
 		return filePath;
+	}
+
+	// <editor-fold desc="write Tag<?> to file">
+	public static Path writeTextNbtFile(Path filePath, Tag<?> tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+		return writeTextNbtFile0(filePath, tag, prettyPrint, sortCompoundTagEntries);
 	}
 
 	/** defaults to sortCompoundTagEntries=true */
@@ -147,10 +170,80 @@ public final class TextNbtHelpers {
 	}
 	// </editor-fold>
 
+
+	// <editor-fold desc="write NamedTag to file">
+	public static Path writeTextNbtFile(Path filePath, NamedTag tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+		return writeTextNbtFile0(filePath, tag, prettyPrint, sortCompoundTagEntries);
+	}
+
+	/** defaults to sortCompoundTagEntries=true */
+	public static Path writeTextNbtFile(Path filePath, NamedTag tag, boolean prettyPrint) throws IOException {
+		return writeTextNbtFile(filePath, tag, prettyPrint, true);
+	}
+
+	/** defaults to sortCompoundTagEntries=true */
+	public static Path writeTextNbtFile(File file, NamedTag tag, boolean prettyPrint) throws IOException {
+		return writeTextNbtFile(file.toPath(), tag, prettyPrint, true);
+	}
+
+	/** defaults to sortCompoundTagEntries=true */
+	public static Path writeTextNbtFile(String file, NamedTag tag, boolean prettyPrint) throws IOException {
+		return writeTextNbtFile(Paths.get(file), tag, prettyPrint, true);
+	}
+
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
+	public static Path writeTextNbtFile(Path filePath, NamedTag tag) throws IOException {
+		return writeTextNbtFile(filePath, tag, true, true);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
+	public static Path writeTextNbtFile(File file, NamedTag tag) throws IOException {
+		return writeTextNbtFile(file.toPath(), tag, true, true);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
+	public static Path writeTextNbtFile(String file, NamedTag tag) throws IOException {
+		return writeTextNbtFile(Paths.get(file), tag, true, true);
+	}
+
+
+	/** defaults to sortCompoundTagEntries=false */
+	public static Path writeTextNbtFileUnsorted(Path filePath, NamedTag tag, boolean prettyPrint) throws IOException {
+		return writeTextNbtFile(filePath, tag, prettyPrint, false);
+	}
+
+	/** defaults to sortCompoundTagEntries=false */
+	public static Path writeTextNbtFileUnsorted(File file, NamedTag tag, boolean prettyPrint) throws IOException {
+		return writeTextNbtFile(file.toPath(), tag, prettyPrint, false);
+	}
+
+	/** defaults to sortCompoundTagEntries=false */
+	public static Path writeTextNbtFileUnsorted(String file, NamedTag tag, boolean prettyPrint) throws IOException {
+		return writeTextNbtFile(Paths.get(file), tag, prettyPrint, false);
+	}
+
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
+	public static Path writeTextNbtFileUnsorted(Path filePath, NamedTag tag) throws IOException {
+		return writeTextNbtFile(filePath, tag, true, false);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
+	public static Path writeTextNbtFileUnsorted(File file, NamedTag tag) throws IOException {
+		return writeTextNbtFile(file.toPath(), tag, true, false);
+	}
+
+	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
+	public static Path writeTextNbtFileUnsorted(String file, NamedTag tag) throws IOException {
+		return writeTextNbtFile(Paths.get(file), tag, true, false);
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="read from file">
 	/** The given file can be either plain text (uncompressed) or gz compressed. */
 	public static NamedTag readTextNbtFile(File file) throws IOException {
-		try (DataInputStream dis = new DataInputStream(BinaryNbtHelpers.detectDecompression(new FileInputStream(file)))) {
+		try (DataInputStream dis = new DataInputStream(detectDecompression(new FileInputStream(file)))) {
 			return new TextNbtDeserializer().fromStream(dis);
 		}
 	}
@@ -165,4 +258,17 @@ public final class TextNbtHelpers {
 		return readTextNbtFile(path.toFile());
 	}
 	// </editor-fold>
+
+	static InputStream detectDecompression(InputStream is) throws IOException {
+		PushbackInputStream pbis = new PushbackInputStream(is, 2);
+		int b0 = pbis.read();
+		int b1 = pbis.read();
+		int signature = (b0 & 0xFF) | (b1 << 8);
+		if (b1 >= 0) pbis.unread(b1);
+		if (b0 >= 0) pbis.unread(b0);
+		if (signature == GZIPInputStream.GZIP_MAGIC) {
+			return new GZIPInputStream(pbis);
+		}
+		return pbis;
+	}
 }
