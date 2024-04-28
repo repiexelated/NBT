@@ -111,7 +111,7 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
             int ch2 = in.read();
             int ch3 = in.read();
             int ch4 = in.read();
-            if ((ch1 | ch2 | ch3 | ch4) < 0)
+            if (ch1 < 0 || ch2 < 0 || ch3 < 0 || ch4 < 0)
                 throw new EOFException();
             int timestamp = (ch1 << 24) + (ch2 << 16) + (ch3 << 8) + ch4;
             if (offsets[i] > 0) {
