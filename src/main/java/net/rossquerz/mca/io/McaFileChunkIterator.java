@@ -6,6 +6,7 @@ import net.rossquerz.mca.util.ChunkIterator;
 import net.rossquerz.mca.util.IntPointXZ;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -20,13 +21,54 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
     private final long loadFlags;
     private final List<ChunkMetaInfo> chunkMetaInfos;
     private final Iterator<ChunkMetaInfo> iter;
+    private final IntPointXZ regionXZ;
     private ChunkMetaInfo current;
 
-    public static <T extends ChunkBase> McaFileChunkIterator<T> iterate(Supplier<T> chunkCreator, File file, long loadFlags) throws IOException {
+    /**
+     * This map controls the factory creation behavior of the various "auto" functions. When an auto function is
+     * given an mca file location the folder name which contains the .mca files is used to lookup the correct
+     * mca file creator from this map. For example, if an auto method were passed the path
+     * "foo/bar/creator_name/r.4.2.mca" it would call {@code MCA_CREATORS.get("creator_name").apply(4, 2)}.
+     * <p>By manipulating this map you can control the factory behavior to support new mca types or to specify
+     * that a custom creation method should be called which could even return a custom {@link McaFileBase}
+     * implementation.</p>
+     */
+    public static final Map<String, Supplier<? extends ChunkBase>> DEFAULT_CHUNK_CREATORS = new HashMap<>();
+
+    static {
+        DEFAULT_CHUNK_CREATORS.put("region", TerrainChunk::new);
+        DEFAULT_CHUNK_CREATORS.put("poi", PoiChunk::new);
+        DEFAULT_CHUNK_CREATORS.put("entities", EntitiesChunk::new);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends ChunkBase> McaFileChunkIterator<T> iterate(File file, long loadFlags) throws IOException {
+        Supplier<T> chunkCreator = (Supplier<T>) DEFAULT_CHUNK_CREATORS.get(file.getParentFile().getName());
         return new McaFileChunkIterator<>(
                 chunkCreator,
                 McaFileHelpers.regionXZFromFileName(file.getName()),
                 new BufferedInputStream(new FileInputStream(file)),
+                loadFlags
+        );
+    }
+
+    public static <T extends ChunkBase> McaFileChunkIterator<T> iterate(File file, long loadFlags, Supplier<T> chunkCreator) throws IOException {
+        return new McaFileChunkIterator<>(
+                chunkCreator,
+                McaFileHelpers.regionXZFromFileName(file.getName()),
+                new BufferedInputStream(new FileInputStream(file)),
+                loadFlags
+        );
+    }
+
+
+    @SuppressWarnings("unchecked")
+    public static <T extends ChunkBase> McaFileChunkIterator<T> iterate(InputStream stream, String fileName, long loadFlags) throws IOException {
+        Supplier<T> chunkCreator = (Supplier<T>) DEFAULT_CHUNK_CREATORS.get(new File(fileName).getParentFile().getName());
+        return new McaFileChunkIterator<>(
+                chunkCreator,
+                McaFileHelpers.regionXZFromFileName(fileName),
+                stream,
                 loadFlags
         );
     }
@@ -39,8 +81,9 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
      * @throws IOException
      */
     public McaFileChunkIterator(Supplier<T> chunkCreator, IntPointXZ regionXZ, InputStream stream, long loadFlags) throws IOException {
-        this.chunkCreator = chunkCreator;
-        this.chunkAbsXzOffset = regionXZ.multiply(32);
+        this.chunkCreator = Objects.requireNonNull(chunkCreator);
+        this.regionXZ = regionXZ;
+        this.chunkAbsXzOffset = regionXZ.transformRegionToChunk();
         this.in = new PositionTrackingInputStream(stream);
         this.loadFlags = loadFlags;
         final int[] offsets = new int[1024];
@@ -79,6 +122,14 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
         iter = chunkMetaInfos.iterator();
     }
 
+    public IntPointXZ chunkAbsXzOffset() {
+        return chunkAbsXzOffset;
+    }
+
+    public IntPointXZ regionXZ() {
+        return regionXZ;
+    }
+
     @Override
     public boolean hasNext() {
         return iter.hasNext();
@@ -88,13 +139,14 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
     public T next() {
         current = iter.next();
         try {
+            in.setSoftEof(0);
             in.skipTo(4096L * current.offset + 4);  //+4 skip chunk byte count
             in.setSoftEof(4096L * (current.offset + current.sectors));
             T currentChunk = chunkCreator.get();
             currentChunk.deserialize(in, loadFlags, current.timestamp, currentAbsoluteX(), currentAbsoluteZ());
             return currentChunk;
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            throw new RuntimeException("Error processing " + current, ex);
         }
     }
 

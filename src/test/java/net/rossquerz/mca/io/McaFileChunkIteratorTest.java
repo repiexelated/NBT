@@ -9,9 +9,8 @@ public class McaFileChunkIteratorTest extends McaTestCase {
 
     public void validateIteratePoiFile(long loadFlags) throws IOException {
         McaFileChunkIterator<PoiChunk> iter = McaFileChunkIterator.iterate(
-                PoiChunk::new,
-                getResourceFile("1_20_4/poi/r.-3.-3.mca"),
-                loadFlags);
+                getResourceFile("1_20_4/poi/r.-3.-3.mca"), loadFlags, PoiChunk::new
+        );
 //        System.out.println(iter);
         assertTrue(iter.hasNext());
         PoiChunk chunk = iter.next();
@@ -65,9 +64,8 @@ public class McaFileChunkIteratorTest extends McaTestCase {
 
     public void validateIterateRegionFile(long loadFlags) throws IOException {
         McaFileChunkIterator<TerrainChunk> iter = McaFileChunkIterator.iterate(
-                TerrainChunk::new,
-                getResourceFile("1_20_4/region/r.-3.-3.mca"),
-                loadFlags);
+                getResourceFile("1_20_4/region/r.-3.-3.mca"), loadFlags, TerrainChunk::new
+        );
 //        System.out.println(iter);
         assertTrue(iter.hasNext());
         TerrainChunk chunk = iter.next();
@@ -110,9 +108,8 @@ public class McaFileChunkIteratorTest extends McaTestCase {
 
     public void validateIterateEntitiesFile(long loadFlags) throws IOException {
         McaFileChunkIterator<EntitiesChunk> iter = McaFileChunkIterator.iterate(
-                EntitiesChunk::new,
-                getResourceFile("1_20_4/entities/r.-3.-3.mca"),
-                loadFlags);
+                getResourceFile("1_20_4/entities/r.-3.-3.mca"), loadFlags, EntitiesChunk::new
+        );
 //        System.out.println(iter);
         assertTrue(iter.hasNext());
         EntitiesChunk chunk = iter.next();

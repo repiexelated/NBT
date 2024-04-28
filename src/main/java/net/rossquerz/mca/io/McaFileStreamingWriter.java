@@ -11,7 +11,7 @@ import java.nio.file.Path;
  * Provides a streaming data sink for writing a region file. Chunks can be written in any order.
  * Attempting to write a chunk (XZ) that has already been written will throw {@link IOException}.
  */
-public class McaFileStreamingWriter<T extends ChunkBase> implements Closeable {
+public class McaFileStreamingWriter implements Closeable {
     private final int[] chunkSectors = new int[1024];
     private final int[] chunkTimestamps = new int[1024];
 
@@ -37,7 +37,7 @@ public class McaFileStreamingWriter<T extends ChunkBase> implements Closeable {
         this(path.toFile());
     }
 
-    public void write(T chunk) throws IOException {
+    public void write(ChunkBase chunk) throws IOException {
         ArgValidator.requireValue(chunk);
         if (chunk.getChunkX() == ChunkBase.NO_CHUNK_COORD_SENTINEL || chunk.getChunkZ() == ChunkBase.NO_CHUNK_COORD_SENTINEL) {
             throw new IllegalArgumentException("Chunk XZ must be set!");
@@ -67,17 +67,9 @@ public class McaFileStreamingWriter<T extends ChunkBase> implements Closeable {
     public void close() throws IOException {
         raf.seek(0);
         for (int i : chunkSectors) {
-//            raf.write(i >>> 24);
-//            raf.write(i >>> 16 & 0xFF);
-//            raf.write(i >>> 8 & 0xFF);
-//            raf.write(i & 0xFF);
             raf.writeInt(i);
         }
         for (int i : chunkTimestamps) {
-//            raf.write((i >>> 24) & 0xFF);
-//            raf.write((i >>> 16) & 0xFF);
-//            raf.write((i >>>  8) & 0xFF);
-//            raf.write((i >>>  0) & 0xFF);
             raf.writeInt(i);
         }
         raf.close();

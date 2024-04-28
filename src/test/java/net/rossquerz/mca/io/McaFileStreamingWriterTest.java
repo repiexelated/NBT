@@ -11,7 +11,7 @@ import static net.rossquerz.mca.util.IntPointXZ.XZ;
 public class McaFileStreamingWriterTest extends McaTestCase {
     public void testWriteTerrainChunk() throws IOException {
         File file = getNewTmpFile("streaming_writer/region/r.0.1.mca");
-        McaFileStreamingWriter<TerrainChunk> writer = new McaFileStreamingWriter<>(file);
+        McaFileStreamingWriter writer = new McaFileStreamingWriter(file);
 
         final TerrainChunk chunk1 = new TerrainChunk();
         chunk1.setLastMCAUpdate(12345678);
@@ -32,9 +32,8 @@ public class McaFileStreamingWriterTest extends McaTestCase {
         assertEquals(4 * 4096, Files.size(file.toPath()));
 
         McaFileChunkIterator<TerrainChunk> iter = McaFileChunkIterator.iterate(
-                TerrainChunk::new,
-                file,
-                LoadFlags.LOAD_ALL_DATA);
+                file, LoadFlags.LOAD_ALL_DATA, TerrainChunk::new
+        );
 
         assertTrue(iter.hasNext());
         final TerrainChunk chunk1in = iter.next();
