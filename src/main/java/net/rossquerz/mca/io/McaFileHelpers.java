@@ -372,6 +372,10 @@ public final class McaFileHelpers {
 		return "r." + regionX + "." + regionZ + ".mca";
 	}
 
+	public static String createNameFromRegionLocation(IntPointXZ regionXZ) {
+		return "r." + regionXZ.getX() + "." + regionXZ.getZ() + ".mca";
+	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="Coordinate Helpers">
