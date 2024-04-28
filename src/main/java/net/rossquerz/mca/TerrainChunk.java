@@ -41,6 +41,11 @@ public class TerrainChunk extends TerrainChunkBase<TerrainSection> {
 		super(data, loadFlags);
 	}
 
+	public TerrainChunk() {
+		super(DataVersion.latest().id());
+		data = new CompoundTag();
+	}
+
 	@Override
 	protected TerrainSection createSection(CompoundTag section, int dataVersion, long loadFlags) {
 		return new TerrainSection(section, dataVersion, loadFlags);

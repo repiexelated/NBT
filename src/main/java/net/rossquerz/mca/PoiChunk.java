@@ -8,6 +8,10 @@ public class PoiChunk extends PoiChunkBase<PoiRecord>{
         super(dataVersion);
     }
 
+    public PoiChunk() {
+        super(DataVersion.latest().id());
+    }
+
     public PoiChunk(CompoundTag data) {
         super(data);
     }
