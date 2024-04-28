@@ -14,5 +14,10 @@ public final class MoveChunkFlags {
     public static final long DISCARD_STRUCTURE_REFERENCES_OUTSIDE_REGION = 0x0000_0002;
 
 
-    public static final long MOVE_CHUNK_DEFAULT_FLAGS                    = 0x0000_FFFF_FFFF_FFFFL;
+    /** When set all structure references and start tags will be discarded. Any structures which have already
+     * been generated will still exist, but they won't behave any differently than if they were player built.
+     * E.g. structure spawns won't happen. */
+    public static final long DISCARD_STRUCTURE_DATA = 0x0000_0002_0000_0000L;
+
+    public static final long MOVE_CHUNK_DEFAULT_FLAGS                    = 0x0000_0000_FFFF_FFFFL;
 }
