@@ -191,7 +191,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	 * @see #moveChunk(int, int, boolean)
 	 */
 	public IntPointXZ getChunkXZ() {
-		return new IntPointXZ(chunkX, chunkZ);
+		return new IntPointXZ(getChunkX(), getChunkZ());
 	}
 
 	/**
@@ -267,23 +267,14 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	 * used. Essentially this method is symmetrical to {@link #serialize(DataOutput, int, int, CompressionType, boolean)}
 	 * when passing writeByteLengthPrefixInt=false</p>
 	 * @param raf The RandomAccessFile to read the chunk data from.
-	 * @throws IOException When something went wrong during reading.
-	 */
-	public void deserialize(RandomAccessFile raf) throws IOException {
-		deserialize(raf, LOAD_ALL_DATA);
-	}
-
-	/**
-	 * Reads chunk data from a RandomAccessFile. The RandomAccessFile must already be at the correct position.
-	 * <p>It is expected that the byte size int has already been read and the next byte indicates the compression
-	 * used. Essentially this method is symmetrical to {@link #serialize(DataOutput, int, int, CompressionType, boolean)}
-	 * when passing writeByteLengthPrefixInt=false</p>
-	 * @param raf The RandomAccessFile to read the chunk data from.
 	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+	 * @param lastMCAUpdateTimestamp Last mca update timestamp - epoch seconds. If LT0 the current system timestamp will be used.
+	 * @param chunkAbsXHint The absolute chunk x-coord which should be used if the nbt data doesn't contain this information.
+	 * @param chunkAbsZHint The absolute chunk z-coord which should be used if the nbt data doesn't contain this information.
 	 * @throws IOException When something went wrong during reading.
 	 */
-	public void deserialize(RandomAccessFile raf, long loadFlags) throws IOException {
-		deserialize(new FileInputStream(raf.getFD()), loadFlags);
+	public void deserialize(RandomAccessFile raf, long loadFlags, int lastMCAUpdateTimestamp, int chunkAbsXHint, int chunkAbsZHint) throws IOException {
+		deserialize(new FileInputStream(raf.getFD()), loadFlags, lastMCAUpdateTimestamp, chunkAbsXHint, chunkAbsZHint);
 	}
 
 	/**
@@ -293,9 +284,12 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	 * when passing writeByteLengthPrefixInt=false</p>
 	 * @param inputStream The stream to read the chunk data from.
 	 * @param loadFlags A logical or of {@link LoadFlags} constants indicating what data should be loaded
+	 * @param lastMCAUpdateTimestamp Last mca update timestamp - epoch seconds. If LT0 the current system timestamp will be used.
+	 * @param chunkAbsXHint The absolute chunk x-coord which should be used if the nbt data doesn't contain this information.
+	 * @param chunkAbsZHint The absolute chunk z-coord which should be used if the nbt data doesn't contain this information.
 	 * @throws IOException When something went wrong during reading.
 	 */
-	public void deserialize(InputStream inputStream, long loadFlags) throws IOException {
+	public void deserialize(InputStream inputStream, long loadFlags, int lastMCAUpdateTimestamp, int chunkAbsXHint, int chunkAbsZHint) throws IOException {
 		int compressionTypeByte = inputStream.read();
 		if (compressionTypeByte < 0)
 			throw new EOFException();
@@ -306,6 +300,9 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 		NamedTag tag = new BinaryNbtDeserializer(compressionType).fromStream(inputStream);
 		if (tag != null && tag.getTag() instanceof CompoundTag) {
 			data = (CompoundTag) tag.getTag();
+			this.lastMCAUpdate = lastMCAUpdateTimestamp >= 0 ? lastMCAUpdateTimestamp : (int)(System.currentTimeMillis() / 1000);
+			this.chunkX = chunkAbsXHint;
+			this.chunkZ = chunkAbsZHint;
 			initReferences0(loadFlags);
 		} else {
 			throw new IOException("invalid data tag: " + (tag == null ? "null" : tag.getClass().getName()));

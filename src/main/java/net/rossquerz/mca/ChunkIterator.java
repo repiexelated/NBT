@@ -28,16 +28,27 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      *
      * @return Current chunk x within region in range [0-31]
      */
-    int currentX();
+    default int currentX(){
+        return currentIndex() & 0x1F;
+    }
 
     /**
      * Note this value is calculated from the iterators position and is therefore known even if the chunk is null.
      *
      * @return Current chunk z within region in range [0-31]
      */
-    int currentZ();
+    default int currentZ() {
+        return (currentIndex() >> 5) & 0x1F;
+    }
 
-    IntPointXZ currentXZ();
+    /**
+     * Note this value is calculated from the iterators position and is therefore known even if the chunk is null.
+     *
+     * @return Current chunk xz within region, both x and z will be in range [0-31]
+     */
+    default IntPointXZ currentXZ() {
+        return new IntPointXZ(currentX(), currentZ());
+    }
 
     /**
      * Note this value is calculated from the iterators position not read from {@link ChunkBase#getChunkX()} and is
@@ -61,5 +72,7 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      */
     int currentAbsoluteZ();
 
-    IntPointXZ currentAbsoluteXZ();
+    default IntPointXZ currentAbsoluteXZ() {
+        return new IntPointXZ(currentAbsoluteX(), currentAbsoluteZ());
+    }
 }

@@ -160,10 +160,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 	 */
 	protected T deserializeChunk(RandomAccessFile raf, long loadFlags, int timestamp, IntPointXZ chunkAbsXZ) throws IOException {
 		T chunk = createChunk();
-		chunk.setLastMCAUpdate(timestamp);
-		chunk.chunkX = chunkAbsXZ.getX();
-		chunk.chunkZ = chunkAbsXZ.getZ();
-		chunk.deserialize(raf, loadFlags);
+		chunk.deserialize(raf, loadFlags, timestamp, chunkAbsXZ.getX(), chunkAbsXZ.getZ());
 		// I'm going to leave this as an "idea" for now
 //		if (!chunkAbsXZ.equals(chunk.getChunkX(), chunk.getChunkZ())) {
 //			// this would be a good place for a logger warning
@@ -198,6 +195,11 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 		maxDataVersion = Integer.MIN_VALUE;
 		final IntPointXZ chunkOffsetXZ = new IntPointXZ(regionX * 32, regionZ * 32);
 		for (int i = 0; i < 1024; i++) {
+			// Location information for a chunk consists of four bytes split into two fields:
+			// the first three bytes are a (big-endian) offset in 4KiB sectors from the start of the file,
+			// and a remaining byte that gives the length of the chunk (also in 4KiB sectors, rounded up).
+			// Chunks are always less than 1MiB in size. If a chunk isn't present in the region file
+			// (e.g. because it hasn't been generated or migrated yet), both fields are zero.
 			raf.seek(i * 4);
 			int offset = raf.read() << 16;
 			offset |= (raf.read() & 0xFF) << 8;
@@ -205,7 +207,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 			if (raf.readByte() == 0) {
 				continue;
 			}
-			raf.seek(4096 + i * 4);
+			raf.seek(4096 + (i * 4));
 			int timestamp = raf.readInt();
 			raf.seek(4096L * offset + 4); //+4: skip data size
 			T chunk = deserializeChunk(raf, loadFlags, timestamp,
@@ -234,7 +236,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 	 * @throws IOException If something went wrong during serialization.
 	 */
 	public int serialize(RandomAccessFile raf) throws IOException {
-		return serialize(raf, CompressionType.GZIP, false);
+		return serialize(raf, CompressionType.ZLIB, false);
 	}
 
 	/**
@@ -286,6 +288,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 
 				chunksWritten++;
 
+				// compute the count of 4kb sectors the chunk data occupies
 				int sectors = (lastWritten >> 12) + (lastWritten % 4096 == 0 ? 0 : 1);
 
 				raf.seek(index * 4L);
@@ -485,21 +488,6 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 		}
 
 		@Override
-		public int currentX() {
-			return currentIndex & 0x1F;
-		}
-
-		@Override
-		public int currentZ() {
-			return (currentIndex >> 5) & 0x1F;
-		}
-
-		@Override
-		public IntPointXZ currentXZ() {
-			return new IntPointXZ(currentX(), currentZ());
-		}
-
-		@Override
 		public int currentAbsoluteX() {
 			return currentX() + owner.getRegionX() * 32;
 		}
@@ -507,11 +495,6 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 		@Override
 		public int currentAbsoluteZ() {
 			return currentZ() + owner.getRegionZ() * 32;
-		}
-
-		@Override
-		public IntPointXZ currentAbsoluteXZ() {
-			return new IntPointXZ(currentAbsoluteX(), currentAbsoluteZ());
 		}
 	}
 }
