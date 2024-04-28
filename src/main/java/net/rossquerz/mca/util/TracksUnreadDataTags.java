@@ -8,7 +8,7 @@ import java.util.*;
 public interface TracksUnreadDataTags {
     /**
      * Gets the unmodifiable set of data tag keys which were not read during initialization.
-     * @return Nullable - null if LoadFags contained {@link LoadFlags#RAW} - else the unmodifiable set of unread key names.</p>
+     * @return Nullable - null if LoadFags contained {@link LoadFlags#RAW} - else the unmodifiable set of unread key names
      */
     Set<String> getUnreadDataTagKeys();
 
@@ -20,7 +20,7 @@ public interface TracksUnreadDataTags {
      * removing them would while setting them would not).
      * <p>Basically know what you're doing when modifying the returned value - or don't modify it at all.</p>
      * @return NotNull - if LoadFlags specified {@link LoadFlags#RAW} then the raw data is returned - else a new
-     * CompoundTag populated, by reference, with values that were not read during initialization.</p>
+     * CompoundTag populated, by reference, with values that were not read during initialization.
      */
     CompoundTag getUnreadDataTags();
 }

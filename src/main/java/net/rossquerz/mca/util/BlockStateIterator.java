@@ -5,9 +5,9 @@ import net.rossquerz.nbt.tag.CompoundTag;
 
 import java.util.Iterator;
 
+// TODO: use or remove
 /**
  * Enhanced iterable/iterator for iterating over {@link TerrainSection} block data.
- * See {@link TerrainSection#blocksStates()}
  */
 public interface BlockStateIterator extends Iterable<CompoundTag>, Iterator<CompoundTag> {
     /**

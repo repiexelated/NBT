@@ -63,7 +63,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	/**
 	 * {@inheritDoc}
 	 * @return NotNull - if LoadFlags specified {@link LoadFlags#RAW} then the raw data is returned - else a new
-	 * CompoundTag populated, by reference, with values that were not read during {@link #initReferences(long)}.</p>
+	 * CompoundTag populated, by reference, with values that were not read during {@link #initReferences(long)}.
 	 */
 	public CompoundTag getUnreadDataTags() {
 		if (raw) return data;

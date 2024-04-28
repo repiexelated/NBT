@@ -30,7 +30,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("InhabitedTime"));
 
 	/**
-	 * Only populated for data versions < JAVA_1_18_21W39A. For later data versions use
+	 * Only populated for data versions &lt; JAVA_1_18_21W39A. For later data versions use
 	 * {@link net.rossquerz.mca.util.PalettizedCuboid} and load biomes from
 	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/IDs_before_1.13>minecraft.fandom.com/wiki/Biome/IDs_before_1.13</a>
 	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/ID>minecraft.fandom.com/wiki/Biome/ID</a>
