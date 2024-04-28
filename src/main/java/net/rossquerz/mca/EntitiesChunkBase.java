@@ -5,6 +5,7 @@ import net.rossquerz.mca.entities.EntityFactory;
 import net.rossquerz.mca.entities.EntityUtil;
 import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.McaFileHelpers;
+import net.rossquerz.mca.io.MoveChunkFlags;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.DoubleTag;
@@ -123,7 +124,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
 
     /**
      * Sets the entities in this chunk. You should probably follow this call with a call to
-     * {@link #fixEntityLocations()} unless you are sure all of the given entities are already
+     * {@link #fixEntityLocations(long)} unless you are sure all of the given entities are already
      * within the chunks bounds.
      * <p>Does not trigger a handle update. The result of calling {@link #getEntitiesTag()}
      * will not change until {@link #updateHandle()} has been called.</p>
@@ -206,21 +207,22 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     }
 
     /**
-     * Sets this chunks absolute XZ and calls {@link #fixEntityLocations()} returning its result.
+     * Sets this chunks absolute XZ and calls {@link #fixEntityLocations(long)} returning its result.
      * <p>Moving while in RAW mode is supported.</p>
      * @param chunkX new absolute chunk-x
      * @param chunkZ new absolute chunk-z
+     * @param moveChunkFlags {@link net.rossquerz.mca.io.MoveChunkFlags} OR'd together to control move chunk behavior.
      * @param force unused
      * @return true if any data was changed as a result of this call
      * @throws UnsupportedOperationException if loaded in raw mode
      */
     @Override
-    public boolean moveChunk(int chunkX, int chunkZ, boolean force) {
+    public boolean moveChunk(int chunkX, int chunkZ, long moveChunkFlags, boolean force) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
-        return fixEntityLocations();
+        return fixEntityLocations(moveChunkFlags);
     }
 
     /**
@@ -230,7 +232,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
      * @return true if any entity locations were changed; false if no changes were made.
      * @throws UnsupportedOperationException if loaded in raw mode
      */
-    public boolean fixEntityLocations() {
+    public boolean fixEntityLocations(long moveChunkFlags) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
         if (this.chunkX == NO_CHUNK_COORD_SENTINEL || this.chunkZ == NO_CHUNK_COORD_SENTINEL) {
@@ -243,25 +245,26 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                 if (!cbr.contains(entity.getX(), entity.getZ())) {
                     entity.setX(cbr.relocateX(entity.getX()));
                     entity.setZ(cbr.relocateZ(entity.getZ()));
-                    // TODO: scrambling UUID should be configurable
-                    entity.setUuid(UUID.randomUUID());
+                    if ((moveChunkFlags & MoveChunkFlags.RANDOMIZE_ENTITY_UUID) > 0) {
+                        entity.setUuid(UUID.randomUUID());
+                    }
                     changed = true;
                 }
             }
         } else if (entitiesTag != null) {
-            changed = fixEntityLocations(entitiesTag, new ChunkBoundingRectangle(chunkX, chunkZ));
+            changed = fixEntityLocations(moveChunkFlags, entitiesTag, new ChunkBoundingRectangle(chunkX, chunkZ));
         } else if (raw) {
             ListTag<CompoundTag> tag = getTag(ENTITIES_PATH);
             if (tag == null)
                 throw new UnsupportedOperationException("Missing the data required to move this chunk! Didn't find '" +
                         ENTITIES_PATH.get(dataVersion) +
                         "' tag while in RAW mode.");
-            changed = fixEntityLocations(tag, new ChunkBoundingRectangle(chunkX, chunkZ));
+            changed = fixEntityLocations(moveChunkFlags, tag, new ChunkBoundingRectangle(chunkX, chunkZ));
         }
         return changed;
     }
 
-    private boolean fixEntityLocations(ListTag<CompoundTag> entityTags, ChunkBoundingRectangle cbr) {
+    private boolean fixEntityLocations(long moveChunkFlags, ListTag<CompoundTag> entityTags, ChunkBoundingRectangle cbr) {
         boolean changed = false;
         for (CompoundTag entityTag : entityTags) {
             ListTag<DoubleTag> posTag = entityTag.getListTag("Pos").asDoubleTagList();
@@ -270,8 +273,9 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
             if (!cbr.contains(x, z)) {
                 posTag.set(0, new DoubleTag(cbr.relocateX(x)));
                 posTag.set(2, new DoubleTag(cbr.relocateZ(z)));
-                // TODO: scrambling UUID should be configurable
-                EntityUtil.setUuid(dataVersion, entityTag, UUID.randomUUID());
+                if ((moveChunkFlags & MoveChunkFlags.RANDOMIZE_ENTITY_UUID) > 0) {
+                    EntityUtil.setUuid(dataVersion, entityTag, UUID.randomUUID());
+                }
                 changed = true;
             }
             // This is correct even for boats visually straddling a chunk boarder, the passengers share the boat
@@ -283,7 +287,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
             //      {id:"minecraft:pig",Pos:[-1002.5d,63.04d,-672.01d]}
             //    ],Rotation:[-180.0f,0.0f]}
             if (entityTag.containsKey("Passengers")) {
-                changed |= fixEntityLocations(data.getListTag("Passengers").asCompoundTagList(), cbr);
+                changed |= fixEntityLocations(moveChunkFlags, data.getListTag("Passengers").asCompoundTagList(), cbr);
             }
         }
         return changed;

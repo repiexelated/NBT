@@ -4,6 +4,7 @@ import net.rossquerz.mca.entities.EntityBase;
 import net.rossquerz.mca.entities.EntityBaseImpl;
 import net.rossquerz.mca.entities.EntityFactory;
 import net.rossquerz.mca.io.LoadFlags;
+import net.rossquerz.mca.io.MoveChunkFlags;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
@@ -93,7 +94,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertThrowsUnsupportedOperationException(chunk::getEntities);
         assertThrowsUnsupportedOperationException(chunk::getEntitiesTag);
         assertThrowsUnsupportedOperationException(chunk::clearEntities);
-        assertThrowsException(chunk::fixEntityLocations, IllegalStateException.class);
+        assertThrowsException(() -> chunk.fixEntityLocations(0), IllegalStateException.class);
         assertThrowsUnsupportedOperationException(chunk::iterator);
         assertThrowsUnsupportedOperationException(chunk::spliterator);
         assertThrowsUnsupportedOperationException(chunk::stream);
@@ -106,7 +107,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         // moving is supported in raw if we have an entities tag
         assertTrue(chunk.moveChunkImplemented());
         assertTrue(chunk.moveChunkHasFullVersionSupport());
-        assertThrowsNoException(() -> chunk.moveChunk(1, -2, true));
+        assertThrowsNoException(() -> chunk.moveChunk(1, -2, MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS, true));
         assertEquals(1, chunk.getChunkX());
         assertEquals(-2, chunk.getChunkZ());
 
@@ -125,7 +126,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         assertThrowsUnsupportedOperationException(chunk::getEntitiesTag);
 
         // ... but we can now fix entity locations (because we previously moved the chunk so XZ is known)
-        assertTrue(chunk.fixEntityLocations());
+        assertTrue(chunk.fixEntityLocations(MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS));
         // System.out.println(TextNbtHelpers.toTextNbt(mutableTag));
     }
 
@@ -210,7 +211,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
     public void testMoveChunk() {
         // white box testing - let fixEntityLocations tests cover actual entity relocation validation
         T chunk = createFilledChunk(1, 0, DataVersion.JAVA_1_17_1);
-        chunk.moveChunk(-2, 3);
+        chunk.moveChunk(-2, 3, MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS);
         assertEquals(-2, chunk.getChunkX());
         assertEquals(3, chunk.getChunkZ());
     }
@@ -222,13 +223,13 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
 
         final double[] initialPos0 = chunk.getEntitiesTag().get(0).getDoubleTagListAsArray("Pos");
         final double[] initialPos1 = chunk.getEntitiesTag().get(1).getDoubleTagListAsArray("Pos");
-        assertFalse(chunk.fixEntityLocations());
+        assertFalse(chunk.fixEntityLocations(MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS));
         Assert.assertArrayEquals(initialPos0, chunk.getEntitiesTag().get(0).getDoubleTagListAsArray("Pos"), 1e-6);
         Assert.assertArrayEquals(initialPos1, chunk.getEntitiesTag().get(1).getDoubleTagListAsArray("Pos"), 1e-6);
 
         chunk.getEntitiesTag().get(0).putDoubleArrayAsTagList("Pos", initialPos0[0] + 16, initialPos0[1], initialPos0[2]);
         chunk.getEntitiesTag().get(1).putDoubleArrayAsTagList("Pos", initialPos1[0], initialPos1[1], initialPos1[2] - 32);
-        assertTrue(chunk.fixEntityLocations());
+        assertTrue(chunk.fixEntityLocations(MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS));
         Assert.assertArrayEquals(initialPos0, chunk.getEntitiesTag().get(0).getDoubleTagListAsArray("Pos"), 1e-6);
         Assert.assertArrayEquals(initialPos1, chunk.getEntitiesTag().get(1).getDoubleTagListAsArray("Pos"), 1e-6);
 
@@ -236,7 +237,7 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         List<ET> entities = chunk.getEntities();
         entities.get(0).setX(initialPos0[0] - 64);
         entities.get(1).setZ(initialPos1[2] + 128);
-        assertTrue(chunk.fixEntityLocations());
+        assertTrue(chunk.fixEntityLocations(MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS));
         Assert.assertArrayEquals(initialPos0, new double[]{entities.get(0).getX(), entities.get(0).getY(), entities.get(0).getZ()}, 1e-6);
         Assert.assertArrayEquals(initialPos1, new double[]{entities.get(1).getX(), entities.get(1).getY(), entities.get(1).getZ()}, 1e-6);
     }

@@ -734,8 +734,9 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		return getTag(path);
 	}
 
+	/** {@inheritDoc} */
 	@Override
-	public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
+	public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
 		if (!moveChunkImplemented())
 			throw new UnsupportedOperationException("Missing the data required to move this chunk!");
 		if (this.chunkX == newChunkX && this.chunkZ == newChunkZ) return false;
@@ -754,16 +755,16 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 		boolean changed = false;
 		ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
-		changed |= fixTileLocations(cbr, tagOrFetch(getTileEntities(), TILE_ENTITIES_PATH));
-		changed |= fixTileLocations(cbr, tagOrFetch(getTileTicks(), TILE_TICKS_PATH));
-		changed |= fixTileLocations(cbr, tagOrFetch(getLiquidTicks(), LIQUID_TICKS_PATH));
-		changed |= moveStructures(tagOrFetch(getStructures(), STRUCTURES_PATH), chunkDeltaXZ);
+		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getTileEntities(), TILE_ENTITIES_PATH));
+		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getTileTicks(), TILE_TICKS_PATH));
+		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getLiquidTicks(), LIQUID_TICKS_PATH));
+		changed |= moveStructures(moveChunkFlags, tagOrFetch(getStructures(), STRUCTURES_PATH), chunkDeltaXZ);
 		// TODO: move legacy entities (and maybe those in partially generated terrain chunks?) and poi's
 		return changed;
 
 	}
 
-	protected boolean fixTileLocations(ChunkBoundingRectangle cbr, ListTag<CompoundTag> tagList) {
+	protected boolean fixTileLocations(long moveChunkFlags, ChunkBoundingRectangle cbr, ListTag<CompoundTag> tagList) {
 		boolean changed = false;
 		if (tagList == null) {
 			return false;
@@ -780,7 +781,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		return changed;
 	}
 
-	protected boolean moveStructures(CompoundTag structuresTag, IntPointXZ chunkDeltaXZ) {
+	protected boolean moveStructures(long moveChunkFlags, CompoundTag structuresTag, IntPointXZ chunkDeltaXZ) {
 		CompoundTag references = structuresTag.getCompoundTag("References");
 		boolean changed = false;
 		if (references != null && !references.isEmpty()) {

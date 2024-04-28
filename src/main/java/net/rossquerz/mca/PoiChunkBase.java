@@ -82,16 +82,17 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
         return records != null || data != null;
     }
 
+    /** {@inheritDoc} */
     @Override
-    public boolean moveChunk(int newChunkX, int newChunkZ, boolean force) {
+    public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
         this.chunkX = newChunkX;
         this.chunkZ = newChunkZ;
-        return fixPoiLocations();
+        return fixPoiLocations(moveChunkFlags);
     }
 
-    public boolean fixPoiLocations() {
+    public boolean fixPoiLocations(long moveChunkFlags) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
         if (this.chunkX == NO_CHUNK_COORD_SENTINEL || this.chunkZ == NO_CHUNK_COORD_SENTINEL) {

@@ -171,7 +171,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 
 	/**
 	 * Gets this chunk's chunk-x coordinate. Returns {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
-	 * @see #moveChunk(int, int, boolean)
+	 * @see #moveChunk(int, int, long, boolean)
 	 */
 	public int getChunkX() {
 		return chunkX;
@@ -179,7 +179,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 
 	/**
 	 * Gets this chunk's chunk-z coordinate. Returns {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
-	 * @see #moveChunk(int, int, boolean)
+	 * @see #moveChunk(int, int, long, boolean)
 	 */
 	public int getChunkZ() {
 		return chunkZ;
@@ -187,15 +187,15 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 
 	/**
 	 * Gets this chunk's chunk-xz coordinates. Returns x = z = {@link #NO_CHUNK_COORD_SENTINEL} if not supported or unknown.
-	 * @see #moveChunk(int, int, boolean)
+	 * @see #moveChunk(int, int, long, boolean)
 	 */
 	public IntPointXZ getChunkXZ() {
 		return new IntPointXZ(getChunkX(), getChunkZ());
 	}
 
 	/**
-	 * Indicates if this chunk implementation supports calling {@link #moveChunk(int, int, boolean)}.
-	 * @return false if {@link #moveChunk(int, int, boolean)} is not implemented (calling it will always throw).
+	 * Indicates if this chunk implementation supports calling {@link #moveChunk(int, int, long, boolean)}.
+	 * @return false if {@link #moveChunk(int, int, long, boolean)} is not implemented (calling it will always throw).
 	 */
 	public abstract boolean moveChunkImplemented();
 
@@ -215,20 +215,21 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	 * may still throw {@link UnsupportedOperationException}.
 	 * @param chunkX new absolute chunk-x
 	 * @param chunkZ new absolute chunk-z
+	 * @param moveChunkFlags {@link net.rossquerz.mca.io.MoveChunkFlags} OR'd together to control move chunk behavior.
 	 * @param force true to ignore the guidance of {@link #moveChunkHasFullVersionSupport()} and make a best effort
 	 *              anyway.
 	 * @return true if any data was changed as a result of this call
 	 * @throws UnsupportedOperationException thrown if this chunk implementation doest support moves, or moves
 	 * for this chunks version (possibly even if force = true).
 	 */
-	public abstract boolean moveChunk(int chunkX, int chunkZ, boolean force);
+	public abstract boolean moveChunk(int chunkX, int chunkZ, long moveChunkFlags, boolean force);
 
 	/**
-	 * Calls {@code moveChunk(newChunkX, newChunkZ, false);}
-	 * @see #moveChunk(int, int, boolean)
+	 * Calls {@code moveChunk(newChunkX, newChunkZ, moveChunkFlags, false);}
+	 * @see #moveChunk(int, int, long, boolean)
 	 */
-	public boolean moveChunk(int chunkX, int chunkZ) {
-		return moveChunk(chunkX, chunkZ, false);
+	public boolean moveChunk(int chunkX, int chunkZ, long moveChunkFlags) {
+		return moveChunk(chunkX, chunkZ, moveChunkFlags, false);
 	}
 
 	/**

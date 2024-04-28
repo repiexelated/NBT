@@ -1,6 +1,7 @@
 package net.rossquerz.mca;
 
 import net.rossquerz.mca.io.LoadFlags;
+import net.rossquerz.mca.io.MoveChunkFlags;
 import net.rossquerz.nbt.io.TextNbtParser;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
@@ -34,7 +35,7 @@ public class PoiChunkTest extends PoiChunkBaseTest<PoiRecord, PoiChunk> {
         PoiChunk chunk = createFilledChunk(0, 0, DEFAULT_TEST_VERSION);
         PoiRecord record = new PoiRecord(1, 200, 3, "whatever");
         chunk.add(record);
-        assertTrue(chunk.moveChunk(-3, 4));
+        assertTrue(chunk.moveChunk(-3, 4, MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS));
         assertEquals((-3 * 16) + 1, record.x);
         assertEquals(200, record.y);
         assertEquals((4 * 16) + 3, record.z);
@@ -45,7 +46,7 @@ public class PoiChunkTest extends PoiChunkBaseTest<PoiRecord, PoiChunk> {
         PoiChunk chunk = new PoiChunk(TextNbtParser.parseInline(nbtText), LoadFlags.RAW);
         chunk.chunkX = -77;
         chunk.chunkZ = -84;
-        assertTrue(chunk.moveChunk(-3, 4));
+        assertTrue(chunk.moveChunk(-3, 4, MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS));
 //        System.out.println(TextNbtHelpers.toTextNbt(chunk.getHandle()));
         int[] newPos = NbtPath.of("Sections.5.Records[0].pos").getIntArray(chunk.getHandle());
         assertEquals(-35, newPos[0]);

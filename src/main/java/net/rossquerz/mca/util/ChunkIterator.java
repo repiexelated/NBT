@@ -59,7 +59,7 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      * moved / corrected.
      *
      * @return Current chunk x in absolute coordinates (not block coordinates).
-     * @see ChunkBase#moveChunk(int, int)
+     * @see ChunkBase#moveChunk(int, int, long)
      */
     int currentAbsoluteX();
 
@@ -70,7 +70,7 @@ public interface ChunkIterator<I extends ChunkBase> extends Iterator<I> {
      * moved / corrected.
      *
      * @return Current chunk z in absolute coordinates (not block coordinates)
-     * @see ChunkBase#moveChunk(int, int)
+     * @see ChunkBase#moveChunk(int, int, long)
      */
     int currentAbsoluteZ();
 

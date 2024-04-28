@@ -118,7 +118,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 
 	/**
 	 * @return The x-value currently set for this mca file in region coordinates.
-	 * @see #moveRegion(int, int, boolean)
+	 * @see #moveRegion(int, int, long, boolean)
 	 */
 	public int getRegionX() {
 		return regionX;
@@ -126,7 +126,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 
 	/**
 	 * @return The z-value currently set for this mca file in region coordinates.
-	 * @see #moveRegion(int, int, boolean)
+	 * @see #moveRegion(int, int, long, boolean)
 	 */
 	public int getRegionZ() {
 		return regionZ;
@@ -429,7 +429,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 		return chunk;
 	}
 
-	public boolean moveRegion(int newRegionX, int newRegionZ, boolean force) {
+	public boolean moveRegion(int newRegionX, int newRegionZ, long moveChunkFlags, boolean force) {
 		// Testing note: don't forget that updateHandle() needs to be called to see the results of this move!
 		boolean changed = false;
 		IntPointXZ newRegionMinChunkXZ = new IntPointXZ(newRegionX, newRegionZ).transformRegionToChunk();
@@ -438,7 +438,7 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 			T chunk = iter.next();
 			if (chunk != null) {
 				IntPointXZ newChunkXZ = iter.currentXZ().add(newRegionMinChunkXZ);
-				changed |= chunk.moveChunk(newChunkXZ.getX(), newChunkXZ.getZ(), force);
+				changed |= chunk.moveChunk(newChunkXZ.getX(), newChunkXZ.getZ(), moveChunkFlags, force);
 			}
 		}
 		this.regionX = newRegionX;
