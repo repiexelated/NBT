@@ -141,21 +141,21 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 	/**
 	 * Represents world bottom - note there may exist a dummy chunk -1 below this depending on MC flavor and current chunk state.
-	 *  @since 1.18
+	 * @since {@link DataVersion#JAVA_1_18_21W43A}
 	 */
 	protected int yPos = NO_CHUNK_COORD_SENTINEL;
+	protected static final VersionAware<NbtPath> Y_POS_PATH = new VersionAware<NbtPath>()
+			.register(JAVA_1_18_21W43A.id(), NbtPath.of("yPos"));
 	protected static final VersionAware<Integer> DEFAULT_WORLD_BOTTOM_Y_POS = new VersionAware<Integer>()
 			.register(0, 0)
 			.register(JAVA_1_18_XS1.id(), -4);  // IDK if they actually enabled deep worlds here or not...
-	protected static final VersionAware<NbtPath> Y_POS_PATH = new VersionAware<NbtPath>()
-			.register(JAVA_1_18_21W43A.id(), NbtPath.of("yPos"));
 
-	/** @since 1.18 */
+	/** @since {@link DataVersion#JAVA_1_18_21W43A} */
 	protected CompoundTag belowZeroRetrogen;
 	protected static final VersionAware<NbtPath> BELOW_ZERO_RETROGEN_PATH = new VersionAware<NbtPath>()
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("below_zero_retrogen"));
 
-	/** @since 1.18 */
+	/** @since {@link DataVersion#JAVA_1_18_21W43A} */
 	protected CompoundTag blendingData;
 	protected static final VersionAware<NbtPath> BLENDING_DATA_PATH = new VersionAware<NbtPath>()
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("blending_data"));
@@ -250,6 +250,14 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		if ((loadFlags & STRUCTURES) != 0) {
 			structures = getTag(STRUCTURES_PATH);
 			hasLegacyStructureData = getTagValue(HAS_LEGACY_STRUCTURE_DATA_PATH, ByteTag::asBoolean);
+		}
+
+		// chunkXZ may be pre-populated with a solid guess so don't overwrite that guess if we don't have values.
+		if (X_POS_PATH.get(dataVersion).exists(data)) {
+			chunkX = getTagValue(X_POS_PATH, IntTag::asInt);
+		}
+		if (Z_POS_PATH.get(dataVersion).exists(data)) {
+			chunkZ = getTagValue(Z_POS_PATH, IntTag::asInt);
 		}
 
 		yPos = getTagValue(Y_POS_PATH, IntTag::asInt, DEFAULT_WORLD_BOTTOM_Y_POS.get(dataVersion));
@@ -688,14 +696,14 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	}
 
 	/**
-	 * @since 1.18
+	 * @since {@link DataVersion#JAVA_1_18_21W43A}
 	 */
 	public CompoundTag getBelowZeroRetrogen() {
 		return belowZeroRetrogen;
 	}
 
 	/**
-	 * @since 1.18
+	 * @since {@link DataVersion#JAVA_1_18_21W43A}
 	 */
 	public CompoundTag getBlendingData() {
 		return blendingData;
@@ -912,7 +920,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		if (hasLegacyStructureData != null) setTag(HAS_LEGACY_STRUCTURE_DATA_PATH, new ByteTag(hasLegacyStructureData));
 
 		// TODO: This logic does not respect original load flags! However, this is a long standing bug so
-		// 		 simply "fixing" it may break consumers...
+		// 		 simply "fixing" it may break consumers... I no longer care about existing consumers and
+		//       need to figure out what that "fix" I was referring to was -.-
 		ListTag<CompoundTag> sections = new ListTag<>(CompoundTag.class);
 		for (T section : this) {
 			if (section != null) {
@@ -938,9 +947,11 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		}
 		// TODO: moveChunk or die if given xPos != chunkX and same for z?
 		updateHandle();
-		setTag(X_POS_PATH, new IntTag(xPos));
+		if (xPos != NO_CHUNK_COORD_SENTINEL)
+			setTag(X_POS_PATH, new IntTag(chunkX = xPos));
 		// Y_POS_PATH is set in updateHandle() - was added in 1.18
-		setTag(Z_POS_PATH, new IntTag(zPos));
+		if (zPos != NO_CHUNK_COORD_SENTINEL)
+			setTag(Z_POS_PATH, new IntTag(chunkZ = zPos));
 		return data;
 	}
 }
