@@ -19,6 +19,11 @@ import static net.rossquerz.mca.LoadFlags.*;
 public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implements Collection<T> {
     // private to preserve the ability to change how records are stored to optimize lookups later
     private List<T> records;
+
+    // Valid: True (1) when created by the game, however, if the decoding of POI NBT (from the region file) data fails,
+    // and the game then save the region file again, it might save false (0). This key is internally set to true when
+    // the POI section is refreshed, and a refresh always happens when the chunk section (with terrain data) at the
+    // same coordinates is decoded. To sum up, it is very unlikely to get false.
     protected Map<Integer, Boolean> poiSectionValidity;
 
     @Override
