@@ -1,6 +1,10 @@
 package net.rossquerz.mca.io;
 
-
+/**
+ * <pre>{@code
+ * import static net.rossquerz.mca.io.MoveChunkFlags.*;
+ * }</pre>
+ */
 public final class MoveChunkFlags {
     private MoveChunkFlags() {}
 
@@ -13,11 +17,15 @@ public final class MoveChunkFlags {
      * box's and other volumes will be restricted to values which fall inside the new region file. */
     public static final long DISCARD_STRUCTURE_REFERENCES_OUTSIDE_REGION = 0x0000_0002;
 
+    public static final long MOVE_CHUNK_DEFAULT_FLAGS                    = 0x0000_0000_FFFF_FFFFL;
 
     /** When set all structure references and start tags will be discarded. Any structures which have already
      * been generated will still exist, but they won't behave any differently than if they were player built.
      * E.g. structure spawns won't happen. */
-    public static final long DISCARD_STRUCTURE_DATA = 0x0000_0002_0000_0000L;
+    public static final long DISCARD_STRUCTURE_DATA                      = 0x0000_0002_0000_0000L;
 
-    public static final long MOVE_CHUNK_DEFAULT_FLAGS                    = 0x0000_0000_FFFF_FFFFL;
+    /** The "UpgradeData" tag often contains redundant tile-tick information and can cause spamming of
+     * errors such as {@code [WARN]: Neighbour tick .. serialized in chunk (..) is too far (..)} */
+    public static final long DISCARD_UPGRADE_DATA                        = 0x0000_0004_0000_0000L;
+
 }

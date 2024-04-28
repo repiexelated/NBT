@@ -2,6 +2,8 @@ package net.rossquerz.mca;
 
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import net.rossquerz.mca.util.IntPointXZ;
+import net.rossquerz.mca.util.RegionBoundingRectangle;
+import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
 import net.rossquerz.mca.util.VersionAware;
@@ -10,6 +12,7 @@ import java.util.*;
 
 import static net.rossquerz.mca.DataVersion.*;
 import static net.rossquerz.mca.io.LoadFlags.*;
+import static net.rossquerz.mca.io.MoveChunkFlags.*;
 
 /**
  * Represents a Terrain data mca chunk. Terrain chunks are composed of a set of {@link TerrainSection} where any empty/null
@@ -148,7 +151,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("yPos"));
 	protected static final VersionAware<Integer> DEFAULT_WORLD_BOTTOM_Y_POS = new VersionAware<Integer>()
 			.register(0, 0)
-			.register(JAVA_1_18_XS1.id(), -4);  // IDK if they actually enabled deep worlds here or not...
+			.register(JAVA_1_18_XS1.id(), -4);  // TODO: IDK if they actually enabled deep worlds here or not...
 
 	/** @since {@link DataVersion#JAVA_1_18_21W43A} */
 	protected CompoundTag belowZeroRetrogen;
@@ -735,6 +738,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	}
 
 	/** {@inheritDoc} */
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
 		if (!moveChunkImplemented())
@@ -751,7 +755,6 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		chunkDeltaXZ = new IntPointXZ(newChunkX - chunkX, newChunkZ - chunkZ);
 		this.chunkX = newChunkX;
 		this.chunkZ = newChunkZ;
-//		deltaXZ = deltaXZ.multiply(16);  // scale to block cords
 
 		boolean changed = false;
 		ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
@@ -759,6 +762,20 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getTileTicks(), TILE_TICKS_PATH));
 		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getLiquidTicks(), LIQUID_TICKS_PATH));
 		changed |= moveStructures(moveChunkFlags, tagOrFetch(getStructures(), STRUCTURES_PATH), chunkDeltaXZ);
+
+		CompoundTag upgradeTag = tagOrFetch(getUpgradeData(), UPGRADE_DATA_PATH);
+		if (upgradeTag != null && !upgradeTag.isEmpty()) {
+			if ((moveChunkFlags & DISCARD_UPGRADE_DATA) > 0) {
+				upgradeTag.clear();
+				changed = true;
+			} else {
+				for (Map.Entry<String, Tag<?>> entry : upgradeTag) {
+					if (entry.getValue() instanceof ListTag && ((ListTag<?>) entry.getValue()).getTypeClass().equals(CompoundTag.class)) {
+						changed |= fixTileLocations(moveChunkFlags, cbr, (ListTag<CompoundTag>) entry.getValue());
+					}
+				}
+			}
+		}
 		// TODO: move legacy entities (and maybe those in partially generated terrain chunks?) and poi's
 		return changed;
 
@@ -781,97 +798,142 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		return changed;
 	}
 
+	private static final long REMOVE_SENTINEL = 0x8FFFFFFF_8FFFFFFFL;
 	protected boolean moveStructures(long moveChunkFlags, CompoundTag structuresTag, IntPointXZ chunkDeltaXZ) {
-		CompoundTag references = structuresTag.getCompoundTag("References");
+		final CompoundTag references = structuresTag.getCompoundTag("References");
+		final CompoundTag starts = structuresTag.getCompoundTag("starts");
 		boolean changed = false;
+
+		if ((moveChunkFlags & DISCARD_STRUCTURE_DATA) >= 0) {
+			if (!references.isEmpty()) {
+				references.clear();
+				changed = true;
+			}
+			if (!starts.isEmpty()) {
+				starts.clear();
+				changed = true;
+			}
+			return changed;
+		}
+
+		final RegionBoundingRectangle rbr;
+		if ((moveChunkFlags & DISCARD_STRUCTURE_REFERENCES_OUTSIDE_REGION) > 0) {
+			rbr = RegionBoundingRectangle.forChunk(chunkX, chunkZ);
+		} else {
+			rbr = null;
+		}
+
 		if (references != null && !references.isEmpty()) {
 			for (Tag<?> tag : references.values()) {
+				boolean haveRemovals = false;
 				long[] longs = ((LongArrayTag) tag).getValue();
 				for (int i = 0; i < longs.length; i++) {
-					longs[i] = IntPointXZ.pack(IntPointXZ.unpack(longs[i]).add(chunkDeltaXZ));
+					IntPointXZ newXZ = IntPointXZ.unpack(longs[i]).add(chunkDeltaXZ);
+					if (rbr != null && !rbr.containsChunk(newXZ)) {
+						longs[i] = REMOVE_SENTINEL;
+						haveRemovals = true;
+					} else {
+						longs[i] = IntPointXZ.pack(newXZ);
+					}
+				}
+				if (haveRemovals) {
+					((LongArrayTag) tag).setValue(
+							Arrays.stream(longs)
+									.filter(l -> l == REMOVE_SENTINEL)
+									.toArray()
+					);
 				}
 			}
 			changed = true;
 		}
-		return changed | deepMoveAll(structuresTag.getCompoundTag("starts"), chunkDeltaXZ);
-
-//		CompoundTag starts = structuresTag.getCompoundTag("starts");
-//		if (starts != null && !starts.isEmpty()) {
-//			for (Tag<?> tag : starts.values()) {
-//				CompoundTag ct = (CompoundTag) tag;
-//				if (ct.containsKey("ChunkX")) ct.putInt("ChunkX", this.chunkX);
-//				if (ct.containsKey("ChunkZ")) ct.putInt("ChunkZ", this.chunkZ);
-//				ListTag<CompoundTag> children = ct.getCompoundList("Children");
-//				if (children != null) {
-//					for (CompoundTag child :  children) {
-//						moveBoundingBox(child.getIntArrayTag("BB"), deltaXZ);
-//					}
-//				}
-//			}
-//		}
-//		return changed;
+		return changed | deepMoveAll(starts, chunkDeltaXZ, rbr);
 	}
 
-	private void moveBoundingBox(IntArrayTag boundsTag, IntPointXZ deltaXZ) {
+	/**
+	 * @return true if bounds remain valid, false if rbr determines them to be fully out of region indicating that
+	 * the bound / structure owning the bound should be purged.
+	 */
+	private boolean moveBoundingBox(IntArrayTag boundsTag, IntPointXZ deltaXZ, RegionBoundingRectangle rbr) {
 		if (boundsTag != null) {
 			int[] bounds = boundsTag.getValue();
 			bounds[0] = bounds[0] + deltaXZ.getX();
 			bounds[2] = bounds[2] + deltaXZ.getZ();
 			bounds[3] = bounds[3] + deltaXZ.getX();
 			bounds[5] = bounds[5] + deltaXZ.getZ();
+			if (rbr != null) {
+				return rbr.constrain(bounds);
+			}
 		}
+		return true;
 	}
 
-	// sinks into every compound and list tag looking for "BB" bounding boxes an any IntTag that has a name ending in x or z.
+	// sinks into every compound and list tag looking for "BB" bounding boxes and any IntTag that has a name ending in x or z.
 	@SuppressWarnings("unchecked")
-	private boolean deepMoveAll(CompoundTag root, IntPointXZ chunkDeltaXZ) {
-		if (root == null || root.isEmpty()) return false;
+	private boolean deepMoveAll(CompoundTag startsTag, IntPointXZ chunkDeltaXZ, RegionBoundingRectangle rbr) {
+		if (startsTag == null || startsTag.isEmpty()) return false;
 		Deque<Object> stack = new LinkedList<>();
-		stack.push(root);
 		boolean changed = false;
-		while (!stack.isEmpty()) {
-			Object o = stack.pop();
-			if (o instanceof CompoundTag) {
-				CompoundTag tag = (CompoundTag) o;
-				for (Map.Entry<String, Tag<?>> e : tag) {
-					final String key = e.getKey().toLowerCase();
-					if (key.equals("bb")) {
-						moveBoundingBox((IntArrayTag) e.getValue(), chunkDeltaXZ);
-						changed = true;
-					} else if (key.equals("entrances")) {
-						ListTag<IntArrayTag> list = (ListTag<IntArrayTag>) e.getValue();
-						for (IntArrayTag bb : list) {
-							moveBoundingBox(bb, chunkDeltaXZ);
-							changed = true;
-						}
-					} else if (e.getValue() instanceof IntTag) {
-						IntTag intTag = (IntTag) e.getValue();
-						if (key.endsWith("x")) {
-							if (!key.toLowerCase().startsWith("chunk")) {
-								intTag.setValue(intTag.asInt() + chunkDeltaXZ.getX());
-							} else {
-								intTag.setValue(chunkX);
+		Iterator<Map.Entry<String, Tag<?>>> startsIter = startsTag.iterator();
+		while (startsIter.hasNext()) {
+			Map.Entry<String, Tag<?>> startsEntry = startsIter.next();
+			stack.clear();
+			stack.push(startsEntry.getValue());
+			boolean shouldPurgeEntry = false;
+			startsContent: while (!stack.isEmpty()) {
+				Object o = stack.pop();
+				if (o instanceof CompoundTag) {
+					CompoundTag tag = (CompoundTag) o;
+					for (Map.Entry<String, Tag<?>> e : tag) {
+						final String key = e.getKey().toLowerCase();
+						if (key.equals("bb")) {
+							if (!moveBoundingBox((IntArrayTag) e.getValue(), chunkDeltaXZ, rbr)) {
+								shouldPurgeEntry = true;
+								break startsContent;
 							}
 							changed = true;
-						} else if (key.endsWith("z")) {
-							if (!key.toLowerCase().startsWith("chunk")) {
-								intTag.setValue(intTag.asInt() + chunkDeltaXZ.getZ());
-							} else {
-								intTag.setValue(chunkZ);
+						} else if (key.equals("entrances")) {
+							Iterator<IntArrayTag> entrancesIter = ((ListTag<IntArrayTag>) e.getValue()).iterator();
+							while (entrancesIter.hasNext()) {
+								IntArrayTag bb = entrancesIter.next();
+								if (!moveBoundingBox(bb, chunkDeltaXZ, rbr)) {
+									entrancesIter.remove();
+									System.out.println("REMOVED OUT OF BOUNDS ENTRANCE FOR " + startsEntry.getKey());
+								}
+								changed = true;
 							}
-							changed = true;
+						} else if (e.getValue() instanceof IntTag) {
+							IntTag intTag = (IntTag) e.getValue();
+							if (key.endsWith("x")) {
+								if (!key.toLowerCase().startsWith("chunk")) {
+									intTag.setValue(intTag.asInt() + chunkDeltaXZ.getX());
+								} else {
+									intTag.setValue(chunkX);
+								}
+								changed = true;
+							} else if (key.endsWith("z")) {
+								if (!key.toLowerCase().startsWith("chunk")) {
+									intTag.setValue(intTag.asInt() + chunkDeltaXZ.getZ());
+								} else {
+									intTag.setValue(chunkZ);
+								}
+								changed = true;
+							}
+						} else if (e.getValue() instanceof CompoundTag || e.getValue() instanceof ListTag<?>) {
+							stack.push(new NamedTag(e.getKey(), e.getValue()));
 						}
-					} else if (e.getValue() instanceof CompoundTag || e.getValue() instanceof ListTag<?>) {
-						stack.push(e.getValue());
+					}
+				} else if (o instanceof ListTag) {
+					ListTag<?> tag = (ListTag<?>) o;
+					for (Tag<?> t : tag) {
+						if (t instanceof CompoundTag || t instanceof ListTag<?>) {
+							stack.push(new NamedTag(null, t));
+						}
 					}
 				}
-			} else if (o instanceof ListTag) {
-				ListTag<?> tag = (ListTag<?>) o;
-				for (Tag<?> t : tag) {
-					if (t instanceof CompoundTag || t instanceof ListTag<?>) {
-						stack.push(t);
-					}
-				}
+			}
+			if (shouldPurgeEntry) {
+				System.out.println("REMOVED OUT OF BOUNDS STRUCTURE START FOR " + startsEntry.getKey());
+				startsIter.remove();
 			}
 		}
 		return changed;
