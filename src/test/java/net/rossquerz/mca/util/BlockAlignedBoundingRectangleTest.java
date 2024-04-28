@@ -1,6 +1,8 @@
 package net.rossquerz.mca.util;
 
 import junit.framework.TestCase;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThrows;
 
 public class BlockAlignedBoundingRectangleTest extends TestCase {
 
@@ -59,5 +61,53 @@ public class BlockAlignedBoundingRectangleTest extends TestCase {
         assertFalse(cbr.contains(32.0, -7.5));  // off right
         assertFalse(cbr.contains(16 + 7.5, 0.0));  // off top
         assertFalse(cbr.contains(16 + 7.5, -16.0 - 1e-14));  // off bottom
+    }
+
+    public void testConstrain() {
+        BlockAlignedBoundingRectangle cbr = new BlockAlignedBoundingRectangle(0, 0, 16);
+        assertFalse(cbr.constrain(null));
+        assertFalse(cbr.constrain(new int[] {1,2,3,4}));
+
+        // edge to edge but all in bounds
+        int[] bb = new int[] {0, 0, 0, 15, 99, 15};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {0, 0, 0, 15, 99, 15}, bb);
+
+        // 1x1 on max bounds
+        bb = new int[] {15, 0, 15, 15, 99, 15};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {15, 0, 15, 15, 99, 15}, bb);
+
+        // bb encases cbr
+        bb = new int[] {-8, 0, -8, 20, 99, 20};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {0, 0, 0, 15, 99, 15}, bb);
+
+        // bb outside cbr entirely
+        assertFalse(cbr.constrain(new int[] {16, 0, 0, 20, 0, 0}));  // to the right
+        assertFalse(cbr.constrain(new int[] {-5, 0, 0, -1, 0, 0}));  // to the left
+        assertFalse(cbr.constrain(new int[] {0, 0, 16, 0, 0, 20}));  // above
+        assertFalse(cbr.constrain(new int[] {0, 0, -5, 0, 0, -1}));  // below
+
+        // bb has one corner in bounds
+        bb = new int[] {-8, 0, -8, 8, 0, 8};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {0, 0, 0, 8, 0, 8}, bb);
+
+        bb = new int[] {8, 0, 8, 20, 0, 20};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {8, 0, 8, 15, 0, 15}, bb);
+
+        bb = new int[] {-8, 0, 8, 8, 0, 28};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {0, 0, 8, 8, 0, 15}, bb);
+
+        bb = new int[] {8, 0, -8, 20, 0, 8};
+        assertTrue(cbr.constrain(bb));
+        assertArrayEquals(new int[] {8, 0, 0, 15, 0, 8}, bb);
+
+        // throws if bound min-max are out of order
+        assertThrows(IllegalArgumentException.class, () -> cbr.constrain(new int[] {8, 0, 8, 4, 0, 4}));
+        assertThrows(IllegalArgumentException.class, () -> cbr.constrain(new int[] {8, 0, 8, -4, 0, -4}));
     }
 }
