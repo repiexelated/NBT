@@ -318,7 +318,7 @@ public final class McaFileHelpers {
 		}
 		int chunks;
 		try (RandomAccessFile raf = new RandomAccessFile(to, "rw")) {
-			chunks = mcaFile.serialize(raf, CompressionType.GZIP, changeLastUpdate);
+			chunks = mcaFile.serialize(raf, CompressionType.ZLIB, changeLastUpdate);
 		}
 
 		// TODO(bug): This logic is flawed - why would we ever want an empty region file?
