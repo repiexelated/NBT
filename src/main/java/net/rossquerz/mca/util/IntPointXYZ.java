@@ -9,6 +9,7 @@ package net.rossquerz.mca.util;
  * IntPointXYZ xyz = XYZ(1, 2, 3);}</pre>
  */
 public class IntPointXYZ extends IntPointXZ {
+    public static final IntPointXYZ ZERO_XYZ = new IntPointXYZ(0, 0, 0);
     protected final int y;
 
     /** Shorthand way of constructing a new  {@link IntPointXYZ}. */
@@ -115,5 +116,10 @@ public class IntPointXYZ extends IntPointXZ {
      */
     public String toString(String format) {
         return String.format(format, x, y, z);
+    }
+
+    @Override
+    public boolean isZero() {
+        return super.isZero() && y == 0;
     }
 }

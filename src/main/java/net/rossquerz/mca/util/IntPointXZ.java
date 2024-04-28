@@ -6,6 +6,8 @@ package net.rossquerz.mca.util;
  * cloning it or copying it - if you need the same value somewhere else, just use the same instance!</p>
  */
 public class IntPointXZ {
+    public static final IntPointXZ ZERO_XZ = new IntPointXZ(0, 0);
+
     protected final int x;
     protected final int z;
 
@@ -139,5 +141,9 @@ public class IntPointXZ {
 
     public static long pack(IntPointXZ xz) {
         return pack(xz.x, xz.z);
+    }
+
+    public boolean isZero() {
+        return x == 0 && z == 0;
     }
 }
