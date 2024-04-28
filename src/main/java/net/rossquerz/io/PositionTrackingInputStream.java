@@ -106,10 +106,13 @@ public class PositionTrackingInputStream extends InputStream {
             throw new IOException(
                     "cannot skip backwards from 0x" + Long.toString(this.pos, 16) + " (" + this.pos +
                             ") to 0x" + Long.toString(pos, 16)+ " (" + pos + ")");
-        if (pos == this.pos) return;
-        final long skipCount = pos - this.pos;
-        if (skipCount != skip(skipCount)) {
-            throw new EOFException();
+        final long originalPos = this.pos;
+        while (this.pos < pos) {
+            if (skip(pos - this.pos) <= 0) {
+                throw new EOFException(String.format(
+                        "Asked to skip from %,d to %,d (%,d bytes) but only skipped %,d bytes; new pos = %,d; soft EOF = %,d",
+                        originalPos, pos, pos - originalPos, this.pos - originalPos, this.pos, softEof));
+            }
         }
         if (pos != this.pos)
             throw new IllegalStateException();
