@@ -10,8 +10,9 @@ import java.util.zip.InflaterInputStream;
 
 public enum CompressionType {
 	NONE(0, t -> t, t -> t),
-	/** Most used compression type. */
+	/** Most used compression type for binary nbt data files. */
 	GZIP(1, GZIPOutputStream::new, GZIPInputStream::new),
+	/** Default compression type used by the vanilla jar to store chunks in mca files. */
 	ZLIB(2, DeflaterOutputStream::new, InflaterInputStream::new);
 
 	@FunctionalInterface
