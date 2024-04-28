@@ -2,6 +2,7 @@ package net.rossquerz.mca;
 
 import net.rossquerz.mca.entities.EntityBase;
 import net.rossquerz.mca.entities.EntityFactory;
+import net.rossquerz.mca.entities.EntityUtil;
 import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.nbt.query.NbtPath;
@@ -13,10 +14,7 @@ import net.rossquerz.util.ArgValidator;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import net.rossquerz.mca.util.VersionAware;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -245,6 +243,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                 if (!cbr.contains(entity.getX(), entity.getZ())) {
                     entity.setX(cbr.relocateX(entity.getX()));
                     entity.setZ(cbr.relocateZ(entity.getZ()));
+                    // TODO: scrambling UUID should be configurable
+                    entity.setUuid(UUID.randomUUID());
                     changed = true;
                 }
             }
@@ -270,6 +270,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
             if (!cbr.contains(x, z)) {
                 posTag.set(0, new DoubleTag(cbr.relocateX(x)));
                 posTag.set(2, new DoubleTag(cbr.relocateZ(z)));
+                // TODO: scrambling UUID should be configurable
+                EntityUtil.setUuid(dataVersion, entityTag, UUID.randomUUID());
                 changed = true;
             }
             // This is correct even for boats visually straddling a chunk boarder, the passengers share the boat

@@ -254,13 +254,13 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 		// chunkXZ may be pre-populated with a solid guess so don't overwrite that guess if we don't have values.
 		if (X_POS_PATH.get(dataVersion).exists(data)) {
-			chunkX = getTagValue(X_POS_PATH, IntTag::asInt);
+			chunkX = getTagValue(X_POS_PATH, t -> ((NumberTag<?>)t).asInt());
 		}
 		if (Z_POS_PATH.get(dataVersion).exists(data)) {
-			chunkZ = getTagValue(Z_POS_PATH, IntTag::asInt);
+			chunkZ = getTagValue(Z_POS_PATH, t -> ((NumberTag<?>)t).asInt());
 		}
 
-		yPos = getTagValue(Y_POS_PATH, IntTag::asInt, DEFAULT_WORLD_BOTTOM_Y_POS.get(dataVersion));
+		yPos = getTagValue(Y_POS_PATH, t -> ((NumberTag<?>)t).asInt(), DEFAULT_WORLD_BOTTOM_Y_POS.get(dataVersion));
 
 		boolean loadSections = ((loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0)
 				|| (dataVersion >= JAVA_1_18_21W39A.id() && ((loadFlags & BIOMES) != 0));
@@ -740,24 +740,24 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			throw new UnsupportedOperationException("Missing the data required to move this chunk!");
 		if (this.chunkX == newChunkX && this.chunkZ == newChunkZ) return false;
 
-		IntPointXZ deltaXZ;
+		IntPointXZ chunkDeltaXZ;
 		if (raw) {
 			this.chunkX = getTagValue(X_POS_PATH, IntTag::asInt);
 			this.chunkZ = getTagValue(Z_POS_PATH, IntTag::asInt);
 			setTag(X_POS_PATH, new IntTag(newChunkX));
 			setTag(Z_POS_PATH, new IntTag(newChunkZ));
 		}
-		deltaXZ = new IntPointXZ(newChunkX - chunkX, newChunkZ - chunkZ);
+		chunkDeltaXZ = new IntPointXZ(newChunkX - chunkX, newChunkZ - chunkZ);
 		this.chunkX = newChunkX;
 		this.chunkZ = newChunkZ;
-		deltaXZ = deltaXZ.multiply(16);  // scale to block cords
+//		deltaXZ = deltaXZ.multiply(16);  // scale to block cords
 
 		boolean changed = false;
 		ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
 		changed |= fixTileLocations(cbr, tagOrFetch(getTileEntities(), TILE_ENTITIES_PATH));
 		changed |= fixTileLocations(cbr, tagOrFetch(getTileTicks(), TILE_TICKS_PATH));
 		changed |= fixTileLocations(cbr, tagOrFetch(getLiquidTicks(), LIQUID_TICKS_PATH));
-		changed |= moveStructures(tagOrFetch(getStructures(), STRUCTURES_PATH), deltaXZ);
+		changed |= moveStructures(tagOrFetch(getStructures(), STRUCTURES_PATH), chunkDeltaXZ);
 		// TODO: move legacy entities (and maybe those in partially generated terrain chunks?) and poi's
 		return changed;
 
@@ -765,31 +765,34 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 	protected boolean fixTileLocations(ChunkBoundingRectangle cbr, ListTag<CompoundTag> tagList) {
 		boolean changed = false;
+		if (tagList == null) {
+			return false;
+		}
 		for (CompoundTag tag : tagList) {
 			int x = tag.getInt("x");
 			int z = tag.getInt("z");
 			if (!cbr.contains(x, z)) {
 				changed = true;
 				tag.putInt("x", cbr.relocateX(x));
-				tag.putInt("z", cbr.relocateX(z));
+				tag.putInt("z", cbr.relocateZ(z));
 			}
 		}
 		return changed;
 	}
 
-	protected boolean moveStructures(CompoundTag structuresTag, IntPointXZ deltaXZ) {
+	protected boolean moveStructures(CompoundTag structuresTag, IntPointXZ chunkDeltaXZ) {
 		CompoundTag references = structuresTag.getCompoundTag("References");
 		boolean changed = false;
 		if (references != null && !references.isEmpty()) {
 			for (Tag<?> tag : references.values()) {
 				long[] longs = ((LongArrayTag) tag).getValue();
 				for (int i = 0; i < longs.length; i++) {
-					longs[i] = IntPointXZ.pack(IntPointXZ.unpack(longs[i]).add(deltaXZ));
+					longs[i] = IntPointXZ.pack(IntPointXZ.unpack(longs[i]).add(chunkDeltaXZ));
 				}
 			}
 			changed = true;
 		}
-		return changed | deepMoveAll(structuresTag.getCompoundTag("starts"), deltaXZ);
+		return changed | deepMoveAll(structuresTag.getCompoundTag("starts"), chunkDeltaXZ);
 
 //		CompoundTag starts = structuresTag.getCompoundTag("starts");
 //		if (starts != null && !starts.isEmpty()) {
@@ -820,7 +823,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 	// sinks into every compound and list tag looking for "BB" bounding boxes an any IntTag that has a name ending in x or z.
 	@SuppressWarnings("unchecked")
-	private boolean deepMoveAll(CompoundTag root, IntPointXZ deltaXZ) {
+	private boolean deepMoveAll(CompoundTag root, IntPointXZ chunkDeltaXZ) {
 		if (root == null || root.isEmpty()) return false;
 		Deque<Object> stack = new LinkedList<>();
 		stack.push(root);
@@ -832,26 +835,26 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 				for (Map.Entry<String, Tag<?>> e : tag) {
 					final String key = e.getKey().toLowerCase();
 					if (key.equals("bb")) {
-						moveBoundingBox((IntArrayTag) e.getValue(), deltaXZ);
+						moveBoundingBox((IntArrayTag) e.getValue(), chunkDeltaXZ);
 						changed = true;
 					} else if (key.equals("entrances")) {
 						ListTag<IntArrayTag> list = (ListTag<IntArrayTag>) e.getValue();
 						for (IntArrayTag bb : list) {
-							moveBoundingBox(bb, deltaXZ);
+							moveBoundingBox(bb, chunkDeltaXZ);
 							changed = true;
 						}
 					} else if (e.getValue() instanceof IntTag) {
 						IntTag intTag = (IntTag) e.getValue();
 						if (key.endsWith("x")) {
 							if (!key.toLowerCase().startsWith("chunk")) {
-								intTag.setValue(intTag.asInt() + deltaXZ.getX());
+								intTag.setValue(intTag.asInt() + chunkDeltaXZ.getX());
 							} else {
 								intTag.setValue(chunkX);
 							}
 							changed = true;
 						} else if (key.endsWith("z")) {
 							if (!key.toLowerCase().startsWith("chunk")) {
-								intTag.setValue(intTag.asInt() + deltaXZ.getZ());
+								intTag.setValue(intTag.asInt() + chunkDeltaXZ.getZ());
 							} else {
 								intTag.setValue(chunkZ);
 							}
