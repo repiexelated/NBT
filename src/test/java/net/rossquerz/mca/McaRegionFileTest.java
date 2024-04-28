@@ -391,7 +391,7 @@ public class McaRegionFileTest extends McaTestCase {
 		assertThrowsException(() -> {
 			try (RandomAccessFile raf = new RandomAccessFile(getResourceFile("invalid_compression.dat"), "r")) {
 				TerrainChunk c = new TerrainChunk(0);
-				c.deserialize(raf);
+				c.deserialize(raf, LOAD_ALL_DATA, 0, 0, 0);
 			}
 		}, IOException.class);
 	}
@@ -400,7 +400,7 @@ public class McaRegionFileTest extends McaTestCase {
 		assertThrowsException(() -> {
 			try (RandomAccessFile raf = new RandomAccessFile(getResourceFile("invalid_data_tag.dat"), "r")) {
 				TerrainChunk c = new TerrainChunk(0);
-				c.deserialize(raf);
+				c.deserialize(raf, LOAD_ALL_DATA, 0, 0, 0);
 			}
 		}, IOException.class);
 	}
