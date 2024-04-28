@@ -1,4 +1,4 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.util;
 
 import net.rossquerz.nbt.tag.CompoundTag;
 

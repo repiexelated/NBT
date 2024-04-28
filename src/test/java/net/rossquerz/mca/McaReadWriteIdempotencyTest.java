@@ -1,5 +1,8 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.io.LoadFlags;
+import net.rossquerz.mca.io.McaFileHelpers;
+import net.rossquerz.mca.util.ChunkIterator;
 import net.rossquerz.mca.util.IntPointXZ;
 import net.rossquerz.nbt.io.TextNbtHelpers;
 import java.io.File;
@@ -11,7 +14,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static net.rossquerz.mca.LoadFlags.RAW;
+import static net.rossquerz.mca.io.LoadFlags.RAW;
 import static net.rossquerz.mca.util.IntPointXZ.XZ;
 
 // TODO: scan resources folder and auto-run this test for each mca file and type so we don't need to update tests every time we add a new test region file.

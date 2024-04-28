@@ -1,6 +1,6 @@
 package net.rossquerz.mca.entities;
 
-import net.rossquerz.mca.McaFileHelpers;
+import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.util.ArgValidator;

@@ -2,6 +2,8 @@ package net.rossquerz.mca;
 
 import net.rossquerz.mca.entities.EntityBase;
 import net.rossquerz.mca.entities.EntityFactory;
+import net.rossquerz.mca.io.LoadFlags;
+import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.DoubleTag;

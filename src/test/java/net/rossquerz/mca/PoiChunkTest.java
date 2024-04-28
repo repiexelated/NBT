@@ -1,6 +1,6 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.nbt.io.TextNbtHelpers;
+import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.nbt.io.TextNbtParser;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;

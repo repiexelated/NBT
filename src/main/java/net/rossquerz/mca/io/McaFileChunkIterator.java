@@ -2,6 +2,7 @@ package net.rossquerz.mca.io;
 
 import net.rossquerz.io.PositionTrackingInputStream;
 import net.rossquerz.mca.*;
+import net.rossquerz.mca.util.ChunkIterator;
 import net.rossquerz.mca.util.IntPointXZ;
 
 import java.io.*;

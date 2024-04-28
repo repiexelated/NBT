@@ -1,4 +1,7 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.io;
+
+import net.rossquerz.mca.ChunkBase;
+import net.rossquerz.mca.TerrainSectionBase;
 
 public final class LoadFlags {
 	private LoadFlags() {}

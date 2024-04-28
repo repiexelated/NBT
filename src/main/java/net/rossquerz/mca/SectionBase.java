@@ -1,13 +1,15 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.io.LoadFlags;
+import net.rossquerz.mca.util.TagWrapper;
 import net.rossquerz.mca.util.TracksUnreadDataTags;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.util.ObservedCompoundTag;
 
 import java.util.*;
 
-import static net.rossquerz.mca.LoadFlags.RAW;
-import static net.rossquerz.mca.LoadFlags.RELEASE_CHUNK_DATA_TAG;
+import static net.rossquerz.mca.io.LoadFlags.RAW;
+import static net.rossquerz.mca.io.LoadFlags.RELEASE_CHUNK_DATA_TAG;
 
 /**
  * Sections can be thought of as "sub-chunks" which are 16x16x16 block cubes

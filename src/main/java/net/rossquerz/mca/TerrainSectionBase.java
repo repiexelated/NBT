@@ -6,7 +6,7 @@ import net.rossquerz.nbt.tag.*;
 
 // TODO: Unsure when exactly in 1.13 development "Blocks" and "Data" were replaced with block palette.
 import static net.rossquerz.mca.DataVersion.*;
-import static net.rossquerz.mca.LoadFlags.*;
+import static net.rossquerz.mca.io.LoadFlags.*;
 
 /**
  * Provides the base for all terrain section classes.

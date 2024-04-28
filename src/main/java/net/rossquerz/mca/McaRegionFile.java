@@ -1,6 +1,6 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.nbt.tag.CompoundTag;
+import net.rossquerz.mca.io.McaFileHelpers;
 
 /**
  * Represents a Terrain data mca file (one that lives in the /region folder).

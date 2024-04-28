@@ -1,4 +1,6 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.util;
+
+import net.rossquerz.mca.DataVersion;
 
 /**
  * Interface for any NBT data container which has the "DataVersion" tag.

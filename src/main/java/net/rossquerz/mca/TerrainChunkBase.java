@@ -9,7 +9,7 @@ import net.rossquerz.mca.util.VersionAware;
 import java.util.*;
 
 import static net.rossquerz.mca.DataVersion.*;
-import static net.rossquerz.mca.LoadFlags.*;
+import static net.rossquerz.mca.io.LoadFlags.*;
 
 /**
  * Represents a Terrain data mca chunk. Terrain chunks are composed of a set of {@link TerrainSection} where any empty/null

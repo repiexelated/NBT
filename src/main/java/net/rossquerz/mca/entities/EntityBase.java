@@ -1,8 +1,8 @@
 package net.rossquerz.mca.entities;
 
 import net.rossquerz.mca.McaEntitiesFile;
-import net.rossquerz.mca.McaFileHelpers;
-import net.rossquerz.mca.TagWrapper;
+import net.rossquerz.mca.io.McaFileHelpers;
+import net.rossquerz.mca.util.TagWrapper;
 import net.rossquerz.util.ArgValidator;
 
 import java.util.ArrayList;

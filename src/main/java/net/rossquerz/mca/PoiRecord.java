@@ -1,5 +1,6 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.util.TagWrapper;
 import net.rossquerz.nbt.tag.CompoundTag;
 
 import java.util.Objects;

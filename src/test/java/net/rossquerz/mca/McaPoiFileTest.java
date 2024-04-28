@@ -1,9 +1,7 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.nbt.io.TextNbtHelpers;
+import net.rossquerz.mca.io.McaFileHelpers;
 
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

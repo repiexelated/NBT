@@ -1,4 +1,6 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.util;
+
+import net.rossquerz.mca.SectionBase;
 
 import java.util.Iterator;
 

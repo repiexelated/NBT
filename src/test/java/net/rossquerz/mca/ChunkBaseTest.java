@@ -1,6 +1,7 @@
 package net.rossquerz.mca;
 
 import net.rossquerz.NbtTestCase;
+import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.util.Mutable;
 

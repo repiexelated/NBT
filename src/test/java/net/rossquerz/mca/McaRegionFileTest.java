@@ -1,8 +1,11 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.io.McaFileHelpers;
+import net.rossquerz.mca.util.ChunkIterator;
+import net.rossquerz.mca.util.SectionIterator;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
-import static net.rossquerz.mca.LoadFlags.*;
+import static net.rossquerz.mca.io.LoadFlags.*;
 
 import java.io.*;
 import java.util.Objects;

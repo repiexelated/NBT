@@ -1,6 +1,6 @@
 package net.rossquerz.mca.util;
 
-import net.rossquerz.mca.LoadFlags;
+import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.nbt.tag.CompoundTag;
 
 import java.util.*;

@@ -3,7 +3,7 @@ package net.rossquerz.mca;
 import net.rossquerz.mca.entities.EntityBase;
 import net.rossquerz.mca.entities.EntityBaseImpl;
 import net.rossquerz.mca.entities.EntityFactory;
-import net.rossquerz.nbt.io.TextNbtHelpers;
+import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;

@@ -1,5 +1,6 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.util;
 
+import net.rossquerz.mca.TerrainSection;
 import net.rossquerz.nbt.tag.CompoundTag;
 
 import java.util.Iterator;

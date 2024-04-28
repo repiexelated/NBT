@@ -1,6 +1,6 @@
 package net.rossquerz.mca.entities;
 
-import net.rossquerz.mca.VersionedDataContainer;
+import net.rossquerz.mca.util.VersionedDataContainer;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.util.ArgValidator;

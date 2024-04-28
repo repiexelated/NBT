@@ -1,4 +1,7 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.io;
+
+import net.rossquerz.mca.*;
+import net.rossquerz.mca.io.McaFileHelpers;
 
 import java.io.File;
 import java.nio.file.Paths;

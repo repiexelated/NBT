@@ -1,5 +1,6 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.io;
 
+import net.rossquerz.mca.*;
 import net.rossquerz.mca.util.IntPointXZ;
 import net.rossquerz.nbt.io.CompressionType;
 

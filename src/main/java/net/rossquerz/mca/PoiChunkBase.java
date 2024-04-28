@@ -1,5 +1,6 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.IntArrayTag;
@@ -9,7 +10,7 @@ import net.rossquerz.nbt.tag.Tag;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import static net.rossquerz.mca.LoadFlags.*;
+import static net.rossquerz.mca.io.LoadFlags.*;
 
 /**
  * Provides all the basic functionality necessary for this type of chunk with abstraction hooks

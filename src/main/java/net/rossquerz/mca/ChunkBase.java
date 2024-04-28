@@ -1,7 +1,7 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.mca.util.IntPointXZ;
-import net.rossquerz.mca.util.TracksUnreadDataTags;
+import net.rossquerz.mca.io.LoadFlags;
+import net.rossquerz.mca.util.*;
 import net.rossquerz.nbt.io.BinaryNbtDeserializer;
 import net.rossquerz.nbt.io.BinaryNbtSerializer;
 import net.rossquerz.nbt.io.CompressionType;
@@ -9,7 +9,6 @@ import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.Tag;
-import net.rossquerz.mca.util.VersionAware;
 import net.rossquerz.nbt.util.ObservedCompoundTag;
 
 import java.io.*;
@@ -17,7 +16,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-import static net.rossquerz.mca.LoadFlags.*;
+import static net.rossquerz.mca.io.LoadFlags.*;
 
 /**
  * Abstraction for the base of all chunk types. Not all chunks types are sectioned, that layer comes further up

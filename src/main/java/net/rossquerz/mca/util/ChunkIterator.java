@@ -1,5 +1,7 @@
-package net.rossquerz.mca;
+package net.rossquerz.mca.util;
 
+import net.rossquerz.mca.ChunkBase;
+import net.rossquerz.mca.McaFileBase;
 import net.rossquerz.mca.util.IntPointXZ;
 
 import java.util.Iterator;
