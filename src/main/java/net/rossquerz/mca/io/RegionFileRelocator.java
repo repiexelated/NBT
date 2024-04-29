@@ -2,6 +2,7 @@ package net.rossquerz.mca.io;
 
 import net.rossquerz.mca.ChunkBase;
 import net.rossquerz.mca.util.IntPointXZ;
+import net.rossquerz.util.Stopwatch;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,6 +19,16 @@ public class RegionFileRelocator implements Closeable {
     private McaStreamSupplier mcaStreamSupplier;
     private String destinationRoot;
     private long moveChunkFlags = MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS;
+    private final Stopwatch stopwatch = Stopwatch.createUnstarted();
+    private int regionFilesRelocated = 0;
+    private int poiFilesRelocated = 0;
+    private int entitiesFilesRelocated = 0;
+
+    @Override
+    public String toString() {
+        return String.format("relocations[region %d; entities %d; poi %d]; total time %s",
+                regionFilesRelocated, entitiesFilesRelocated, poiFilesRelocated, stopwatch);
+    }
 
     private void check() {
         if (mcaStreamSupplier == null) {
@@ -70,21 +81,66 @@ public class RegionFileRelocator implements Closeable {
     }
 
     /**
+     * Resets the time elapsed stopwatch and resets all relocation counters.
+     */
+    public RegionFileRelocator resetPerformanceMetrics() {
+        stopwatch.reset();
+        regionFilesRelocated = 0;
+        poiFilesRelocated = 0;
+        entitiesFilesRelocated = 0;
+        return this;
+    }
+
+    /** Gets a copy of the stopwatch populated with the current total relocate elapsed time. */
+    public Stopwatch elapsed() {
+        return Stopwatch.createUnstarted().add(stopwatch);
+    }
+
+    public int regionFilesRelocated() {
+        return regionFilesRelocated;
+    }
+
+    public int poiFilesRelocated() {
+        return poiFilesRelocated;
+    }
+
+    public int entitiesFilesRelocated() {
+        return entitiesFilesRelocated;
+    }
+
+    /**
      * @param source A file name such as r.0.0.mca which will be used to read region/poi/entities from {@link #sourceRoot(String)}.
      * @param destination A file name such as r.1.1.mca which will be used to write region/poi/entities into {@link #destinationRoot(String)}.
      * @return True if any mca files were written, false otherwise.
      */
     public boolean relocate(String source, String destination) throws IOException {
         check();
-        boolean didSomething = relocate("region", source, destination);
-        didSomething |= relocate("entities", source, destination);
-        didSomething |= relocate("poi", source, destination);
-        return didSomething;
+        try (Stopwatch.LapToken lap = stopwatch.startLap()) {
+            boolean didSomething = false;
+            if (relocate("region", source, destination)) {
+                didSomething = true;
+                regionFilesRelocated++;
+            }
+            if (relocate("entities", source, destination)) {
+                didSomething = true;
+                entitiesFilesRelocated++;
+            }
+            if (relocate("poi", source, destination)) {
+                didSomething = true;
+                poiFilesRelocated++;
+            }
+            return didSomething;
+        }
     }
 
     private boolean relocate(String mcaType, String source, String destination) throws IOException {
+        Stopwatch totalStopwatch = Stopwatch.createStarted();
+        Stopwatch supplierGetStopwatch = Stopwatch.createStarted();
         try (InputStream in = mcaStreamSupplier.get(mcaType, source)) {
+            supplierGetStopwatch.stop();
             if (in != null) {
+                Stopwatch iterNextStopwatch = Stopwatch.createUnstarted();
+                Stopwatch moveChunkStopwatch = Stopwatch.createUnstarted();
                 File destFolder = Paths.get(destinationRoot, mcaType).toFile();
                 if (!destFolder.exists()) destFolder.mkdirs();
                 McaFileChunkIterator<?> iter = McaFileChunkIterator.iterate(in, mcaType + "/" + source, LoadFlags.RAW);
@@ -94,12 +150,23 @@ public class RegionFileRelocator implements Closeable {
                     final IntPointXZ deltaXZ = destAnchorXZ.subtract(sourceAnchorXZ);
 
                     while (iter.hasNext()) {
+                        iterNextStopwatch.start();
                         ChunkBase chunk = iter.next();
+                        iterNextStopwatch.stop();
                         if (!deltaXZ.isZero()) {
+                            moveChunkStopwatch.start();
                             chunk.moveChunk(chunk.getChunkX() + deltaXZ.getX(), chunk.getChunkZ() + deltaXZ.getZ(), moveChunkFlags);
+                            moveChunkStopwatch.stop();
                         }
                         writer.write(chunk);
                     }
+                    writer.close();
+                    totalStopwatch.stop();
+//                    System.out.println(
+//                            "RELOCATE " + writer + "; relocate[total " + totalStopwatch +
+//                                    "; stream supplier " + supplierGetStopwatch +
+//                                    "; iter.next " + iterNextStopwatch + "; moveChunk " + moveChunkStopwatch +
+//                                    "]; " + mcaType + "/" + source + " -> " + destination );
                 }
                 return true;
             }
@@ -124,7 +191,7 @@ public class RegionFileRelocator implements Closeable {
         final IntPointXZ deltaXZ = new IntPointXZ(deltaXRegions, deltaZRegions);
         int relocated = 0;
         for (String source : listSourceRegions()) {
-            System.out.println("RELOCATING " + source);
+//            System.out.println("RELOCATING " + source);
             IntPointXZ newXZ = McaFileHelpers.regionXZFromFileName(source).add(deltaXZ);
             if (relocate(source, McaFileHelpers.createNameFromRegionLocation(newXZ))) {
                 relocated++;
@@ -206,11 +273,17 @@ public class RegionFileRelocator implements Closeable {
         }
     }
 
+    /**
+     * Supplier of mca InputStreams sourced from the filesystem.
+     */
     private static class FileMcaStreamSupplier implements McaStreamSupplier {
         private final String root;
 
         public FileMcaStreamSupplier(String root) throws FileNotFoundException {
             this.root = root;
+            File file = new File(root);
+            if (!file.exists()) throw new FileNotFoundException();
+            if (!file.isDirectory()) throw new FileNotFoundException("location exists but is not a directory");
         }
 
         @Override
@@ -241,6 +314,9 @@ public class RegionFileRelocator implements Closeable {
         }
     }
 
+    /**
+     * Supplier of mca InputStreams sourced from a zip or jar archive file.
+     */
     static class ArchiveMcaStreamSupplier implements McaStreamSupplier {
         final ZipFile zip;
         final String pathPrefix;

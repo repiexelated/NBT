@@ -106,9 +106,9 @@ public class McaFileStreamingWriter implements Closeable {
 
     @Override
     public String toString() {
-        return String.format("chunks written: %4d; timing: [total: %s; serialize: %s; write: %s; init: %s; finalize: %s]",
+        return String.format("chunks written: %4d; timing[total %s; serialize %s; write %s; init %s; finalize %s]",
                 chunksWritten,
-                totalWriteStopwatch.add(fileInitializationStopwatch, fileCloseStopwatch),
+                elapsed(),
                 chunkSerializationStopwatch,
                 totalWriteStopwatch.subtract(chunkSerializationStopwatch),
                 fileInitialized ? fileInitializationStopwatch : "n/a",
@@ -116,9 +116,9 @@ public class McaFileStreamingWriter implements Closeable {
     }
 
     /**
-     * @return The total milliseconds taken by this instances operations so far.
+     * @return A copy of a Stopwatch which represents the total time taken so far.
      */
-    public float getTotalMilliseconds() {
-        return totalWriteStopwatch.add(fileInitializationStopwatch, fileCloseStopwatch).elapsed(TimeUnit.MICROSECONDS) / 1000f;
+    public Stopwatch elapsed() {
+        return totalWriteStopwatch.add(fileInitializationStopwatch, fileCloseStopwatch);
     }
 }
