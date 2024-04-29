@@ -22,35 +22,30 @@ public class McaFileChunkIteratorTest extends McaTestCase {
         chunk = iter.next();
         assertNotNull(chunk);
         assertEquals(XZ(-78, -70), chunk.getChunkXZ());
-        System.out.println(chunk.getLastMCAUpdate());
         assertEquals(1713564484, chunk.getLastMCAUpdate());
 
         assertTrue(iter.hasNext());
         chunk = iter.next();
         assertNotNull(chunk);
         assertEquals(XZ(-77, -84), chunk.getChunkXZ());
-        System.out.println(chunk.getLastMCAUpdate());
         assertEquals(1713564485, chunk.getLastMCAUpdate());
 
         assertTrue(iter.hasNext());
         chunk = iter.next();
         assertNotNull(chunk);
         assertEquals(XZ(-77, -73), chunk.getChunkXZ());
-        System.out.println(chunk.getLastMCAUpdate());
         assertEquals(1713564485, chunk.getLastMCAUpdate());
 
         assertTrue(iter.hasNext());
         chunk = iter.next();
         assertNotNull(chunk);
         assertEquals(XZ(-77, -68), chunk.getChunkXZ());
-        System.out.println(chunk.getLastMCAUpdate());
         assertEquals(1713564485, chunk.getLastMCAUpdate());
 
         assertTrue(iter.hasNext());
         chunk = iter.next();
         assertNotNull(chunk);
         assertEquals(XZ(-82, -67), chunk.getChunkXZ());
-        System.out.println(chunk.getLastMCAUpdate());
         assertEquals(1713564485, chunk.getLastMCAUpdate());
 
         assertFalse(iter.hasNext());
