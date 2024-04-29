@@ -88,3 +88,4 @@ out/
 
 *.patch
 TESTDBG/
+/src/test/java/net/rossquerz/ScratchpadTest.java
