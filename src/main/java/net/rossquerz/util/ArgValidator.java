@@ -57,4 +57,10 @@ public class ArgValidator {
         }
         return value;
     }
+
+    public static void checkState(boolean expression, Object errorMessage) {
+        if (!expression) {
+            throw new IllegalStateException(String.valueOf(errorMessage));
+        }
+    }
 }
