@@ -207,12 +207,12 @@ public class NbtPathTest extends NbtTestCase {
 
         NbtPath.of("long").putTag(root, new LongTag(19));
         // can't get a child of a primitive tag
-        assertThrowsIllegalArgumentException(() -> NbtPath.of("long.foo").getTag(root));
+        assertNull(NbtPath.of("long.foo").getTag(root));
         // can't treat a primitive as a list
         assertThrowsIllegalArgumentException(() -> NbtPath.of("long[0]").getTag(root));
 
         // can't add a child to a primitive tag
-        assertThrowsIllegalArgumentException(() -> NbtPath.of("long.foo.bar").putTag(root, new CompoundTag(), true));
+        assertThrowsUnsupportedOperationException(() -> NbtPath.of("long.foo.bar").putTag(root, new CompoundTag(), true));
     }
 
     public void testGetTypedArrayTags() {

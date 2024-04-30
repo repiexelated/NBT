@@ -19,8 +19,7 @@ public class NameEvaluator implements Evaluator {
         if (tag instanceof CompoundTag) {
             return ((CompoundTag) tag).get(key);
         }
-        if (tag == null) return null;
-        throw new IllegalArgumentException("expected CompoundTag but was " + tag.getClass().getTypeName());
+        return null;
     }
 
     @Override
