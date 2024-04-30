@@ -12,7 +12,7 @@ public class IntArrayTag extends ArrayTag<int[]> implements Comparable<IntArrayT
 		super(ZERO_VALUE);
 	}
 
-	public IntArrayTag(int[] value) {
+	public IntArrayTag(int... value) {
 		super(value);
 	}
 

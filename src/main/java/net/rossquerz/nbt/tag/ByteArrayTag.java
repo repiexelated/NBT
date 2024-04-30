@@ -11,7 +11,7 @@ public class ByteArrayTag extends ArrayTag<byte[]> implements Comparable<ByteArr
 		super(ZERO_VALUE);
 	}
 
-	public ByteArrayTag(byte[] value) {
+	public ByteArrayTag(byte... value) {
 		super(value);
 	}
 

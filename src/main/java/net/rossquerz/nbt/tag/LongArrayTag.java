@@ -12,7 +12,7 @@ public class LongArrayTag extends ArrayTag<long[]> implements Comparable<LongArr
 		super(ZERO_VALUE);
 	}
 
-	public LongArrayTag(long[] value) {
+	public LongArrayTag(long... value) {
 		super(value);
 	}
 
