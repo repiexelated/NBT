@@ -133,6 +133,18 @@ public class RegionFileRelocator implements Closeable {
         }
     }
 
+    public boolean relocate(int sourceX, int sourceZ, int destinationX, int destinationZ) throws IOException {
+        return relocate(
+                McaFileHelpers.createNameFromRegionLocation(sourceX, sourceZ),
+                McaFileHelpers.createNameFromRegionLocation(destinationX, destinationZ));
+    }
+
+    public boolean relocate(IntPointXZ sourceXZ, IntPointXZ destinationXZ) throws IOException {
+        return relocate(
+                McaFileHelpers.createNameFromRegionLocation(sourceXZ),
+                McaFileHelpers.createNameFromRegionLocation(destinationXZ));
+    }
+
     private boolean relocate(String mcaType, String source, String destination) throws IOException {
         Stopwatch totalStopwatch = Stopwatch.createStarted();
         Stopwatch supplierGetStopwatch = Stopwatch.createStarted();
@@ -156,6 +168,7 @@ public class RegionFileRelocator implements Closeable {
                         if (!deltaXZ.isZero()) {
                             moveChunkStopwatch.start();
                             chunk.moveChunk(chunk.getChunkX() + deltaXZ.getX(), chunk.getChunkZ() + deltaXZ.getZ(), moveChunkFlags);
+                            chunk.updateHandle();   // not necessary when loaded in RAW, but also a very low cost call when in raw so leave it in to avoid bugs when not loading raw.
                             moveChunkStopwatch.stop();
                         }
                         writer.write(chunk);
@@ -198,6 +211,10 @@ public class RegionFileRelocator implements Closeable {
             }
         }
         return relocated;
+    }
+
+    public int relocateAll(IntPointXZ deltaXZRegions) throws IOException {
+        return relocateAll(deltaXZRegions.getX(), deltaXZRegions.getZ());
     }
 
     /** All methods may return null if the specified mca file does not exist. */

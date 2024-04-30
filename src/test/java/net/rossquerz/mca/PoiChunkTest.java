@@ -21,8 +21,8 @@ public class PoiChunkTest extends PoiChunkBaseTest<PoiRecord, PoiChunk> {
     }
 
     @Override
-    protected PoiChunk createChunk(CompoundTag tag, long loadData) {
-        return new PoiChunk(tag, loadData);
+    protected PoiChunk createChunk(CompoundTag tag, long loadFlags) {
+        return new PoiChunk(tag, loadFlags);
     }
 
     @Override

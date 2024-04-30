@@ -22,15 +22,8 @@ public class TerrainChunk extends TerrainChunkBase<TerrainSection> {
 	@Deprecated
 	public static final int DEFAULT_DATA_VERSION = DataVersion.latest().id();
 
-	@Deprecated
-	protected TerrainChunk(int lastMCAUpdate) {
-		super(DEFAULT_DATA_VERSION);
-		setLastMCAUpdate(lastMCAUpdate);
-	}
-
-	protected TerrainChunk(int dataVersion, int lastMCAUpdate) {
+	protected TerrainChunk(int dataVersion) {
 		super(dataVersion);
-		setLastMCAUpdate(lastMCAUpdate);
 	}
 
 	public TerrainChunk(CompoundTag data) {
@@ -78,7 +71,7 @@ public class TerrainChunk extends TerrainChunkBase<TerrainSection> {
 	}
 
 	public static TerrainChunk newChunk(int dataVersion) {
-		TerrainChunk c = new TerrainChunk(dataVersion, 0);
+		TerrainChunk c = new TerrainChunk(dataVersion);
 		c.data = new CompoundTag();
 		if (dataVersion < DataVersion.JAVA_1_18_21W39A.id()) {
 			c.data.put("Level", new CompoundTag());

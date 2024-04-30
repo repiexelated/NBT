@@ -7,10 +7,7 @@ import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.mca.io.MoveChunkFlags;
 import net.rossquerz.nbt.query.NbtPath;
-import net.rossquerz.nbt.tag.CompoundTag;
-import net.rossquerz.nbt.tag.DoubleTag;
-import net.rossquerz.nbt.tag.IntArrayTag;
-import net.rossquerz.nbt.tag.ListTag;
+import net.rossquerz.nbt.tag.*;
 import net.rossquerz.util.ArgValidator;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import net.rossquerz.mca.util.VersionAware;
@@ -42,6 +39,10 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
 
     protected static final VersionAware<NbtPath> ENTITIES_PATH = new VersionAware<NbtPath>()
             .register(JAVA_1_17_20W45A.id(), NbtPath.of("Entities"));
+
+    /** relative to ENTITIES_PATH[] */
+    protected static final VersionAware<NbtPath> ENTITIES_BRAIN_MEMORIES_PATH = new VersionAware<NbtPath>()
+            .register(0, NbtPath.of("Brain.memories"));
 
     protected EntitiesChunkBase(int dataVersion) {
         super(dataVersion);
@@ -81,7 +82,6 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
      * Called to initialize entity wrappers - implementers should respect the {@code raw} setting and DO NOTHING
      * if called when raw is set.
      */
-    @SuppressWarnings("unchecked")
     protected void initEntities() {
         if (raw) return;
         if (entitiesTag == null) {
@@ -89,10 +89,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
             // this state should happen is if there is a bug in the implementers of this class.
             throw new IllegalStateException("Entities nbt tag was not loaded for this chunk");
         }
-        entities = new ArrayList<>();
-        for (CompoundTag entityTag : entitiesTag) {
-            entities.add((ET) EntityFactory.create(entityTag, dataVersion));
-        }
+        entities = EntityFactory.fromListTag(entitiesTag, dataVersion);
     }
 
     /**
@@ -240,9 +237,11 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
         }
         boolean changed = false;
         if (entities != null) {
+            final NbtPath brainMemoriesPath = ENTITIES_BRAIN_MEMORIES_PATH.get(dataVersion);
+            final NbtPath memoryPosPath = NbtPath.of("value.pos");
             final ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
             for (ET entity : entities) {
-                if (!cbr.contains(entity.getX(), entity.getZ())) {
+                if (!cbr.containsBlock(entity.getX(), entity.getZ())) {
                     entity.setX(cbr.relocateX(entity.getX()));
                     entity.setZ(cbr.relocateZ(entity.getZ()));
                     if ((moveChunkFlags & MoveChunkFlags.RANDOMIZE_ENTITY_UUID) > 0) {
@@ -250,27 +249,44 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                     }
                     changed = true;
                 }
+                if (brainMemoriesPath.exists(entity.getHandle())) {
+                    CompoundTag memoriesTag = brainMemoriesPath.getTag(entity.getHandle());
+                    for (Map.Entry<String, Tag<?>> entry : memoriesTag.entrySet()) {
+                        int[] pos = memoryPosPath.getIntArray(entry.getValue());
+                        if (pos != null && !cbr.containsBlock(pos[0], pos[2])) {
+                            // TODO: dimension is also in this data
+                            pos[0] = cbr.relocateX(pos[0]);
+                            pos[2] = cbr.relocateZ(pos[2]);
+                            changed = true;
+                        }
+                    }
+                }
             }
         } else if (entitiesTag != null) {
-            changed = fixEntityLocations(moveChunkFlags, entitiesTag, new ChunkBoundingRectangle(chunkX, chunkZ));
+            changed = fixEntityLocations(dataVersion, moveChunkFlags, entitiesTag, new ChunkBoundingRectangle(chunkX, chunkZ));
         } else if (raw) {
             ListTag<CompoundTag> tag = getTag(ENTITIES_PATH);
             if (tag == null)
                 throw new UnsupportedOperationException("Missing the data required to move this chunk! Didn't find '" +
                         ENTITIES_PATH.get(dataVersion) +
                         "' tag while in RAW mode.");
-            changed = fixEntityLocations(moveChunkFlags, tag, new ChunkBoundingRectangle(chunkX, chunkZ));
+            changed = fixEntityLocations(dataVersion, moveChunkFlags, tag, new ChunkBoundingRectangle(chunkX, chunkZ));
         }
         return changed;
     }
 
-    private boolean fixEntityLocations(long moveChunkFlags, ListTag<CompoundTag> entityTags, ChunkBoundingRectangle cbr) {
+    static boolean fixEntityLocations(int dataVersion, long moveChunkFlags, ListTag<CompoundTag> entityTags, ChunkBoundingRectangle cbr) {
+        if (entityTags == null || entityTags.isEmpty()) {
+            return false;
+        }
         boolean changed = false;
+        final NbtPath brainMemoriesPath = ENTITIES_BRAIN_MEMORIES_PATH.get(dataVersion);
+        final NbtPath memoryPosPath = NbtPath.of("value.pos");
         for (CompoundTag entityTag : entityTags) {
             ListTag<DoubleTag> posTag = entityTag.getListTag("Pos").asDoubleTagList();
             double x = posTag.get(0).asDouble();
             double z = posTag.get(2).asDouble();
-            if (!cbr.contains(x, z)) {
+            if (!cbr.containsBlock(x, z)) {
                 posTag.set(0, new DoubleTag(cbr.relocateX(x)));
                 posTag.set(2, new DoubleTag(cbr.relocateZ(z)));
                 if ((moveChunkFlags & MoveChunkFlags.RANDOMIZE_ENTITY_UUID) > 0) {
@@ -278,6 +294,20 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                 }
                 changed = true;
             }
+
+            if (brainMemoriesPath.exists(entityTag)) {
+                CompoundTag memoriesTag = brainMemoriesPath.getTag(entityTag);
+                for (Map.Entry<String, Tag<?>> entry : memoriesTag.entrySet()) {
+                    int[] pos = memoryPosPath.getIntArray(entry.getValue());
+                    if (pos != null && !cbr.containsBlock(pos[0], pos[2])) {
+                        // TODO: dimension is also in this data
+                        pos[0] = cbr.relocateX(pos[0]);
+                        pos[2] = cbr.relocateZ(pos[2]);
+                        changed = true;
+                    }
+                }
+            }
+
             // This is correct even for boats visually straddling a chunk boarder, the passengers share the boat
             // location and the order of the passengers apparently controls their visual offset in game.
             // Example (trimmed down) F3+I capture of such a boat:
@@ -287,7 +317,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
             //      {id:"minecraft:pig",Pos:[-1002.5d,63.04d,-672.01d]}
             //    ],Rotation:[-180.0f,0.0f]}
             if (entityTag.containsKey("Passengers")) {
-                changed |= fixEntityLocations(moveChunkFlags, data.getListTag("Passengers").asCompoundTagList(), cbr);
+                changed |= fixEntityLocations(dataVersion, moveChunkFlags, entityTag.getListTag("Passengers").asCompoundTagList(), cbr);
             }
         }
         return changed;

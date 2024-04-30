@@ -88,7 +88,7 @@ public class McaRegionFileTest extends McaTestCase {
 
 		assertEquals(1628, f.getChunk(0).getDataVersion());
 		assertEquals(1538048269, f.getChunk(0).getLastMCAUpdate());
-		assertEquals(1205486986, f.getChunk(0).getLastUpdate());
+		assertEquals(1205486986, f.getChunk(0).getLastUpdateTick());
 		assertNotNull(f.getChunk(0).getLegacyBiomes());
 		assertNull(f.getChunk(0).getHeightMaps());
 		assertNull(f.getChunk(0).getCarvingMasks());
@@ -134,10 +134,10 @@ public class McaRegionFileTest extends McaTestCase {
 		assertEquals(1627, f.getChunk(1023).getDataVersion());
 		f.getChunk(1023).setLastMCAUpdate(12345678);
 		assertEquals(12345678, f.getChunk(1023).getLastMCAUpdate());
-		f.getChunk(1023).setLastUpdate(87654321);
-		assertEquals(87654321, f.getChunk(1023).getLastUpdate());
-		f.getChunk(1023).setInhabitedTime(13243546);
-		assertEquals(13243546, f.getChunk(1023).getInhabitedTime());
+		f.getChunk(1023).setLastUpdateTick(87654321);
+		assertEquals(87654321, f.getChunk(1023).getLastUpdateTick());
+		f.getChunk(1023).setInhabitedTimeTicks(13243546);
+		assertEquals(13243546, f.getChunk(1023).getInhabitedTimeTicks());
 		assertThrowsRuntimeException(() -> f.getChunk(1023).setLegacyBiomes(new int[255]), IllegalArgumentException.class);
 		int[] biomes = new int[256];
 		assertThrowsNoRuntimeException(() -> f.getChunk(1023).setLegacyBiomes(biomes));

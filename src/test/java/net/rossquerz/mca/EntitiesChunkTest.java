@@ -19,8 +19,8 @@ public class EntitiesChunkTest extends EntitiesChunkBaseTest<EntityBase, Entitie
     }
 
     @Override
-    protected EntitiesChunk createChunk(CompoundTag tag, long loadData) {
-        return new EntitiesChunk(tag, loadData);
+    protected EntitiesChunk createChunk(CompoundTag tag, long loadFlags) {
+        return new EntitiesChunk(tag, loadFlags);
     }
 
     @Override

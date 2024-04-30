@@ -1,12 +1,8 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.mca.util.ChunkBoundingRectangle;
-import net.rossquerz.mca.util.IntPointXZ;
-import net.rossquerz.mca.util.RegionBoundingRectangle;
-import net.rossquerz.nbt.io.NamedTag;
+import net.rossquerz.mca.util.*;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
-import net.rossquerz.mca.util.VersionAware;
 
 import java.util.*;
 
@@ -22,123 +18,132 @@ import static net.rossquerz.mca.io.MoveChunkFlags.*;
  */
 public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends SectionedChunkBase<T> {
 
-	protected long lastUpdate;
-	protected static final VersionAware<NbtPath> LAST_UPDATE_PATH = new VersionAware<NbtPath>()
+	protected long lastUpdateTick;
+	/** Tick when the chunk was last saved. */
+	public static final VersionAware<NbtPath> LAST_UPDATE_TICK_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.LastUpdate"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("LastUpdate"));
 
-	protected long inhabitedTime;
-	protected static final VersionAware<NbtPath> INHABITED_TIME_PATH = new VersionAware<NbtPath>()
+	protected long inhabitedTimeTicks;
+	/** Cumulative amount of time players have spent in this chunk in ticks. */
+	public static final VersionAware<NbtPath> INHABITED_TIME_TICKS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.InhabitedTime"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("InhabitedTime"));
 
+	protected int[] legacyBiomes;
 	/**
 	 * Only populated for data versions &lt; JAVA_1_18_21W39A. For later data versions use
 	 * {@link net.rossquerz.mca.util.PalettizedCuboid} and load biomes from
 	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/IDs_before_1.13>minecraft.fandom.com/wiki/Biome/IDs_before_1.13</a>
 	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/ID>minecraft.fandom.com/wiki/Biome/ID</a>
 	 */
-	protected int[] legacyBiomes;
-	protected static final VersionAware<NbtPath> LEGACY_BIOMES_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> LEGACY_BIOMES_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Biomes"))
 			.register(JAVA_1_18_21W39A.id(), null);  // biomes are now paletted and live in a similar container structure in sections[].biomes
 
 	protected IntArrayTag legacyHeightMap;
-	protected static final VersionAware<NbtPath> LEGACY_HEIGHT_MAP_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> LEGACY_HEIGHT_MAP_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.HeightMap"));
 
 	protected CompoundTag heightMaps;
-	protected static final VersionAware<NbtPath> HEIGHT_MAPS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> HEIGHT_MAPS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Heightmaps"))  // TODO: find when this was introduced - it was sometime before 1.13.0
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("Heightmaps"));
 
 	// TODO(1.18): WTF - change notes say Level.CarvingMasks[] is now long[] instead of byte[] ... but this is a CompoundTag!
 	protected CompoundTag carvingMasks;
-	protected static final VersionAware<NbtPath> CARVING_MASKS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> CARVING_MASKS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.CarvingMasks"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("CarvingMasks"));
 
 	protected ListTag<CompoundTag> entities;  // usage changed for chunk versions >= 2724 (1.17) after which entities are only stored in terrain chunks during world generation.
-	protected static final VersionAware<NbtPath> ENTITIES_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> ENTITIES_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Entities"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("entities"));
 
 	protected ListTag<CompoundTag> tileEntities;
-	protected static final VersionAware<NbtPath> TILE_ENTITIES_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> TILE_ENTITIES_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.TileEntities"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("block_entities"));
 
 	protected ListTag<CompoundTag> tileTicks;
-	protected static final VersionAware<NbtPath> TILE_TICKS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> TILE_TICKS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.TileTicks"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("block_ticks"));
 
 	protected ListTag<ListTag<?>> toBeTicked;
-	protected static final VersionAware<NbtPath> TO_BE_TICKED_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> TO_BE_TICKED_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.ToBeTicked"))
 			.register(JAVA_1_18_21W43A.id(), null);  // unsure when this was removed - but notes on this version say it was also "moved to block_ticks"
 
 	protected ListTag<CompoundTag> liquidTicks;
-	protected static final VersionAware<NbtPath> LIQUID_TICKS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> LIQUID_TICKS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.LiquidTicks"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("fluid_ticks"));
 
 	protected ListTag<ListTag<?>> liquidsToBeTicked;
-	protected static final VersionAware<NbtPath> LIQUIDS_TO_BE_TICKED_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> LIQUIDS_TO_BE_TICKED_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.LiquidsToBeTicked"))
 			.register(JAVA_1_18_21W43A.id(), null);  // unsure when this was removed - but notes on this version say it was also "moved to fluid_ticks"
 
 	protected ListTag<ListTag<?>> lights;
-	protected static final VersionAware<NbtPath> LIGHTS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> LIGHTS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Lights"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("Lights"));
 
 	protected ListTag<ListTag<?>> postProcessing;
-	protected static final VersionAware<NbtPath> POST_PROCESSING_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> POST_PROCESSING_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.PostProcessing"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("PostProcessing"));
 
 	protected String status;
-	protected static final VersionAware<NbtPath> STATUS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> STATUS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Status"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("Status"));
 
 	protected CompoundTag structures;
-	protected static final VersionAware<NbtPath> STRUCTURES_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> STRUCTURES_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Structures"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("structures"));
+	/** Relative to {@link #STRUCTURES_PATH} */
+	public static final VersionAware<NbtPath> STRUCTURES_STARTS_PATH = new VersionAware<NbtPath>()
+			.register(0, NbtPath.of("Starts"))
+			.register(JAVA_1_18_21W43A.id(), NbtPath.of("starts"));
+	/** Relative to {@link #STRUCTURES_PATH} */
+	public static final VersionAware<NbtPath> STRUCTURES_REFERENCES_PATH = new VersionAware<NbtPath>()
+			.register(0, NbtPath.of("References"));
 
 	// null if the chunk data tag didn't contain a value
 	protected Boolean isLightOn;
-	protected static final VersionAware<NbtPath> IS_LIGHT_ON_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> IS_LIGHT_ON_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.LightPopulated"))
 			.register(JAVA_1_13_18W06A.id(), NbtPath.of("Level.isLightOn"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("isLightOn"));
 
 	// null if the chunk data tag didn't contain a value
 	protected Boolean isTerrainPopulated;
-	protected static final VersionAware<NbtPath> TERRAIN_POPULATED_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> TERRAIN_POPULATED_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.TerrainPopulated"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("TerrainPopulated"));
 
 	protected Boolean hasLegacyStructureData;
-	protected static final VersionAware<NbtPath> HAS_LEGACY_STRUCTURE_DATA_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> HAS_LEGACY_STRUCTURE_DATA_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.hasLegacyStructureData"));
 
 	protected CompoundTag upgradeData;
-	protected static final VersionAware<NbtPath> UPGRADE_DATA_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> UPGRADE_DATA_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.UpgradeData"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("UpgradeData"));
 
-	protected static final VersionAware<NbtPath> SECTIONS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> SECTIONS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.Sections"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("sections"));
 
-	protected static final VersionAware<NbtPath> X_POS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> X_POS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.xPos"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("xPos"));
 
-	protected static final VersionAware<NbtPath> Z_POS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> Z_POS_PATH = new VersionAware<NbtPath>()
 			.register(0, NbtPath.of("Level.zPos"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("zPos"));
 
@@ -147,20 +152,20 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * @since {@link DataVersion#JAVA_1_18_21W43A}
 	 */
 	protected int yPos = NO_CHUNK_COORD_SENTINEL;
-	protected static final VersionAware<NbtPath> Y_POS_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> Y_POS_PATH = new VersionAware<NbtPath>()
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("yPos"));
-	protected static final VersionAware<Integer> DEFAULT_WORLD_BOTTOM_Y_POS = new VersionAware<Integer>()
+	public static final VersionAware<Integer> DEFAULT_WORLD_BOTTOM_Y_POS = new VersionAware<Integer>()
 			.register(0, 0)
 			.register(JAVA_1_18_XS1.id(), -4);  // TODO: IDK if they actually enabled deep worlds here or not...
 
 	/** @since {@link DataVersion#JAVA_1_18_21W43A} */
 	protected CompoundTag belowZeroRetrogen;
-	protected static final VersionAware<NbtPath> BELOW_ZERO_RETROGEN_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> BELOW_ZERO_RETROGEN_PATH = new VersionAware<NbtPath>()
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("below_zero_retrogen"));
 
 	/** @since {@link DataVersion#JAVA_1_18_21W43A} */
 	protected CompoundTag blendingData;
-	protected static final VersionAware<NbtPath> BLENDING_DATA_PATH = new VersionAware<NbtPath>()
+	public static final VersionAware<NbtPath> BLENDING_DATA_PATH = new VersionAware<NbtPath>()
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("blending_data"));
 
 
@@ -194,8 +199,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			}
 		}
 
-		inhabitedTime = getTagValue(INHABITED_TIME_PATH, LongTag::asLong, 0L);
-		lastUpdate = getTagValue(LAST_UPDATE_PATH, LongTag::asLong, 0L);
+		inhabitedTimeTicks = getTagValue(INHABITED_TIME_TICKS_PATH, LongTag::asLong, 0L);
+		lastUpdateTick = getTagValue(LAST_UPDATE_TICK_PATH, LongTag::asLong, 0L);
 		if (dataVersion < JAVA_1_18_21W39A.id() && (loadFlags & BIOMES) != 0) {
 			if (dataVersion >= DataVersion.JAVA_1_13_0.id()) {
 				legacyBiomes = getTagValue(LEGACY_BIOMES_PATH, IntArrayTag::getValue);
@@ -446,36 +451,31 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 	// 2048 bytes recording the amount of block-emitted light in each block. Makes load times faster compared to recomputing at load time. 4 bits per block.
 
-	/**
-	 * @return The timestamp when this chunk was last updated as a UNIX timestamp.
-	 */
-	public long getLastUpdate() {
-		return lastUpdate;
+
+	/** Tick when the chunk was last saved. */
+	public long getLastUpdateTick() {
+		return lastUpdateTick;
 	}
 
-	/**
-	 * Sets the time when this chunk was last updated as a UNIX timestamp.
-	 * @param lastUpdate The UNIX timestamp.
-	 */
-	public void setLastUpdate(long lastUpdate) {
-		checkRaw();
-		this.lastUpdate = lastUpdate;
+	/** Sets the tick when the chunk was last saved. */
+	public void setLastUpdateTick(long lastUpdateTick) {
+		this.lastUpdateTick = lastUpdateTick;
 	}
 
 	/**
 	 * @return The cumulative amount of time players have spent in this chunk in ticks.
 	 */
-	public long getInhabitedTime() {
-		return inhabitedTime;
+	public long getInhabitedTimeTicks() {
+		return inhabitedTimeTicks;
 	}
 
 	/**
 	 * Sets the cumulative amount of time players have spent in this chunk in ticks.
-	 * @param inhabitedTime The time in ticks.
+	 * @param inhabitedTimeTicks The time in ticks.
 	 */
-	public void setInhabitedTime(long inhabitedTime) {
+	public void setInhabitedTimeTicks(long inhabitedTimeTicks) {
 		checkRaw();
-		this.inhabitedTime = inhabitedTime;
+		this.inhabitedTimeTicks = inhabitedTimeTicks;
 	}
 
 	/**
@@ -776,9 +776,13 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 				}
 			}
 		}
-		// TODO: move legacy entities (and maybe those in partially generated terrain chunks?) and poi's
+		changed |= fixEntitiesLocations(moveChunkFlags, cbr, tagOrFetch(getEntities(), ENTITIES_PATH));
 		return changed;
 
+	}
+
+	protected boolean fixEntitiesLocations(long moveChunkFlags, ChunkBoundingRectangle cbr, ListTag<CompoundTag> entitiesTagList) {
+		return EntitiesChunkBase.fixEntityLocations(dataVersion, moveChunkFlags, entitiesTagList, cbr);
 	}
 
 	protected boolean fixTileLocations(long moveChunkFlags, ChunkBoundingRectangle cbr, ListTag<CompoundTag> tagList) {
@@ -789,7 +793,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		for (CompoundTag tag : tagList) {
 			int x = tag.getInt("x");
 			int z = tag.getInt("z");
-			if (!cbr.contains(x, z)) {
+			if (!cbr.containsBlock(x, z)) {
 				changed = true;
 				tag.putInt("x", cbr.relocateX(x));
 				tag.putInt("z", cbr.relocateZ(z));
@@ -800,144 +804,319 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 	private static final long REMOVE_SENTINEL = 0x8FFFFFFF_8FFFFFFFL;
 	protected boolean moveStructures(long moveChunkFlags, CompoundTag structuresTag, IntPointXZ chunkDeltaXZ) {
-		final CompoundTag references = structuresTag.getCompoundTag("References");
-		final CompoundTag starts = structuresTag.getCompoundTag("starts");
+		final CompoundTag references = STRUCTURES_REFERENCES_PATH.get(dataVersion).get(structuresTag);
+		final CompoundTag starts = STRUCTURES_STARTS_PATH.get(dataVersion).get(structuresTag);
 		boolean changed = false;
 
-		if ((moveChunkFlags & DISCARD_STRUCTURE_DATA) >= 0) {
-			if (!references.isEmpty()) {
+		// Discard structures if directed to do so.
+		if ((moveChunkFlags & DISCARD_STRUCTURE_DATA) > 0) {
+			if (references != null && !references.isEmpty()) {
 				references.clear();
 				changed = true;
 			}
-			if (!starts.isEmpty()) {
+			if (starts != null && !starts.isEmpty()) {
 				starts.clear();
 				changed = true;
 			}
 			return changed;
 		}
 
-		final RegionBoundingRectangle rbr;
+		// Establish regional bounds iff we are to discard out of region zones
+		final ChunkBoundingRectangle clippingRect;
 		if ((moveChunkFlags & DISCARD_STRUCTURE_REFERENCES_OUTSIDE_REGION) > 0) {
-			rbr = RegionBoundingRectangle.forChunk(chunkX, chunkZ);
+			clippingRect = RegionBoundingRectangle.forChunk(chunkX, chunkZ);
 		} else {
-			rbr = null;
+			clippingRect = null;
 		}
 
+		// Fix structure reference locations (XZ packed into a long)
 		if (references != null && !references.isEmpty()) {
-			for (Tag<?> tag : references.values()) {
-				boolean haveRemovals = false;
-				long[] longs = ((LongArrayTag) tag).getValue();
-				for (int i = 0; i < longs.length; i++) {
-					IntPointXZ newXZ = IntPointXZ.unpack(longs[i]).add(chunkDeltaXZ);
-					if (rbr != null && !rbr.containsChunk(newXZ)) {
-						longs[i] = REMOVE_SENTINEL;
-						haveRemovals = true;
-					} else {
-						longs[i] = IntPointXZ.pack(newXZ);
-					}
-				}
-				if (haveRemovals) {
-					((LongArrayTag) tag).setValue(
-							Arrays.stream(longs)
-									.filter(l -> l == REMOVE_SENTINEL)
-									.toArray()
-					);
-				}
-			}
-			changed = true;
-		}
-		return changed | deepMoveAll(starts, chunkDeltaXZ, rbr);
-	}
-
-	/**
-	 * @return true if bounds remain valid, false if rbr determines them to be fully out of region indicating that
-	 * the bound / structure owning the bound should be purged.
-	 */
-	private boolean moveBoundingBox(IntArrayTag boundsTag, IntPointXZ deltaXZ, RegionBoundingRectangle rbr) {
-		if (boundsTag != null) {
-			int[] bounds = boundsTag.getValue();
-			bounds[0] = bounds[0] + deltaXZ.getX();
-			bounds[2] = bounds[2] + deltaXZ.getZ();
-			bounds[3] = bounds[3] + deltaXZ.getX();
-			bounds[5] = bounds[5] + deltaXZ.getZ();
-			if (rbr != null) {
-				return rbr.constrain(bounds);
-			}
-		}
-		return true;
-	}
-
-	// sinks into every compound and list tag looking for "BB" bounding boxes and any IntTag that has a name ending in x or z.
-	@SuppressWarnings("unchecked")
-	private boolean deepMoveAll(CompoundTag startsTag, IntPointXZ chunkDeltaXZ, RegionBoundingRectangle rbr) {
-		if (startsTag == null || startsTag.isEmpty()) return false;
-		Deque<Object> stack = new LinkedList<>();
-		boolean changed = false;
-		Iterator<Map.Entry<String, Tag<?>>> startsIter = startsTag.iterator();
-		while (startsIter.hasNext()) {
-			Map.Entry<String, Tag<?>> startsEntry = startsIter.next();
-			stack.clear();
-			stack.push(startsEntry.getValue());
-			boolean shouldPurgeEntry = false;
-			startsContent: while (!stack.isEmpty()) {
-				Object o = stack.pop();
-				if (o instanceof CompoundTag) {
-					CompoundTag tag = (CompoundTag) o;
-					for (Map.Entry<String, Tag<?>> e : tag) {
-						final String key = e.getKey().toLowerCase();
-						if (key.equals("bb")) {
-							if (!moveBoundingBox((IntArrayTag) e.getValue(), chunkDeltaXZ, rbr)) {
-								shouldPurgeEntry = true;
-								break startsContent;
-							}
-							changed = true;
-						} else if (key.equals("entrances")) {
-							Iterator<IntArrayTag> entrancesIter = ((ListTag<IntArrayTag>) e.getValue()).iterator();
-							while (entrancesIter.hasNext()) {
-								IntArrayTag bb = entrancesIter.next();
-								if (!moveBoundingBox(bb, chunkDeltaXZ, rbr)) {
-									entrancesIter.remove();
-									System.out.println("REMOVED OUT OF BOUNDS ENTRANCE FOR " + startsEntry.getKey());
-								}
-								changed = true;
-							}
-						} else if (e.getValue() instanceof IntTag) {
-							IntTag intTag = (IntTag) e.getValue();
-							if (key.endsWith("x")) {
-								if (!key.toLowerCase().startsWith("chunk")) {
-									intTag.setValue(intTag.asInt() + chunkDeltaXZ.getX());
-								} else {
-									intTag.setValue(chunkX);
-								}
-								changed = true;
-							} else if (key.endsWith("z")) {
-								if (!key.toLowerCase().startsWith("chunk")) {
-									intTag.setValue(intTag.asInt() + chunkDeltaXZ.getZ());
-								} else {
-									intTag.setValue(chunkZ);
-								}
-								changed = true;
-							}
-						} else if (e.getValue() instanceof CompoundTag || e.getValue() instanceof ListTag<?>) {
-							stack.push(new NamedTag(e.getKey(), e.getValue()));
+			if (references != null && !references.isEmpty()) {
+				for (Tag<?> tag : references.values()) {
+					boolean haveRemovals = false;
+					long[] longs = ((LongArrayTag) tag).getValue();
+					for (int i = 0; i < longs.length; i++) {
+						IntPointXZ newXZ = IntPointXZ.unpack(longs[i]).add(chunkDeltaXZ);
+						if (clippingRect != null && !clippingRect.containsChunk(newXZ)) {
+							longs[i] = REMOVE_SENTINEL;
+							haveRemovals = true;
+						} else {
+							longs[i] = IntPointXZ.pack(newXZ);
 						}
 					}
-				} else if (o instanceof ListTag) {
-					ListTag<?> tag = (ListTag<?>) o;
-					for (Tag<?> t : tag) {
-						if (t instanceof CompoundTag || t instanceof ListTag<?>) {
-							stack.push(new NamedTag(null, t));
-						}
+					if (haveRemovals) {
+						((LongArrayTag) tag).setValue(
+								Arrays.stream(longs)
+										.filter(l -> l != REMOVE_SENTINEL)
+										.toArray()
+						);
 					}
 				}
+				changed = true;
 			}
-			if (shouldPurgeEntry) {
-				System.out.println("REMOVED OUT OF BOUNDS STRUCTURE START FOR " + startsEntry.getKey());
-				startsIter.remove();
+		}
+
+		// Iterate and fix structure 'starts' - starts define the area a structure does, or will, occupy
+		// and defines what exists in each, what I'll call, zone of that structure.
+		if (starts != null && !starts.isEmpty()) {
+			IntPointXZ blockDeltaXZ = chunkDeltaXZ.transformChunkToBlock();
+			for (Map.Entry<String, Tag<?>> startsEntry : starts) {
+				moveStructureStart((CompoundTag) startsEntry.getValue(), chunkDeltaXZ, blockDeltaXZ, clippingRect);
 			}
 		}
 		return changed;
 	}
+
+	/**
+	 * NOTE: The given boundsTag tag will be emptied (have a new length of zero) if the move results in an
+	 * out-of-bounds BB (rbr must be non-null for this to happen). In such a case true is always returned.
+	 * So, if true is returned the caller MUST check the length of the boundsTag and take appropriate action!
+	 * @return true if bounds changed
+	 */
+	protected static boolean moveBoundingBox(IntArrayTag boundsTag, IntPointXZ blockDeltaXZ, ChunkBoundingRectangle clippingRect) {
+		boolean changed = false;
+		if (boundsTag != null) {
+			int[] bounds = boundsTag.getValue();
+			if (!blockDeltaXZ.isZero()) {
+				bounds[0] = bounds[0] + blockDeltaXZ.getX();
+				bounds[2] = bounds[2] + blockDeltaXZ.getZ();
+				bounds[3] = bounds[3] + blockDeltaXZ.getX();
+				bounds[5] = bounds[5] + blockDeltaXZ.getZ();
+				changed = true;
+			}
+			if (clippingRect != null && !clippingRect.constrain(bounds)) {
+				boundsTag.setValue(new int[0]);
+				return true;
+			}
+		}
+		return changed;
+	}
+
+	/**
+	 * Moves a single structure start record.
+	 * @see <a href=https://minecraft.fandom.com/wiki/Chunk_format>wiki Chunk_format</a>
+	 */
+	@SuppressWarnings("unchecked")
+	protected boolean moveStructureStart(CompoundTag startsTag, IntPointXZ chunkDeltaXZ, IntPointXZ blockDeltaXZ, ChunkBoundingRectangle clippingRect) {
+		if ("INVALID".equals(startsTag.getString("id"))) return false;
+		boolean changed = false;
+
+		// If the overall bounding box is invalid then discard and invalidate the entire structure.
+		// I don't see how this scenario is possible in practice for well formatted chunks.
+		// FYI the BB tag doesn't exist for all structures at this level.
+		IntArrayTag startsBbTag = startsTag.getIntArrayTag("BB");
+		if (moveBoundingBox(startsBbTag, blockDeltaXZ, clippingRect)) {
+			if (startsBbTag.length() == 0) {
+				startsTag.clear();
+				startsTag.putString("id", "INVALID");
+				return true;
+			}
+			changed = true;
+		}
+
+		if (startsTag.containsKey("ChunkX") && chunkDeltaXZ.getX() != 0) {
+			startsTag.putInt("ChunkX", chunkDeltaXZ.getX() + startsTag.getInt("ChunkX"));
+			changed = true;
+		}
+		if (startsTag.containsKey("ChunkZ") && chunkDeltaXZ.getZ() != 0) {
+			startsTag.putInt("ChunkZ", chunkDeltaXZ.getZ() + startsTag.getInt("ChunkZ"));
+			changed = true;
+		}
+
+		// List of chunks that have had their piece of the structure created.
+		// Unsure when this tag shows up - maybe during generation - maybe only for specific structures.
+		if (startsTag.containsKey("Processed")) {
+			ListTag<CompoundTag> processedListTag = startsTag.getCompoundList("Processed");
+			Iterator<CompoundTag> processedIter = processedListTag.iterator();
+			while (processedIter.hasNext()) {
+				CompoundTag processedTag = processedIter.next();
+
+				if (processedTag.containsKey("X") && blockDeltaXZ.getX() != 0) {
+					processedTag.putInt("X", blockDeltaXZ.getX() + processedTag.getInt("X"));
+					changed = true;
+				}
+				if (processedTag.containsKey("Z") && blockDeltaXZ.getZ() != 0) {
+					processedTag.putInt("Z", blockDeltaXZ.getZ() + processedTag.getInt("Z"));
+					changed = true;
+				}
+				if (clippingRect != null && !clippingRect.containsBlock(processedTag.getInt("X"), processedTag.getInt("Z"))) {
+					processedIter.remove();
+					changed = true;
+				}
+			}
+		}
+
+		if (startsTag.containsKey("Children")) {
+			ListTag<CompoundTag> childrenListTag = startsTag.getCompoundList("Children");
+			Iterator<CompoundTag> childIter = childrenListTag.iterator();
+			while (childIter.hasNext()) {
+				CompoundTag childTag = childIter.next();
+				// bounding box of structure part - note some block geometry may overhang these bounds (like roofs)
+				IntArrayTag childBbTag = childTag.getIntArrayTag("BB");
+				if (moveBoundingBox(childBbTag, blockDeltaXZ, clippingRect)) {
+					changed = true;
+					if (childBbTag.length() == 0) {
+						childIter.remove();
+						continue;
+					}
+				}
+
+				// List of entrances/exits from the room. Probably for structure generation to know
+				// where additional structure parts can be placed to continue to grow the structure.
+				if (childTag.containsKey("Entrances")) {
+					ListTag<IntArrayTag> entrancesListTag = childTag.getListTagAutoCast("Entrances");
+					Iterator<IntArrayTag> entranceIter = entrancesListTag.iterator();
+					while (entranceIter.hasNext()) {
+						IntArrayTag entranceBbTag = entranceIter.next();
+						if (moveBoundingBox(entranceBbTag, blockDeltaXZ, clippingRect)) {
+							changed = true;
+							if (entranceBbTag.length() == 0) {
+								entranceIter.remove();
+							}
+						}
+					}
+				}
+
+				// coordinate origin of structure part
+				if (childTag.containsKey("PosX") && blockDeltaXZ.getX() != 0) {
+					childTag.putInt("PosX", blockDeltaXZ.getX() + childTag.getInt("PosX"));
+					changed = true;
+				}
+				if (childTag.containsKey("PosZ") && blockDeltaXZ.getZ() != 0) {
+					childTag.putInt("PosZ", blockDeltaXZ.getZ() + childTag.getInt("PosZ"));
+					changed = true;
+				}
+
+				// coordinate origin of ocean ruin or shipwreck
+				if (childTag.containsKey("TPX") && blockDeltaXZ.getX() != 0) {
+					childTag.putInt("TPX", blockDeltaXZ.getX() + childTag.getInt("TPX"));
+					changed = true;
+				}
+				if (childTag.containsKey("TPZ") && blockDeltaXZ.getZ() != 0) {
+					childTag.putInt("TPZ", blockDeltaXZ.getZ() + childTag.getInt("TPZ"));
+					changed = true;
+				}
+
+				// Anything using jigsaw blocks has a 'junctions' record
+				if (childTag.containsKey("junctions")) {
+					ListTag<CompoundTag> junctionsListTag = childTag.getCompoundList("junctions");
+					Iterator<CompoundTag> junctionIter = junctionsListTag.iterator();
+					while (junctionIter.hasNext()) {
+						CompoundTag junctionTag = junctionIter.next();
+						if (blockDeltaXZ.getX() != 0) {
+							junctionTag.putInt("source_x", blockDeltaXZ.getX() + junctionTag.getInt("source_x"));
+							changed = true;
+						}
+						if (blockDeltaXZ.getZ() != 0) {
+							junctionTag.putInt("source_z", blockDeltaXZ.getZ() + junctionTag.getInt("source_z"));
+							changed = true;
+						}
+						if (clippingRect != null && !clippingRect.containsBlock(junctionTag.getInt("source_x"), junctionTag.getInt("source_z"))) {
+							junctionIter.remove();
+							changed = true;
+						}
+					}
+					// TODO: unsure how to behave if the junctions list is emptied - maybe remove the child?
+					//   Scenario to look for: village/pillager outpost that abuts a region bound and has a junction
+					//   crossing that bound where on one side there's a leaf node BB that hangs over the bound
+					//   and only has junctions into one of the two regions.
+				}
+			}
+			// TODO: unsure if this logic is needed, or if there are structures which have no Children, so leaving it out for now
+//			if (childrenListTag.isEmpty() && !startsTag.containsKey("BB")) {
+//				startsTag.clear();
+//				startsTag.putString("id", "INVALID");
+//				return true;
+//			}
+		}
+
+		return changed;
+	}
+
+//	/**
+//	 * Sinks into every compound and list tag looking for "BB" and "Entrances" bounding boxes and any IntTag that
+//	 * has a name ending in x or z.
+// 	 */
+//	@SuppressWarnings("unchecked")
+//	protected boolean deepMoveAll(CompoundTag startsTag, IntPointXZ chunkDeltaXZ, RegionBoundingRectangle rbr) {
+//		if (startsTag == null || startsTag.isEmpty()) return false;
+//		IntPointXZ blockDeltaXZ = chunkDeltaXZ.transformChunkToBlock();
+//		Deque<NamedTag> stack = new LinkedList<>();
+//		boolean changed = false;
+//		Iterator<Map.Entry<String, Tag<?>>> startsIter = startsTag.iterator();
+//		while (startsIter.hasNext()) {
+//			Map.Entry<String, Tag<?>> startsEntry = startsIter.next();
+//			stack.clear();
+//			stack.push(new NamedTag(startsEntry));
+//			startsContent: while (!stack.isEmpty()) {
+////				boolean shouldPurgeEntry = false;
+//				NamedTag o = stack.pop();
+//				String what = TextNbtHelpers.toTextNbt(o, false, false);
+//				System.out.println(what);
+//				if (o.getTag() instanceof CompoundTag) {
+//					CompoundTag tag = (CompoundTag) o.getTag();
+//					Iterator<Map.Entry<String, Tag<?>>> recordIter = tag.iterator();
+//					while (recordIter.hasNext()) {
+//						Map.Entry<String, Tag<?>> e = recordIter.next();
+//						final String key = e.getKey().toLowerCase();
+//						if (key.equals("bb")) {
+//							if (!moveBoundingBox((IntArrayTag) e.getValue(), blockDeltaXZ, rbr)) {
+//								recordIter.remove();
+//								System.out.println("  REMOVED ENTRY BECAUSE BB WAS OUT OF BOUNDS");
+//							}
+//							System.out.println("  ALTERED BB " + e.getValue());
+//							changed = true;
+//						} else if (key.equals("entrances")) {
+//							Iterator<IntArrayTag> entrancesIter = ((ListTag<IntArrayTag>) e.getValue()).iterator();
+//							while (entrancesIter.hasNext()) {
+//								IntArrayTag bb = entrancesIter.next();
+//								if (!moveBoundingBox(bb, blockDeltaXZ, rbr)) {
+//									entrancesIter.remove();
+//									System.out.println("  REMOVED OUT OF BOUNDS ENTRANCE FOR " + startsEntry.getKey());
+//								}
+//								changed = true;
+//							}
+//							if (((ListTag<IntArrayTag>) e.getValue()).isEmpty()) {
+//								recordIter.remove();
+//								System.out.println("  REMOVED ENTRANCES TAG");
+//							}
+//						} else if (e.getValue() instanceof IntTag) {
+//							IntTag intTag = (IntTag) e.getValue();
+//							if (key.endsWith("x")) {
+//								if (!key.toLowerCase().startsWith("chunk")) {
+//									intTag.setValue(intTag.asInt() + chunkDeltaXZ.getX());
+//								} else {
+//									intTag.setValue(chunkX);
+//								}
+//								changed = true;
+//							} else if (key.endsWith("z")) {
+//								if (!key.toLowerCase().startsWith("chunk")) {
+//									intTag.setValue(intTag.asInt() + chunkDeltaXZ.getZ());
+//								} else {
+//									intTag.setValue(chunkZ);
+//								}
+//								changed = true;
+//							}
+//						} else if (e.getValue() instanceof CompoundTag || e.getValue() instanceof ListTag<?>) {
+//							stack.push(new NamedTag(e.getKey(), e.getValue()));
+//						}
+//					}
+//				} else if (o.getTag() instanceof ListTag) {
+//					ListTag<?> tag = (ListTag<?>) o.getTag();
+//					for (Tag<?> t : tag) {
+//						if (t instanceof CompoundTag || t instanceof ListTag<?>) {
+//							stack.push(new NamedTag(null, t));
+//						}
+//					}
+//				}
+//			}
+////			if (shouldPurgeEntry) {
+////				System.out.println("REMOVED OUT OF BOUNDS STRUCTURE START FOR " + startsEntry.getKey());
+////				startsIter.remove();
+////			}
+//		}
+//		return changed;
+//	}
 
 
 	/**
@@ -949,8 +1128,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			return data;
 		}
 		this.data = super.updateHandle();
-		setTag(LAST_UPDATE_PATH, new LongTag(lastUpdate));
-		setTag(INHABITED_TIME_PATH, new LongTag(inhabitedTime));
+		setTag(LAST_UPDATE_TICK_PATH, new LongTag(lastUpdateTick));
+		setTag(INHABITED_TIME_TICKS_PATH, new LongTag(inhabitedTimeTicks));
 		if (legacyBiomes != null && dataVersion < JAVA_1_18_21W39A.id()) {
 			final int requiredSize = dataVersion <= 0 || dataVersion >= JAVA_1_15_19W36A.id() ? 1024 : 256;
 			if (legacyBiomes.length != requiredSize)

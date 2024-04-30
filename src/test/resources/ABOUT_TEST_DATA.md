@@ -13,6 +13,16 @@
   interesting because it's the largest chunk section found in a random world's region file having a 
   bits per index of 7.
 
+# Chunk Mover Samples
+
+### single_start_record_with_all_xz_fields
+A hand curated structure start (single record) that is defined for two chunk locations so one can be read,
+moved to the location of the other, and validated with a simple equality check.
+
+The POST_MOVE_CLIPPED file is the result of moving to chunk 0 0 which clips the structure on the r.0.0 region boundary.
+
+The POST_MOVE_NOCLIP file is the result of moving to chunk 0 0 without a clipping region defined.
+
 # Region Files
 
 ## Older versions
@@ -29,17 +39,15 @@ Chunks:
 - 10 11
 
 ### 1.13.0 / r.0.0.mca
-Chunk has villager, chicken, turtle eggs, bed, and multiple biomes
+Chunk has villager, chicken, turtle eggs, bed, and multiple biomes - uhh no it doesn't! no entities, just a mineshaft reference.
 
 Chunks:
 - 6 10
  
 ### 1.13.1 / r.2.2.mca
-OG test region file used for most initial development / testing.
+OG test region file used for most initial development / testing. Really, these are boring chunks and not good for much except the basics.
 
-Contains 3 chunks
-
-Unsure but may be an upgraded / partially upgraded region from a previous version.
+Contains 3 chunks - all have "UpgradeData" tag with some "Indices" populated
 
 ### 1.13.2
 has chickens, horses, and villagers
@@ -60,7 +68,8 @@ OG test region file used exclusively for biome testing in MCAFileTest::test1_15G
 has a horse, villagers, lecturn, bell, bed (and half a bed).
 
 Chunks:
-- -3 11
+- -3 11 - has a reference to a village that resides in another region file in chunk 1 12
+
 
 ### 1.16.5
 has an iron golumn, villagers, fletching table, bell

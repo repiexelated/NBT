@@ -17,7 +17,7 @@ import static net.rossquerz.mca.DataVersion.*;
 public abstract class ChunkBaseTest<T extends ChunkBase> extends NbtTestCase {
     protected abstract T createChunk(DataVersion dataVersion);
     protected abstract T createChunk(CompoundTag tag);
-    protected abstract T createChunk(CompoundTag tag, long loadData);
+    protected abstract T createChunk(CompoundTag tag, long loadFlags);
 
     /**
      * helper equivalent to {@code createChunk(createTag(dataVersion.id()))}
@@ -63,6 +63,10 @@ public abstract class ChunkBaseTest<T extends ChunkBase> extends NbtTestCase {
         return tag;
     }
 
+    /**
+     * Override {@link #createTag} and populate it with interesting stuff then validate that stuff
+     * is properly loaded when the chunk is instantiated with {@link LoadFlags#LOAD_ALL_DATA}
+     */
     protected abstract void validateAllDataConstructor(T chunk, int expectedChunkX, int expectedChunkZ);
 
     protected void validateTagRequired(DataVersion dataVersion, String tagName) {

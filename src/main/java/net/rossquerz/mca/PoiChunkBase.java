@@ -99,46 +99,38 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
             throw new IllegalStateException("Chunk XZ not known");
         }
         boolean changed = false;
-        if (records != null) {
-            final ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
+        final ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
+        if (!raw && records != null) {
             for (T entity : records) {
-                if (!cbr.contains(entity.getX(), entity.getZ())) {
+                if (!cbr.containsBlock(entity.getX(), entity.getZ())) {
                     entity.setX(cbr.relocateX(entity.getX()));
                     entity.setZ(cbr.relocateZ(entity.getZ()));
                     changed = true;
                 }
             }
-        } else {
-            changed = fixPoiLocations(new ChunkBoundingRectangle(chunkX, chunkZ));
-        }
-        return changed;
-    }
-
-
-    private boolean fixPoiLocations(ChunkBoundingRectangle cbr) {
-        if (data == null) {
-            throw new UnsupportedOperationException(
-                    "Cannot fix POI locations when RELEASE_CHUNK_DATA_TAG was set and POI_RECORDS was not set.");
-        }
-        boolean changed = false;
-        CompoundTag sectionsTag = data.getCompoundTag("Sections");
-        if (sectionsTag == null) {
-            throw new IllegalArgumentException("Sections tag not found!");
-        }
-        for (Map.Entry<String, Tag<?>> sectionTag : sectionsTag.entrySet()) {
-            int sectionY = Integer.parseInt(sectionTag.getKey());
-            ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getValue()).getListTagAutoCast("Records");
-            if (recordTags != null) {
-                for (CompoundTag recordTag : recordTags) {
-                    IntArrayTag posTag = recordTag.getIntArrayTag("pos");
-                    int[] pos = posTag.getValue();  // by ref
-                    int x = pos[0];
-                    int z = pos[2];
-                    if (!cbr.contains(x, z)) {
-                        pos[0] = cbr.relocateX(x);
-                        pos[2] = cbr.relocateZ(z);
-                        changed = true;
-                        // Don't need to call recordTag.getIntArrayTag("Pos").setValue(pos);
+        } else {  // fix raw data
+            if (data == null) {
+                throw new UnsupportedOperationException(
+                        "Cannot fix POI locations when RELEASE_CHUNK_DATA_TAG was set and POI_RECORDS was not set.");
+            }
+            CompoundTag sectionsTag = data.getCompoundTag("Sections");
+            if (sectionsTag == null) {
+                throw new IllegalArgumentException("Sections tag not found!");
+            }
+            for (Map.Entry<String, Tag<?>> sectionTag : sectionsTag.entrySet()) {
+                ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getValue()).getListTagAutoCast("Records");
+                if (recordTags != null) {
+                    for (CompoundTag recordTag : recordTags) {
+                        IntArrayTag posTag = recordTag.getIntArrayTag("pos");
+                        int[] pos = posTag.getValue();  // by ref
+                        int x = pos[0];
+                        int z = pos[2];
+                        if (!cbr.containsBlock(x, z)) {
+                            pos[0] = cbr.relocateX(x);
+                            pos[2] = cbr.relocateZ(z);
+                            changed = true;
+                            // Don't need to call recordTag.getIntArrayTag("Pos").setValue(pos);
+                        }
                     }
                 }
             }
