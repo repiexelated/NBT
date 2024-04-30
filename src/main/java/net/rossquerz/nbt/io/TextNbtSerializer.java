@@ -20,10 +20,19 @@ public class TextNbtSerializer implements Serializer<NamedTag> {
 		TextNbtWriter.write(tag, writer, sortCompoundTagEntries, maxDepth);
 	}
 
-	public String toString(NamedTag object) throws IOException {
+	public String toString(NamedTag object) {
+		return toString(object, Tag.DEFAULT_MAX_DEPTH);
+	}
+
+	public String toString(NamedTag object, int maxDepth) {
 		Writer writer = new StringWriter();
-		toWriter(object, writer);
-		writer.flush();
+		try {
+			toWriter(object, writer, maxDepth);
+			writer.flush();
+		} catch (IOException ex) {
+			// this case should (probably) never happen so just wrap and toss if it ever does
+			throw new RuntimeException(ex);
+		}
 		return writer.toString();
 	}
 

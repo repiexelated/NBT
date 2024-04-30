@@ -25,52 +25,52 @@ public final class TextNbtHelpers {
 	private TextNbtHelpers() {}
 
 	// <editor-fold desc="to/from string">
-	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint, boolean sortCompoundTagEntries) {
 		String snbt = new TextNbtSerializer(sortCompoundTagEntries).toString(namedTag);
 		return !prettyPrint ? snbt : JsonPrettyPrinter.prettyPrintJson(snbt);
 	}
 
 	/** defaults to sortCompoundTagEntries=true */
-	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint) throws IOException {
+	public static String toTextNbt(NamedTag namedTag, boolean prettyPrint)  {
 		return toTextNbt(namedTag, prettyPrint, true);
 	}
 
 	/** defaults to sortCompoundTagEntries=false */
-	public static String toTextNbtUnsorted(NamedTag namedTag, boolean prettyPrint) throws IOException {
+	public static String toTextNbtUnsorted(NamedTag namedTag, boolean prettyPrint) {
 		return toTextNbt(namedTag, prettyPrint, false);
 	}
 
 	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
-	public static String toTextNbt(NamedTag namedTag) throws IOException {
+	public static String toTextNbt(NamedTag namedTag) {
 		return toTextNbt(namedTag, true, true);
 	}
 
 	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
-	public static String toTextNbtUnsorted(NamedTag namedTag) throws IOException {
+	public static String toTextNbtUnsorted(NamedTag namedTag) {
 		return toTextNbt(namedTag, true, false);
 	}
 
-	public static String toTextNbt(Tag<?> tag, boolean prettyPrint, boolean sortCompoundTagEntries) throws IOException {
+	public static String toTextNbt(Tag<?> tag, boolean prettyPrint, boolean sortCompoundTagEntries) {
 		return toTextNbt(new NamedTag(null, tag), prettyPrint, sortCompoundTagEntries);
 	}
 
 	/** defaults to sortCompoundTagEntries=true */
-	public static String toTextNbt(Tag<?> tag, boolean prettyPrint) throws IOException {
+	public static String toTextNbt(Tag<?> tag, boolean prettyPrint) {
 		return toTextNbt(new NamedTag(null, tag), prettyPrint, true);
 	}
 
 	/** defaults to sortCompoundTagEntries=false */
-	public static String toTextNbtUnsorted(Tag<?> tag, boolean prettyPrint) throws IOException {
+	public static String toTextNbtUnsorted(Tag<?> tag, boolean prettyPrint) {
 		return toTextNbt(new NamedTag(null, tag), prettyPrint, false);
 	}
 
 	/** defaults to prettyPrint=true, sortCompoundTagEntries=true */
-	public static String toTextNbt(Tag<?> tag) throws IOException {
+	public static String toTextNbt(Tag<?> tag) {
 		return toTextNbt(new NamedTag(null, tag), true, true);
 	}
 
 	/** defaults to prettyPrint=true, sortCompoundTagEntries=false */
-	public static String toTextNbtUnsorted(Tag<?> tag) throws IOException {
+	public static String toTextNbtUnsorted(Tag<?> tag) {
 		return toTextNbt(new NamedTag(null, tag), true, false);
 	}
 
