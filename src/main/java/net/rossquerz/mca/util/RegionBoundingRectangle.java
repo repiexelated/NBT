@@ -1,32 +1,49 @@
 package net.rossquerz.mca.util;
 
-public class RegionBoundingRectangle extends BlockAlignedBoundingRectangle {
-    protected final int regionX;
-    protected final int regionZ;
-
+public class RegionBoundingRectangle extends ChunkBoundingRectangle {
     public RegionBoundingRectangle(int regionX, int regionZ) {
-        super(regionX << 9, regionZ << 9, 512);
-        this.regionX = regionX;
-        this.regionZ = regionZ;
+        this(regionX, regionZ, 1);
     }
 
-    public int getRegionX() {
-        return regionX;
+    public RegionBoundingRectangle(int regionX, int regionZ, int widthXZ) {
+        super(regionX << 5, regionZ << 5, widthXZ << 5);
     }
 
-    public int getRegionZ() {
-        return regionZ;
+    public boolean containsRegion(int regionX, int regionZ) {
+        return containsBlock(regionX << 9, regionZ << 9);
     }
 
-    public boolean containsChunk(int x, int z) {
-        return super.contains(x << 4, z << 4);
+    public boolean containsRegion(IntPointXZ regionXZ) {
+        return containsBlock(regionXZ.getX() << 9, regionXZ.getZ() << 9);
     }
 
-    public boolean containsChunk(IntPointXZ xz) {
-        return super.contains(xz.getX() << 4, xz.getZ() << 4);
+    public final int getMinRegionX() {
+        return minBlockX >> 9;
+    }
+
+    public final int getMinRegionZ() {
+        return minBlockZ >> 9;
+    }
+
+    /** exclusive */
+    public final int getMaxRegionX() {
+        return maxBlockX >> 9;
+    }
+
+    /** exclusive */
+    public final int getMaxRegionZ() {
+        return maxBlockZ >> 9;
+    }
+
+    public final int getWidthRegionXZ() {
+        return widthBlockXZ >> 9;
     }
 
     public static RegionBoundingRectangle forChunk(int x, int z) {
         return new RegionBoundingRectangle(x >> 5, z >> 5);
+    }
+
+    public static RegionBoundingRectangle forBlock(int x, int z) {
+        return new RegionBoundingRectangle(x >> 9, z >> 9);
     }
 }

@@ -1,88 +1,90 @@
 package net.rossquerz.mca.util;
 
 public class BlockAlignedBoundingRectangle {
-    final int widthXZ;
+    protected final int widthBlockXZ;
 
-    final int minX;
-    final int minZ;
-    final int maxX;  // exclusive
-    final int maxZ;  // exclusive
+    protected final int minBlockX;
+    protected final int minBlockZ;
+    protected final int maxBlockX;  // exclusive
+    protected final int maxBlockZ;  // exclusive
 
-    final double minXd;
-    final double minZd;
-    final double maxXd;  // exclusive
-    final double maxZd;  // exclusive
+    protected final double minXd;
+    protected final double minZd;
+    protected final double maxXd;  // exclusive
+    protected final double maxZd;  // exclusive
 
-    public int getMinX() {
-        return minX;
+    public int getMinBlockX() {
+        return minBlockX;
     }
 
-    public int getMinZ() {
-        return minZ;
+    public int getMinBlockZ() {
+        return minBlockZ;
     }
 
-    public int getMaxX() {
-        return maxX;
+    /** exclusive */
+    public int getMaxBlockX() {
+        return maxBlockX;
     }
 
-    public int getMaxZ() {
-        return maxZ;
+    /** exclusive */
+    public int getMaxBlockZ() {
+        return maxBlockZ;
     }
 
-    public int getWidthXZ() {
-        return widthXZ;
+    public int getWidthBlockXZ() {
+        return widthBlockXZ;
     }
 
-    public BlockAlignedBoundingRectangle(int minX, int minZ, int widthXZ) {
-        this.minXd = this.minX = minX;
-        this.minZd = this.minZ = minZ;
-        this.maxXd = this.maxX = minX + widthXZ;
-        this.maxZd = this.maxZ = minZ + widthXZ;
-        this.widthXZ = widthXZ;
+    public BlockAlignedBoundingRectangle(int minBlockX, int minBlockZ, int widthBlockXZ) {
+        this.minXd = this.minBlockX = minBlockX;
+        this.minZd = this.minBlockZ = minBlockZ;
+        this.maxXd = this.maxBlockX = minBlockX + widthBlockXZ;
+        this.maxZd = this.maxBlockZ = minBlockZ + widthBlockXZ;
+        this.widthBlockXZ = widthBlockXZ;
     }
 
-    public boolean contains(int x, int z) {
-        return minX <= x && x < maxX && minZ <= z && z < maxZ;
+    public boolean containsBlock(int blockX, int blockZ) {
+        return minBlockX <= blockX && blockX < maxBlockX && minBlockZ <= blockZ && blockZ < maxBlockZ;
     }
 
-    public boolean contains(IntPointXZ xz) {
-        return contains(xz.getX(), xz.getZ());
+    public boolean containsBlock(IntPointXZ blockXZ) {
+        return containsBlock(blockXZ.getX(), blockXZ.getZ());
     }
 
-    public boolean contains(double x, double z) {
-        return minXd <= x && x < maxXd && minZd <= z && z < maxZd;
+    public boolean containsBlock(double blockX, double blockZ) {
+        return minXd <= blockX && blockX < maxXd && minZd <= blockZ && blockZ < maxZd;
     }
 
     /**
      * Constrains the given 3d bounding cuboid to this rectangle. Note the given bounds (min and max) are both inclusive.
      * @return If all corners are outside this rectangle, or if the given bounds are not valid, false is returned.
      */
-    public boolean constrain(int[] bounds) {
+    public final boolean constrain(int[] bounds) {
         if (bounds == null || bounds.length != 6) return false;
         if (bounds[0] > bounds[3] || bounds[2] > bounds[5])
             throw new IllegalArgumentException("Bounds not in min/max order!");
-        boolean c1ok = contains(bounds[0], bounds[2]);
-        boolean c2ok = contains(bounds[3], bounds[5]);
+        boolean c1ok = containsBlock(bounds[0], bounds[2]);
+        boolean c2ok = containsBlock(bounds[3], bounds[5]);
         if (c1ok && c2ok) {
             return true;
         }
         if (!c1ok && !c2ok) {
-            if (bounds[0] >= maxX || bounds[2] >= maxZ || bounds[3] < minX || bounds[5] < minZ)
+            if (bounds[0] >= maxBlockX || bounds[2] >= maxBlockZ || bounds[3] < minBlockX || bounds[5] < minBlockZ)
                 return false;
         }
 
         if (!c1ok) {
-            if (bounds[0] < minX) bounds[0] = minX;
-            else if (bounds[0] >= maxX) bounds[0] = maxX - 1;
-            if (bounds[2] < minZ) bounds[2] = minZ;
-            else if (bounds[2] >= maxZ) bounds[2] = maxZ - 1;
+            if (bounds[0] < minBlockX) bounds[0] = minBlockX;
+            else if (bounds[0] >= maxBlockX) bounds[0] = maxBlockX - 1;
+            if (bounds[2] < minBlockZ) bounds[2] = minBlockZ;
+            else if (bounds[2] >= maxBlockZ) bounds[2] = maxBlockZ - 1;
         }
 
         if (!c2ok) {
-            if (bounds[3] < minX) bounds[3] = minX;
-            else if (bounds[3] >= maxX) bounds[3] = maxX - 1;
-            if (bounds[5] < minZ) bounds[5] = minZ;
-            else if (bounds[5] >= maxZ) bounds[5] = maxZ - 1;
+            if (bounds[3] < minBlockX) bounds[3] = minBlockX;
+            else if (bounds[3] >= maxBlockX) bounds[3] = maxBlockX - 1;
+            if (bounds[5] < minBlockZ) bounds[5] = minBlockZ;
+            else if (bounds[5] >= maxBlockZ) bounds[5] = maxBlockZ - 1;
         }
 
         return true;
