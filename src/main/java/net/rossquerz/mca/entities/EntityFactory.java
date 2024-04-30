@@ -310,4 +310,16 @@ public class EntityFactory {
     public static <T extends EntityBase> ListTag<CompoundTag> toListTag(List<T> entities) {
         return toListTag(entities, null);
     }
+
+    /**
+     * Convenience function to create then populate a {@code List<EntityBase>} given a {@code ListTag<CompoundTag>}.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T extends EntityBase> List<T> fromListTag(ListTag<CompoundTag> entitiesTag, int dataVersion) {
+        List<T> entities = new ArrayList<>();
+        for (CompoundTag entityTag : entitiesTag) {
+            entities.add((T) EntityFactory.create(entityTag, dataVersion));
+        }
+        return entities;
+    }
 }
