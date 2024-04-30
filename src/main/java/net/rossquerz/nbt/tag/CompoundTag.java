@@ -143,10 +143,12 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return get(key, LongArrayTag.class);
 	}
 
+	/** @see #getCompoundList */
 	public ListTag<?> getListTag(String key) {
 		return get(key, ListTag.class);
 	}
 
+	/** @see #getCompoundList */
 	@SuppressWarnings("unchecked")
 	public <R extends ListTag<?>> R getListTagAutoCast(String key) {
 		return (R) get(key, ListTag.class);
