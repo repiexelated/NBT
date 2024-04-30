@@ -52,7 +52,7 @@ public abstract class NbtTestCase extends TestCase {
 
 	protected File getResourceFile(String name) {
 		URL resource = getClass().getClassLoader().getResource(name);
-		assertNotNull(resource);
+		assertNotNull("resource does not exist: " + name, resource);
 		String resPath = null;
 		try {
 			resPath = java.net.URLDecoder.decode(resource.getFile(), StandardCharsets.UTF_8.name());
@@ -270,15 +270,22 @@ public abstract class NbtTestCase extends TestCase {
 		return null;
 	}
 
-	protected File getNewTmpFile(String name) {
+	protected File getNewTmpDirectory() {
 		final String workingDir = System.getProperty("user.dir");
-		Path tmpPath = Paths.get(
+		File dir = Paths.get(
 				workingDir,
 				"tmp",
 				this.getClass().getSimpleName(),
 				getName(),
-				UUID.randomUUID().toString(),
-				name);
+				UUID.randomUUID().toString()).toFile();
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		return dir;
+	}
+
+	protected File getNewTmpFile(String name) {
+		Path tmpPath = Paths.get(getNewTmpDirectory().getPath(), name);
 		File dir = tmpPath.getParent().toFile();
 		if (!dir.exists()) {
 			dir.mkdirs();
