@@ -14,7 +14,7 @@ import java.util.function.Supplier;
  * Iterates over the chunks in an MCA file. Note iteration is in file-order, not index-order!
  * Chunks which do not exist in the file are skipped - {@link #next()} will never return null.
  */
-public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<T> {
+public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<T>, Closeable {
     private final Supplier<T> chunkCreator;
     private final IntPointXZ chunkAbsXzOffset;
     private final PositionTrackingInputStream in;
@@ -181,6 +181,11 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
             sb.append(cmi);
         }
         return sb.toString();
+    }
+
+    @Override
+    public void close() throws IOException {
+        in.close();
     }
 
     private static class ChunkMetaInfo {
