@@ -8,7 +8,9 @@ import java.util.Set;
 /**
  * A decorator for the Set returned by CompoundTag#entrySet()
  * that disallows setting null values.
- * */
+ *
+ * TODO: rename to CompoundTagIterator and make it yield NamedTags
+ */
 class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
 
 	private Set<Map.Entry<K, V>> set;
@@ -99,6 +101,12 @@ class NonNullEntrySet<K, V> implements Set<Map.Entry<K, V>> {
 		public Map.Entry<K, V> next() {
 			return new NonNullEntry(iterator.next());
 		}
+
+		@Override
+		public void remove() {
+			iterator.remove();
+		}
+
 	}
 
 	class NonNullEntry implements Map.Entry<K, V> {
