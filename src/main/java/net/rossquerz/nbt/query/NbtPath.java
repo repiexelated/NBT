@@ -12,6 +12,7 @@ import java.util.List;
  * Provides a simple mechanism to retrieve, and store, structured data without
  * having to handle the intermediate tags yourself.
  * <p>Use simple dot separated names and bracket indexes such as {@code "Level.Section[0].BlockLight"}</p>
+ * <p>Colons are allowed in the path such as {@code Brain.memories.minecraft:home.value.pos}</p>
  */
 public class NbtPath {
     private static final NbtPath IDENTITY_PATH = new NbtPath(Collections.emptyList());
@@ -43,7 +44,8 @@ public class NbtPath {
     /**
      * Creates a new {@link NbtPath} from the given selector string.
      * @param selector Use dots to separate names/keys and use array notation for indexing {@link ListTag}
-     *                and {@link ArrayTag}'s. Example: {@code "Level.Section[0].BlockLight"}
+     *                 and {@link ArrayTag}'s. Example: {@code "Level.Section[0].BlockLight"}
+     *                 Colons are allowed in the path such as {@code Brain.memories.minecraft:home.value.pos}
      * @return new {@link NbtPath}
      */
     public static NbtPath of(String selector) {
@@ -361,6 +363,97 @@ public class NbtPath {
         }
         return (T) node;
     }
+
+    // <editor-fold desc="put primitive values" defaultstate="collapsed">
+    public <T extends Tag<?>> T put(Tag<?> root, boolean value) {
+        return putTag(root, new ByteTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, byte[] value) {
+        return putTag(root, new ByteArrayTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, byte value) {
+        return putTag(root, new ByteTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, double value) {
+        return putTag(root, new DoubleTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, float value) {
+        return putTag(root, new FloatTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, int[] value) {
+        return putTag(root, new IntArrayTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, int value) {
+        return putTag(root, new IntTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, long[] value) {
+        return putTag(root, new LongArrayTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, long value) {
+        return putTag(root, new LongTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, short value) {
+        return putTag(root, new ShortTag(value), false);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, String value) {
+        return putTag(root, new StringTag(value), false);
+    }
+
+
+    public <T extends Tag<?>> T put(Tag<?> root, boolean value, boolean createParents) {
+        return putTag(root, new ByteTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, byte[] value, boolean createParents) {
+        return putTag(root, new ByteArrayTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, byte value, boolean createParents) {
+        return putTag(root, new ByteTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, double value, boolean createParents) {
+        return putTag(root, new DoubleTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, float value, boolean createParents) {
+        return putTag(root, new FloatTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, int[] value, boolean createParents) {
+        return putTag(root, new IntArrayTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, int value, boolean createParents) {
+        return putTag(root, new IntTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, long[] value, boolean createParents) {
+        return putTag(root, new LongArrayTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, long value, boolean createParents) {
+        return putTag(root, new LongTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, short value, boolean createParents) {
+        return putTag(root, new ShortTag(value), createParents);
+    }
+
+    public <T extends Tag<?>> T put(Tag<?> root, String value, boolean createParents) {
+        return putTag(root, new StringTag(value), createParents);
+    }
+    // </editor-fold>
 
     /**
      * Gets the size, or length, of the tag at this path.
