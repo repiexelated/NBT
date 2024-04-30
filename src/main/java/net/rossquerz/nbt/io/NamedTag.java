@@ -2,6 +2,7 @@ package net.rossquerz.nbt.io;
 
 import net.rossquerz.nbt.tag.Tag;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -16,7 +17,11 @@ public class NamedTag {
 		this.tag = tag;
 	}
 
-	public void setName(String name) {
+    public NamedTag(Map.Entry<String, Tag<?>> entry) {
+		this(entry.getKey(), entry.getValue());
+    }
+
+    public void setName(String name) {
 		this.name = name;
 	}
 
