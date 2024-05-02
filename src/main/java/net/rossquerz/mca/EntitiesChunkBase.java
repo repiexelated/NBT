@@ -6,6 +6,7 @@ import net.rossquerz.mca.entities.EntityUtil;
 import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.mca.io.MoveChunkFlags;
+import net.rossquerz.mca.util.RegionBoundingRectangle;
 import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
@@ -53,8 +54,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
         super(data);
     }
 
-    public EntitiesChunkBase(CompoundTag data, long loadData) {
-        super(data, loadData);
+    public EntitiesChunkBase(CompoundTag data, long loadFlags) {
+        super(data, loadFlags);
     }
 
     @Override
@@ -91,6 +92,11 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
             throw new IllegalStateException("Entities nbt tag was not loaded for this chunk");
         }
         entities = EntityFactory.fromListTag(entitiesTag, dataVersion);
+    }
+
+    /** {@inheritDoc} */
+    public String getMcaType() {
+        return "entities";
     }
 
     /**
@@ -207,20 +213,32 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
     /**
      * Sets this chunks absolute XZ and calls {@link #fixEntityLocations(long)} returning its result.
      * <p>Moving while in RAW mode is supported.</p>
-     * @param chunkX new absolute chunk-x
-     * @param chunkZ new absolute chunk-z
+     * @param newChunkX new absolute chunk-x
+     * @param newChunkZ new absolute chunk-z
      * @param moveChunkFlags {@link net.rossquerz.mca.io.MoveChunkFlags} OR'd together to control move chunk behavior.
      * @param force unused
      * @return true if any data was changed as a result of this call
      * @throws UnsupportedOperationException if loaded in raw mode
      */
     @Override
-    public boolean moveChunk(int chunkX, int chunkZ, long moveChunkFlags, boolean force) {
+    public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
-        this.chunkX = chunkX;
-        this.chunkZ = chunkZ;
-        return fixEntityLocations(moveChunkFlags);
+        if (!RegionBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(newChunkX, newChunkZ)) {
+            throw new IllegalArgumentException("Chunk XZ must be within the maximum world bounds.");
+        }
+        if (this.chunkX == newChunkX && this.chunkZ == newChunkZ) return false;
+        this.chunkX = newChunkX;
+        this.chunkZ = newChunkZ;
+        if (raw) {
+            setTag(POSITION_PATH, new IntArrayTag(newChunkX, newChunkZ));
+        }
+        if (fixEntityLocations(moveChunkFlags)) {
+            if ((moveChunkFlags & MoveChunkFlags.AUTOMATICALLY_UPDATE_HANDLE) > 0) {
+                updateHandle();
+            }
+        }
+        return true;
     }
 
     /**
@@ -360,12 +378,12 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
         if (!raw) {
             super.updateHandle();
             if (chunkX != NO_CHUNK_COORD_SENTINEL && chunkZ != NO_CHUNK_COORD_SENTINEL) {
-                setTag(POSITION_PATH, new IntArrayTag(new int[]{chunkX, chunkZ}));
+                setTag(POSITION_PATH, new IntArrayTag(chunkX, chunkZ));
             }
 
             // if getEntities() was never called then don't rebuild entitiesTag
             if (entities != null) {
-                // WARN: If this chunk was loaded without the ENTITIES LoadData flag but 'entities' is not null
+                // WARN: If this chunk was loaded without the ENTITIES LoadFlag but 'entities' is not null
                 // this indicates the user called setEntities() which initialized entitiesTag
                 // so no NPE risk here - assuming someone didn't extend this class and break the contract of
                 // setEntities

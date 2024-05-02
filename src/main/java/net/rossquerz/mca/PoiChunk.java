@@ -16,8 +16,8 @@ public class PoiChunk extends PoiChunkBase<PoiRecord>{
         super(data);
     }
 
-    public PoiChunk(CompoundTag data, long loadData) {
-        super(data, loadData);
+    public PoiChunk(CompoundTag data, long loadFlags) {
+        super(data, loadFlags);
     }
 
     @Override

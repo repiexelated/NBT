@@ -22,8 +22,8 @@ public class EntitiesChunk extends EntitiesChunkBase<EntityBase> {
         super(data);
     }
 
-    public EntitiesChunk(CompoundTag data, long loadData) {
-        super(data, loadData);
+    public EntitiesChunk(CompoundTag data, long loadFlags) {
+        super(data, loadFlags);
     }
 
     public EntitiesChunk() {

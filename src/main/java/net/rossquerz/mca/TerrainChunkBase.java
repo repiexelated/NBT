@@ -1,5 +1,6 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.io.MoveChunkFlags;
 import net.rossquerz.mca.util.*;
 import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
@@ -289,6 +290,11 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	}
 
 	protected abstract T createSection(CompoundTag section, int dataVersion, long loadFlags);
+
+	/** {@inheritDoc} */
+	public String getMcaType() {
+		return "region";
+	}
 
 	/**
 	 * May only be used for data versions LT 2203 which includes all of 1.14
@@ -744,21 +750,25 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
 		if (!moveChunkImplemented())
 			throw new UnsupportedOperationException("Missing the data required to move this chunk!");
+		if (!RegionBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(chunkX, chunkZ)) {
+			throw new IllegalArgumentException("Chunk XZ must be within the maximum world bounds.");
+		}
 		if (this.chunkX == newChunkX && this.chunkZ == newChunkZ) return false;
 
 		IntPointXZ chunkDeltaXZ;
 		if (raw) {
+			// read the old data values so we can compute deltaXZ
 			this.chunkX = getTagValue(X_POS_PATH, IntTag::asInt);
 			this.chunkZ = getTagValue(Z_POS_PATH, IntTag::asInt);
 			setTag(X_POS_PATH, new IntTag(newChunkX));
 			setTag(Z_POS_PATH, new IntTag(newChunkZ));
 		}
-		chunkDeltaXZ = new IntPointXZ(newChunkX - chunkX, newChunkZ - chunkZ);
+		chunkDeltaXZ = new IntPointXZ(newChunkX - this.chunkX, newChunkZ - this.chunkZ);
 		this.chunkX = newChunkX;
 		this.chunkZ = newChunkZ;
 
 		boolean changed = false;
-		ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
+		ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(newChunkX, newChunkZ);
 		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getTileEntities(), TILE_ENTITIES_PATH));
 		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getTileTicks(), TILE_TICKS_PATH));
 		changed |= fixTileLocations(moveChunkFlags, cbr, tagOrFetch(getLiquidTicks(), LIQUID_TICKS_PATH));
@@ -778,7 +788,14 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			}
 		}
 		changed |= fixEntitiesLocations(moveChunkFlags, cbr, tagOrFetch(getEntities(), ENTITIES_PATH));
-		return changed;
+
+		if (changed) {
+			if ((moveChunkFlags & MoveChunkFlags.AUTOMATICALLY_UPDATE_HANDLE) > 0) {
+				updateHandle();
+			}
+			return true;
+		}
+		return false;
 
 	}
 

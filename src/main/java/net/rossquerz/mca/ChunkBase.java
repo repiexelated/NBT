@@ -156,6 +156,11 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	protected abstract void initReferences(final long loadFlags);
 
 	/**
+	 * @return one of: region, entities, poi
+	 */
+	public abstract String getMcaType();
+
+	/**
 	 * {@inheritDoc}
 	 */
 	public int getDataVersion() {
@@ -213,8 +218,8 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	 * this implementation has for the current chunk.
 	 * <p>If {@code force = true} the result of calling this function cannot be guaranteed to be complete and
 	 * may still throw {@link UnsupportedOperationException}.
-	 * @param chunkX new absolute chunk-x
-	 * @param chunkZ new absolute chunk-z
+	 * @param newChunkX new absolute chunk-x
+	 * @param newChunkZ new absolute chunk-z
 	 * @param moveChunkFlags {@link net.rossquerz.mca.io.MoveChunkFlags} OR'd together to control move chunk behavior.
 	 * @param force true to ignore the guidance of {@link #moveChunkHasFullVersionSupport()} and make a best effort
 	 *              anyway.
@@ -222,7 +227,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 	 * @throws UnsupportedOperationException thrown if this chunk implementation doest support moves, or moves
 	 * for this chunks version (possibly even if force = true).
 	 */
-	public abstract boolean moveChunk(int chunkX, int chunkZ, long moveChunkFlags, boolean force);
+	public abstract boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force);
 
 	/**
 	 * Calls {@code moveChunk(newChunkX, newChunkZ, moveChunkFlags, false);}
@@ -432,5 +437,43 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, T
 		if (tag != null) {
 			setTag(vaPath, tag);
 		}
+	}
+
+	/**
+	 * @return Index of this chunk in its owning region file or -1 if either chunk X or Z is
+	 * {@link #NO_CHUNK_COORD_SENTINEL}.
+	 */
+	public int getIndex() {
+		if (getChunkX() != NO_CHUNK_COORD_SENTINEL && getChunkZ() != NO_CHUNK_COORD_SENTINEL) {
+			return McaFileBase.getChunkIndex(getChunkX(), getChunkZ());
+		}
+		return -1;
+	}
+
+	/**
+	 * Gets the region file X coord which this chunk <em>should</em> belong to given its current {@link #getChunkX()}.
+	 * Returns {@link #NO_CHUNK_COORD_SENTINEL} if {@link #getChunkX()} returns {@link #NO_CHUNK_COORD_SENTINEL}.
+	 */
+	public int getRegionX() {
+		int x = getChunkX();
+		return x != NO_CHUNK_COORD_SENTINEL ? x >> 5 : NO_CHUNK_COORD_SENTINEL;
+	}
+
+	/**
+	 * Gets the region file Z coord which this chunk <em>should</em> belong to given its current {@link #getChunkZ()}.
+	 * Returns {@link #NO_CHUNK_COORD_SENTINEL} if {@link #getChunkX()} returns {@link #NO_CHUNK_COORD_SENTINEL}.
+	 */
+	public int getRegionZ() {
+		int z = getChunkZ();
+		return z != NO_CHUNK_COORD_SENTINEL ? z >> 5 : NO_CHUNK_COORD_SENTINEL;
+	}
+
+	/**
+	 * Gets the region file XZ coord which this chunk <em>should</em> belong to given its current {@link #getChunkXZ()}.
+	 * Returns XZ({@link #NO_CHUNK_COORD_SENTINEL}, {@link #NO_CHUNK_COORD_SENTINEL}) if {@link #getChunkXZ()} returns
+	 * XZ({@link #NO_CHUNK_COORD_SENTINEL}, {@link #NO_CHUNK_COORD_SENTINEL}).
+	 */
+	public IntPointXZ getRegionXZ() {
+		return new IntPointXZ(getRegionX(), getRegionZ());
 	}
 }

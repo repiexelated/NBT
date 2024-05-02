@@ -109,7 +109,8 @@ lush caves, loot minecart
 Chunks:
 - 275 33
 
-### 1_20_4 / r.-3.-3.mca
+### 1_20_4
+### r.-3.-3.mca
 pillager outpost and a section of a mineshaft - world seed: -4846182428012336372L
 
 Chunks:
@@ -120,3 +121,6 @@ Chunks:
   - XZ(-95, -86)
 - mineshaft "starts" data - runs under pillager outpost chunks
   - XZ(-91, -87)
+
+### 1_20_4/entities/double_passengers
+Has a baby zombie ridding a pillager riding a ravager and a few other mobs in the chunk.

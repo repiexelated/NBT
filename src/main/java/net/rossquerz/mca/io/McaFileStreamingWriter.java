@@ -58,7 +58,7 @@ public class McaFileStreamingWriter implements Closeable {
             if (chunk.getChunkX() == ChunkBase.NO_CHUNK_COORD_SENTINEL || chunk.getChunkZ() == ChunkBase.NO_CHUNK_COORD_SENTINEL) {
                 throw new IllegalArgumentException("Chunk XZ must be set!");
             }
-            final int index = ((chunk.getChunkZ() & 0x1F) << 5) + (chunk.getChunkX() & 0x1F);
+            final int index = chunk.getIndex();
             if (chunkSectors[index] != 0)
                 throw new IOException("Chunk " + chunk.getChunkXZ() + " (index: " + index + ") has already been written!");
 

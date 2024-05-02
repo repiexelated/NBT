@@ -392,14 +392,17 @@ public abstract class McaFileBase<T extends ChunkBase> implements Iterable<T> {
 	}
 
 	/**
-	 * Calculates the index of a chunk from its x- and z-coordinates in this region.
+	 * Calculates the index of a chunk from its x and z-coordinates in this region.
 	 * This works with absolute and relative coordinates.
 	 * @param chunkX The x-coordinate of the chunk.
 	 * @param chunkZ The z-coordinate of the chunk.
-	 * @return The index of this chunk.
+	 * @return The index of this chunk or -1 if either chunkX or chunkZ were {@link ChunkBase#NO_CHUNK_COORD_SENTINEL}.
 	 */
 	public static int getChunkIndex(int chunkX, int chunkZ) {
-		return ((chunkZ & 0x1F) << 5) | (chunkX & 0x1F);
+		if (chunkX != ChunkBase.NO_CHUNK_COORD_SENTINEL && chunkZ != ChunkBase.NO_CHUNK_COORD_SENTINEL) {
+			return ((chunkZ & 0x1F) << 5) | (chunkX & 0x1F);
+		}
+		return -1;
 	}
 
 	/**

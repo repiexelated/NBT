@@ -5,12 +5,15 @@ import net.rossquerz.mca.entities.EntityBaseImpl;
 import net.rossquerz.mca.entities.EntityFactory;
 import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.MoveChunkFlags;
+import net.rossquerz.mca.util.McaDumper;
+import net.rossquerz.nbt.io.TextNbtHelpers;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -214,6 +217,20 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         chunk.moveChunk(-2, 3, MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS);
         assertEquals(-2, chunk.getChunkX());
         assertEquals(3, chunk.getChunkZ());
+    }
+
+    public void testMoveChunk_doublePassengers_1_20_4() throws IOException {
+        validateMoveChunk_doublePassengers_1_20_4(LoadFlags.LOAD_ALL_DATA);
+        validateMoveChunk_doublePassengers_1_20_4(LoadFlags.RAW);
+    }
+    private void validateMoveChunk_doublePassengers_1_20_4(long loadFlags) throws IOException {
+        EntitiesChunk chunk = new EntitiesChunk(
+                TextNbtHelpers.readTextNbtFile(getResourceFile("1_20_4/entities/double_passengers.snbt")).getTagAutoCast(),
+                loadFlags);
+        assertTrue(chunk.moveChunk(10, 10, MoveChunkFlags.AUTOMATICALLY_UPDATE_HANDLE));
+//        System.out.println("WROTE " + McaDumper.dumpChunkAsTextNbtAutoFilename(chunk, Paths.get("TESTDBG")).toAbsolutePath());
+        CompoundTag expectedTag = TextNbtHelpers.readTextNbtFile(getResourceFile("1_20_4/entities/double_passengers_moveto_10.10_expected.snbt")).getTagAutoCast();
+        assertEquals(expectedTag, chunk.getHandle());
     }
 
     public void testFixEntityLocations() {

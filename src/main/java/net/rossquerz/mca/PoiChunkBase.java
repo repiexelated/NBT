@@ -1,7 +1,9 @@
 package net.rossquerz.mca;
 
 import net.rossquerz.mca.io.McaFileHelpers;
+import net.rossquerz.mca.io.MoveChunkFlags;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
+import net.rossquerz.mca.util.RegionBoundingRectangle;
 import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.IntArrayTag;
@@ -43,8 +45,8 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
         super(data);
     }
 
-    public PoiChunkBase(CompoundTag data, long loadData) {
-        super(data, loadData);
+    public PoiChunkBase(CompoundTag data, long loadFlags) {
+        super(data, loadFlags);
     }
 
     @Override
@@ -73,6 +75,11 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
         }
     }
 
+    /** {@inheritDoc} */
+    public String getMcaType() {
+        return "poi";
+    }
+
     @Override
     public boolean moveChunkImplemented() {
         return records != null || data != null;
@@ -88,9 +95,19 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
     public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
+        if (!RegionBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(chunkX, chunkZ)) {
+            throw new IllegalArgumentException("Chunk XZ must be within the maximum world bounds.");
+        }
+        // remember poi chunk nbt doesn't contain XZ location
         this.chunkX = newChunkX;
         this.chunkZ = newChunkZ;
-        return fixPoiLocations(moveChunkFlags);
+        if (fixPoiLocations(moveChunkFlags)) {
+            if ((moveChunkFlags & MoveChunkFlags.AUTOMATICALLY_UPDATE_HANDLE) > 0) {
+                updateHandle();
+            }
+            return true;
+        }
+        return false;
     }
 
     public boolean fixPoiLocations(long moveChunkFlags) {
