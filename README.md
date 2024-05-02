@@ -1,5 +1,5 @@
 # NBT
-!!! THIS FORK IS UNDER HEAVY DEVELOPMENT AND IS NOT YET READY FOR CONSUMPTION !!!
+!!! THIS FORK IS UNDER HEAVY DEVELOPMENT AND IS NOT YET READY FOR CONSUMPTION - May 2024!!!
 
 <!-- [![Build Status](https://travis-ci.org/Querz/NBT.svg?branch=master)](https://travis-ci.org/Querz/NBT) [![Coverage Status](https://img.shields.io/coveralls/github/Querz/NBT/master.svg)](https://coveralls.io/github/Querz/NBT?branch=master) [![Release](https://jitpack.io/v/Querz/NBT.svg)](https://jitpack.io/#Querz/NBT) -->
 #### A java implementation of the [NBT protocol](https://minecraft.gamepedia.com/NBT_format) for Minecraft Java Edition.
