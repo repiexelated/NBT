@@ -2,6 +2,7 @@ package net.rossquerz.nbt.tag;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import net.rossquerz.io.MaxDepthIO;
@@ -12,7 +13,7 @@ import net.rossquerz.io.MaxDepthIO;
  * The type of an empty untyped {@link ListTag} can be set by using any of the {@code add()}
  * methods or any of the {@code as...List()} methods.
  */
-public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<T>, Comparable<ListTag<T>>, MaxDepthIO {
+public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<T>, Comparable<ListTag<T>>, MaxDepthIO, Collection<T> {
 
 	public static final byte ID = 9;
 
@@ -93,18 +94,26 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return typeClass == null ? EndTag.class : typeClass;
 	}
 
+	@Override
 	public int size() {
 		return getValue().size();
 	}
 
+	@Override
 	public boolean isEmpty() {
 		return getValue().isEmpty();
+	}
+
+	@Override
+	public boolean contains(Object o) {
+		return getValue().contains(o);
 	}
 
 	public T remove(int index) {
 		return getValue().remove(index);
 	}
 
+	@Override
 	public void clear() {
 		getValue().clear();
 	}
@@ -113,7 +122,8 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return getValue().contains(t);
 	}
 
-	public boolean containsAll(Collection<Tag<?>> tags) {
+	@Override
+	public boolean containsAll(Collection<?> tags) {
 		return getValue().containsAll(tags);
 	}
 
@@ -124,6 +134,16 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	@Override
 	public Iterator<T> iterator() {
 		return getValue().iterator();
+	}
+
+	@Override
+	public Object[] toArray() {
+		return getValue().toArray();
+	}
+
+	@Override
+	public <T1> T1[] toArray(T1[] a) {
+		return getValue().toArray(a);
 	}
 
 	@Override
@@ -148,9 +168,15 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	 * Adds a Tag to this ListTag after the last index.
 	 *
 	 * @param t The element to be added.
+	 * @return true if this collection changed as a result of the call
 	 */
-	public void add(T t) {
-		add(size(), t);
+	public boolean add(T t) {
+		return getValue().add(t);
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		return getValue().remove(o);
 	}
 
 	public void add(int index, T t) {
@@ -166,10 +192,30 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		getValue().add(index, t);
 	}
 
-	public void addAll(Collection<T> t) {
-		for (T tt : t) {
-			add(tt);
-		}
+	/**
+	 * Adds all the given Tags to this ListTag after the last index.
+	 *
+	 * @param t The element to be added.
+	 * @return true if this collection changed as a result of the call
+	 */
+	@Override
+	public boolean addAll(Collection<? extends T> t) {
+		return getValue().addAll(t);
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		return getValue().removeAll(c);
+	}
+
+	@Override
+	public boolean removeIf(Predicate<? super T> filter) {
+		return getValue().removeIf(filter);
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		return getValue().retainAll(c);
 	}
 
 	public void addAll(int index, Collection<T> t) {
