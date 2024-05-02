@@ -67,4 +67,14 @@ public class RegionBoundingRectangleTest extends TestCase {
         assertEquals(-1, rbr.getMinRegionZ());
         assertEquals(1, rbr.getWidthRegionXZ());
     }
+
+    public void testWORLD_REGION_BOUNDS() {
+        assertEquals(-58594, RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.getMinRegionX());
+        assertEquals(-58594, RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.getMinRegionZ());
+        assertEquals(58594, RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.getMaxRegionX());
+        assertEquals(58594, RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.getMaxRegionZ());
+        assertTrue(RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.containsRegion(-58594, -58594));
+        assertTrue(RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.containsRegion(58593, 58593));
+        assertFalse(RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.containsRegion(58594, 58594));
+    }
 }

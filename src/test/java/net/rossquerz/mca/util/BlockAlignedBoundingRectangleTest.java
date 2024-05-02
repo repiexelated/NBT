@@ -110,4 +110,14 @@ public class BlockAlignedBoundingRectangleTest extends TestCase {
         assertThrows(IllegalArgumentException.class, () -> cbr.constrain(new int[] {8, 0, 8, 4, 0, 4}));
         assertThrows(IllegalArgumentException.class, () -> cbr.constrain(new int[] {8, 0, 8, -4, 0, -4}));
     }
+
+    public void testMAX_WORLD_BOARDER_BOUNDS() {
+        assertEquals(-1874999, ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.getMinChunkX());
+        assertEquals(-1874999, ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.getMinChunkZ());
+        assertEquals(1874999, ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.getMaxChunkX());
+        assertEquals(1874999, ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.getMaxChunkZ());
+        assertTrue(ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(-1874999, -1874999));
+        assertTrue(ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(1874998, 1874998));
+        assertFalse(ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(1874999, 1874999));
+    }
 }

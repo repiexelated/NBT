@@ -1,6 +1,15 @@
 package net.rossquerz.mca.util;
 
 public class RegionBoundingRectangle extends ChunkBoundingRectangle {
+    /**
+     * Bounds of the maximum size of a minecraft world.
+     * Note that there are 368 XZ blocks (23 XZ chunks) outside the world boarder that are still within these region bounds.
+     * <p>Remember that the max bound is exclusive (don't treat getMaxRegionXZ as in bounds).</p>
+     * @see ChunkBoundingRectangle#MAX_WORLD_BOARDER_BOUNDS
+     */
+    public static final RegionBoundingRectangle MAX_WORLD_REGION_BOUNDS =
+            new RegionBoundingRectangle(-58594, -58594, 58594 * 2);
+
     public RegionBoundingRectangle(int regionX, int regionZ) {
         this(regionX, regionZ, 1);
     }

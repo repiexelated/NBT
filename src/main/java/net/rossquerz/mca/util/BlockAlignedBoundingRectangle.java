@@ -1,6 +1,12 @@
 package net.rossquerz.mca.util;
 
+/**
+ * An XZ aligned bounding box that conceptually represents block coordinates.
+ * @see ChunkBoundingRectangle
+ * @see RegionBoundingRectangle
+ */
 public class BlockAlignedBoundingRectangle {
+
     protected final int widthBlockXZ;
 
     protected final int minBlockX;
