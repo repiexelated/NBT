@@ -6,6 +6,7 @@ import net.rossquerz.mca.entities.EntityUtil;
 import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.mca.io.MoveChunkFlags;
+import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
 import net.rossquerz.util.ArgValidator;
@@ -251,8 +252,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
                 }
                 if (brainMemoriesPath.exists(entity.getHandle())) {
                     CompoundTag memoriesTag = brainMemoriesPath.getTag(entity.getHandle());
-                    for (Map.Entry<String, Tag<?>> entry : memoriesTag.entrySet()) {
-                        int[] pos = memoryPosPath.getIntArray(entry.getValue());
+                    for (NamedTag entry : memoriesTag) {
+                        int[] pos = memoryPosPath.getIntArray(entry.getTag());
                         if (pos != null && !cbr.containsBlock(pos[0], pos[2])) {
                             // TODO: dimension is also in this data
                             pos[0] = cbr.relocateX(pos[0]);
@@ -297,8 +298,8 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
 
             if (brainMemoriesPath.exists(entityTag)) {
                 CompoundTag memoriesTag = brainMemoriesPath.getTag(entityTag);
-                for (Map.Entry<String, Tag<?>> entry : memoriesTag.entrySet()) {
-                    int[] pos = memoryPosPath.getIntArray(entry.getValue());
+                for (NamedTag entry : memoriesTag) {
+                    int[] pos = memoryPosPath.getIntArray(entry.getTag());
                     if (pos != null && !cbr.containsBlock(pos[0], pos[2])) {
                         // TODO: dimension is also in this data
                         pos[0] = cbr.relocateX(pos[0]);

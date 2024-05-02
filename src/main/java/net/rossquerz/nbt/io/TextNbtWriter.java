@@ -105,14 +105,14 @@ public final class TextNbtWriter implements MaxDepthIO {
 		case CompoundTag.ID:
 			writer.write('{');
 			boolean first = true;
-			Iterator<Map.Entry<String, Tag<?>>> iter;
-			if (sortCompoundTagEntries) iter = ((CompoundTag) tag).stream().sorted(Map.Entry.comparingByKey()).iterator();
+			Iterator<NamedTag> iter;
+			if (sortCompoundTagEntries) iter = ((CompoundTag) tag).stream().sorted(NamedTag::compare).iterator();
 			else iter = ((CompoundTag) tag).iterator();
 			while (iter.hasNext()) {
-				Map.Entry<String, Tag<?>> entry = iter.next();
+				NamedTag entry = iter.next();
 				writer.write(first ? "" : ",");
-				writer.append(escapeString(entry.getKey())).write(':');
-				writeAnything(entry.getValue(), sortCompoundTagEntries, decrementMaxDepth(maxDepth));
+				writer.append(escapeString(entry.getName())).write(':');
+				writeAnything(entry.getTag(), sortCompoundTagEntries, decrementMaxDepth(maxDepth));
 				first = false;
 			}
 			writer.write('}');

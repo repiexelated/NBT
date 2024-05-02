@@ -1,5 +1,6 @@
 package net.rossquerz.nbt.util;
 
+import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.tag.*;
 
 import java.util.*;
@@ -100,25 +101,23 @@ public class ObservedCompoundTag extends CompoundTag {
         return wrappedTag.keySet();
     }
 
-    /** {@inheritDoc} */
-    public Set<Map.Entry<String, Tag<?>>> entrySet() {
-        return wrappedTag.entrySet();
-    }
-
-    /** {@inheritDoc} */
+    /** {@inheritDoc}
+     * @return*/
     @Override
-    public Iterator<Map.Entry<String, Tag<?>>> iterator() {
+    public Iterator<NamedTag> iterator() {
         return wrappedTag.iterator();
     }
 
-    /** {@inheritDoc} */
+    /** {@inheritDoc}
+     * @return*/
     @Override
-    public Spliterator<Map.Entry<String, Tag<?>>> spliterator() {
+    public Spliterator<NamedTag> spliterator() {
         return wrappedTag.spliterator();
     }
 
-    /** {@inheritDoc} */
-    public Stream<Map.Entry<String, Tag<?>>> stream() {
+    /** {@inheritDoc}
+     * @return*/
+    public Stream<NamedTag> stream() {
         return wrappedTag.stream();
     }
 

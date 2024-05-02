@@ -1,7 +1,9 @@
 package net.rossquerz.nbt.io;
 
 import net.rossquerz.nbt.tag.Tag;
+import net.rossquerz.util.ArgValidator;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -12,7 +14,10 @@ public class NamedTag {
 	private String name;
 	private Tag<?> tag;
 
+	protected NamedTag() {}
+
 	public NamedTag(String name, Tag<?> tag) {
+		ArgValidator.requireValue(tag, "tag");
 		this.name = name;
 		this.tag = tag;
 	}
@@ -26,6 +31,7 @@ public class NamedTag {
 	}
 
 	public void setTag(Tag<?> tag) {
+		ArgValidator.requireValue(tag, "tag");
 		this.tag = tag;
 	}
 
@@ -39,7 +45,7 @@ public class NamedTag {
 
 	@SuppressWarnings("unchecked")
 	public <T extends Tag<?>> T getTagAutoCast() {
-		return (T) tag;
+		return (T) getTag();
 	}
 
 	/**
@@ -69,5 +75,16 @@ public class NamedTag {
 		NamedTag other = (NamedTag) o;
 		return Objects.equals(this.name, other.name) &&
 				Objects.equals(this.tag, other.tag);
+	}
+
+	public static Comparator<NamedTag> comparingByName() {
+		return NamedTag::compare;
+	}
+
+	public static int compare(NamedTag o1, NamedTag o2) {
+		if (o1 == o2) return 0;
+		if (o1 == null) return -1;
+		if (o2 == null) return 1;
+		return o1.name.compareTo(o2.name);
 	}
 }

@@ -1,6 +1,7 @@
 package net.rossquerz.mca;
 
 import net.rossquerz.mca.util.*;
+import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.*;
 
@@ -769,9 +770,9 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 				upgradeTag.clear();
 				changed = true;
 			} else {
-				for (Map.Entry<String, Tag<?>> entry : upgradeTag) {
-					if (entry.getValue() instanceof ListTag && ((ListTag<?>) entry.getValue()).getTypeClass().equals(CompoundTag.class)) {
-						changed |= fixTileLocations(moveChunkFlags, cbr, (ListTag<CompoundTag>) entry.getValue());
+				for (NamedTag entry : upgradeTag) {
+					if (entry.getTag() instanceof ListTag && ((ListTag<?>) entry.getTag()).getTypeClass().equals(CompoundTag.class)) {
+						changed |= fixTileLocations(moveChunkFlags, cbr, (ListTag<CompoundTag>) entry.getTag());
 					}
 				}
 			}
@@ -860,8 +861,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		// and defines what exists in each, what I'll call, zone of that structure.
 		if (starts != null && !starts.isEmpty()) {
 			IntPointXZ blockDeltaXZ = chunkDeltaXZ.transformChunkToBlock();
-			for (Map.Entry<String, Tag<?>> startsEntry : starts) {
-				moveStructureStart((CompoundTag) startsEntry.getValue(), chunkDeltaXZ, blockDeltaXZ, clippingRect);
+			for (NamedTag startsEntry : starts) {
+				moveStructureStart((CompoundTag) startsEntry.getTag(), chunkDeltaXZ, blockDeltaXZ, clippingRect);
 			}
 		}
 		return changed;

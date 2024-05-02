@@ -6,9 +6,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.rossquerz.io.MaxDepthIO;
+import net.rossquerz.nbt.io.NamedTag;
+import net.rossquerz.util.ArgValidator;
 
 public class CompoundTag extends Tag<Map<String, Tag<?>>>
-		implements Iterable<Map.Entry<String, Tag<?>>>, Comparable<CompoundTag>, MaxDepthIO {
+		implements Iterable<NamedTag>, Comparable<CompoundTag>, MaxDepthIO {
 
 	public static final byte ID = 10;
 
@@ -61,22 +63,13 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return getValue().keySet();
 	}
 
-	public Set<Map.Entry<String, Tag<?>>> entrySet() {
-		return new NonNullEntrySet<>(getValue().entrySet());
-	}
-
 	@Override
-	public Iterator<Map.Entry<String, Tag<?>>> iterator() {
-		return entrySet().iterator();
+	public Iterator<NamedTag> iterator() {
+		return new CompoundTagIterator(getValue().entrySet());
 	}
 
-	@Override
-	public Spliterator<Map.Entry<String, Tag<?>>> spliterator() {
-		return entrySet().spliterator();
-	}
-
-	public Stream<Map.Entry<String, Tag<?>>> stream() {
-		return getValue().entrySet().stream();
+	public Stream<NamedTag> stream() {
+		return getValue().entrySet().stream().map(NamedTag::new);
 	}
 
 	public void forEach(BiConsumer<String, Tag<?>> action) {
@@ -466,5 +459,52 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 			copy.put(e.getKey(), e.getValue().clone());
 		}
 		return copy;
+	}
+
+	private static class CompoundTagIterator implements Iterator<NamedTag> {
+		private final Iterator<Map.Entry<String, Tag<?>>> iterator;
+
+		CompoundTagIterator(Set<Map.Entry<String, Tag<?>>> set) {
+			this.iterator = set.iterator();
+		}
+
+		@Override
+		public boolean hasNext() {
+			return iterator.hasNext();
+		}
+
+		@Override
+		public NamedTag next() {
+			return new MappedNamedTag(iterator.next());
+		}
+
+		@Override
+		public void remove() {
+			iterator.remove();
+		}
+	}
+
+	private static class MappedNamedTag extends NamedTag {
+		private final Map.Entry<String, Tag<?>> entry;
+		public MappedNamedTag(Map.Entry<String, Tag<?>> entry) {
+			this.entry = entry;
+		}
+
+		public void setName(String name) {
+			throw new UnsupportedOperationException();
+		}
+
+		public void setTag(Tag<?> tag) {
+			ArgValidator.requireValue(tag, "tag");
+			entry.setValue(tag);
+		}
+
+		public String getName() {
+			return entry.getKey();
+		}
+
+		public Tag<?> getTag() {
+			return entry.getValue();
+		}
 	}
 }

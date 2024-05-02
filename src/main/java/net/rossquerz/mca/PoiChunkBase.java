@@ -2,6 +2,7 @@ package net.rossquerz.mca;
 
 import net.rossquerz.mca.io.McaFileHelpers;
 import net.rossquerz.mca.util.ChunkBoundingRectangle;
+import net.rossquerz.nbt.io.NamedTag;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.IntArrayTag;
 import net.rossquerz.nbt.tag.ListTag;
@@ -54,11 +55,11 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
             if (sectionsTag == null) {
                 throw new IllegalArgumentException("Sections tag not found!");
             }
-            for (Map.Entry<String, Tag<?>> sectionTag : sectionsTag.entrySet()) {
-                int sectionY = Integer.parseInt(sectionTag.getKey());
-                boolean valid = ((CompoundTag) sectionTag.getValue()).getBoolean("Valid", true);
+            for (NamedTag sectionTag : sectionsTag) {
+                int sectionY = Integer.parseInt(sectionTag.getName());
+                boolean valid = ((CompoundTag) sectionTag.getTag()).getBoolean("Valid", true);
                 poiSectionValidity.put(sectionY, valid);
-                ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getValue()).getListTagAutoCast("Records");
+                ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getTag()).getListTagAutoCast("Records");
                 if (recordTags != null) {
                     for (CompoundTag recordTag : recordTags) {
                         T record = createPoiRecord(recordTag);
@@ -117,8 +118,8 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
             if (sectionsTag == null) {
                 throw new IllegalArgumentException("Sections tag not found!");
             }
-            for (Map.Entry<String, Tag<?>> sectionTag : sectionsTag.entrySet()) {
-                ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getValue()).getListTagAutoCast("Records");
+            for (NamedTag sectionTag : sectionsTag) {
+                ListTag<CompoundTag> recordTags = ((CompoundTag) sectionTag.getTag()).getListTagAutoCast("Records");
                 if (recordTags != null) {
                     for (CompoundTag recordTag : recordTags) {
                         IntArrayTag posTag = recordTag.getIntArrayTag("pos");

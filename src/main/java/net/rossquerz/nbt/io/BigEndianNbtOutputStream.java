@@ -141,13 +141,13 @@ public class BigEndianNbtOutputStream extends DataOutputStream implements NbtOut
 	}
 
 	private static void writeCompound(BigEndianNbtOutputStream out, Tag<?> tag, int maxDepth) throws IOException {
-		for (Map.Entry<String, Tag<?>> entry : (CompoundTag) tag) {
-			if (entry.getValue().getID() == 0) {
+		for (NamedTag entry : (CompoundTag) tag) {
+			if (entry.getTag().getID() == 0) {
 				throw new IOException("end tag not allowed");
 			}
-			out.writeByte(entry.getValue().getID());
-			out.writeUTF(entry.getKey());
-			out.writeRawTag(entry.getValue(), out.decrementMaxDepth(maxDepth));
+			out.writeByte(entry.getTag().getID());
+			out.writeUTF(entry.getName());
+			out.writeRawTag(entry.getTag(), out.decrementMaxDepth(maxDepth));
 		}
 		out.writeByte(0);
 	}

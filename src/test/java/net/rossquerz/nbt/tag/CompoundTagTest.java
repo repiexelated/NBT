@@ -2,6 +2,7 @@ package net.rossquerz.nbt.tag;
 
 import net.rossquerz.io.MaxDepthReachedException;
 import net.rossquerz.NbtTestCase;
+import net.rossquerz.nbt.io.NamedTag;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -296,9 +297,9 @@ public class CompoundTagTest extends NbtTestCase {
 	public void testEntrySet() {
 		CompoundTag e = new CompoundTag();
 		e.putInt("int", 123);
-		for (Map.Entry<String, Tag<?>> en : e.entrySet()) {
-			assertThrowsRuntimeException(() -> en.setValue(null), NullPointerException.class);
-			assertThrowsNoRuntimeException(() -> en.setValue(new IntTag(321)));
+		for (NamedTag en : e) {
+			assertThrowsIllegalArgumentException(() -> en.setTag(null));
+			assertThrowsNoRuntimeException(() -> en.setTag(new IntTag(321)));
 		}
 		assertEquals(1, e.size());
 		assertEquals(321, e.getInt("int"));
@@ -337,22 +338,22 @@ public class CompoundTagTest extends NbtTestCase {
 		assertFalse(ct.containsKey("str"));
 		assertThrowsRuntimeException(() -> ct.keySet().add("str"), UnsupportedOperationException.class);
 		ct.putString("str", "foo");
-		for (Map.Entry<String, Tag<?>> e : ct.entrySet()) {
-			assertNotNull(e.getKey());
-			assertNotNull(e.getValue());
-			assertThrowsRuntimeException(() -> e.setValue(null), NullPointerException.class);
-			if (e.getKey().equals("str")) {
-				assertThrowsNoRuntimeException(() -> e.setValue(new StringTag("bar")));
+		for (NamedTag e : ct) {
+			assertNotNull(e.getName());
+			assertNotNull(e.getTag());
+			assertThrowsIllegalArgumentException(() -> e.setTag(null));
+			if (e.getName().equals("str")) {
+				assertThrowsNoRuntimeException(() -> e.setTag(new StringTag("bar")));
 			}
 		}
 		assertTrue(ct.containsKey("str"));
 		assertEquals("bar", ct.getString("str"));
-		for (Map.Entry<String, Tag<?>> e : ct) {
-			assertNotNull(e.getKey());
-			assertNotNull(e.getValue());
-			assertThrowsRuntimeException(() -> e.setValue(null), NullPointerException.class);
-			if (e.getKey().equals("str")) {
-				assertThrowsNoRuntimeException(() -> e.setValue(new StringTag("foo")));
+		for (NamedTag e : ct) {
+			assertNotNull(e.getName());
+			assertNotNull(e.getTag());
+			assertThrowsIllegalArgumentException(() -> e.setTag(null));
+			if (e.getName().equals("str")) {
+				assertThrowsNoRuntimeException(() -> e.setTag(new StringTag("foo")));
 			}
 		}
 		assertTrue(ct.containsKey("str"));
@@ -366,7 +367,7 @@ public class CompoundTagTest extends NbtTestCase {
 
 	public void testStream() {
 		CompoundTag ct = createCompoundTag();
-		List<String> keys = ct.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+		List<String> keys = ct.stream().map(NamedTag::getName).collect(Collectors.toList());
 		assertEquals(ct.size(), keys.size());
 		assertTrue(keys.containsAll(Arrays.asList("b", "str", "list")));
 	}
