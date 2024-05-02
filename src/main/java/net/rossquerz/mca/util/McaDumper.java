@@ -17,7 +17,7 @@ public class McaDumper {
      * @param mcaFile MCA file to dump the chunk data for.
      * @param outputRoot Root directory to dump into. The output will be written to
      *                   "&lt;mca type&gt;/rX.Z/&lt;chunk index&gt;.X.Z.snbt;"
-     *                   Example: "region/r0.0/0042.168.-475.snbt"
+     *                   Example: "region/r.0.0/0042.168.-475.snbt"
      * @return The path containing the dumped chunk text nbt (.snbt) files.
      * @throws IOException
      */
@@ -26,7 +26,7 @@ public class McaDumper {
             File dir = Paths.get(
                     outputRoot.toString(),
                     mcaFile.getAbsoluteFile().getParentFile().getName(),
-                    iter.regionXZ().toString("r%d.%d")).toFile();
+                    iter.regionXZ().toString("r.%d.%d")).toFile();
             if (!dir.exists()) {
                 dir.mkdirs();
             }
@@ -58,7 +58,7 @@ public class McaDumper {
      * Writes the given chunk to a file within the given outputRoot.
      * @param chunk Chunk to dump.
      * @param outputRoot Root directory to dump into. The output will be written to
-     *                   "&lt;mca type&gt;/rX.Z/&lt;chunk index&gt;.X.Z.snbt;"
+     *                   "&lt;mca type&gt;/r.X.Z/&lt;chunk index&gt;.X.Z.snbt;"
      *                   Example: "region/r0.0/0042.168.-475.snbt"
      * @return The full path of the output snbt file.
      * @throws IOException
@@ -68,7 +68,7 @@ public class McaDumper {
         File dir = Paths.get(
                 outputRoot.toString(),
                 chunk.getMcaType(),
-                "r" + regionXZ.getX() + "." + regionXZ.getZ()).toFile();
+                "r." + regionXZ.getX() + "." + regionXZ.getZ()).toFile();
         if (!dir.exists()) {
             dir.mkdirs();
         }
