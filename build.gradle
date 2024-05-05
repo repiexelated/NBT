@@ -8,8 +8,8 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'jacoco'
 
-group                        = 'net.rossquerz.nbt'
-archivesBaseName             = 'nbt'
+group                        = 'io.github.ensgijs'
+archivesBaseName             = 'ens-nbt'
 version                      = '0.1'
 sourceCompatibility          = '1.8'
 targetCompatibility          = '1.8'
@@ -31,6 +31,15 @@ publishing {
 			}
 		}
 	}
+	publications {
+		maven(MavenPublication) {
+			groupId = System.getenv("group")
+			artifactId = 'ens-nbt'
+			version = System.getenv("version")
+
+			from components.java
+		}
+	}
 }
 
 dependencies {
@@ -40,8 +49,8 @@ dependencies {
 javadoc {
 	source = sourceSets.main.allJava
 	destinationDir = file("./doc/")
-	include 'net/rossquerz/**'
-	options.windowTitle 'NBT'
+	include 'io/github/ensgijs/nbt/**'
+	options.windowTitle 'NBT (ENS)'
 	options.encoding 'UTF-8'
 	options.linkSource true
 	options.links 'https://docs.oracle.com/javase/8/docs/api/'
