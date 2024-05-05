@@ -7,12 +7,15 @@ import io.github.ensgijs.nbt.util.Stopwatch;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.file.Path;
 
 /**
  * Provides a streaming data sink for writing a region file. Chunks can be written in any order.
  * Attempting to write a chunk (XZ) that has already been written will throw {@link IOException}.
+ * <p>You must remember to call {@link McaFileStreamingWriter#close()}! Close writes the file
+ * index and without this index the region will appear to contain no chunk data.</p>
  * @see McaFileHelpers
  * @see McaFileChunkIterator
  */
@@ -94,6 +97,7 @@ public class McaFileStreamingWriter implements Closeable {
         try (Stopwatch.LapToken lap = fileCloseStopwatch.startLap()) {
             raf.seek(0);
             ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
+            byteBuffer.order(ByteOrder.BIG_ENDIAN);
             IntBuffer intBuffer = byteBuffer.asIntBuffer();
             intBuffer.put(chunkSectors);
             raf.write(byteBuffer.array());

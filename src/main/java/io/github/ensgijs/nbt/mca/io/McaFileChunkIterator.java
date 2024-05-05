@@ -9,6 +9,9 @@ import io.github.ensgijs.nbt.mca.util.ChunkIterator;
 import io.github.ensgijs.nbt.mca.util.IntPointXZ;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -94,33 +97,30 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
         final int[] offsets = new int[1024];
         final int[] sectors = new int[1024];
 
+        ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
+        byteBuffer.order(ByteOrder.BIG_ENDIAN);
+        IntBuffer intBuffer = byteBuffer.asIntBuffer();
+
         // read offsets
+        if (4096 != in.read(byteBuffer.array())) {
+            throw new EOFException();
+        }
         int populatedChunks = 0;
         for (int i = 0; i < 1024; i++) {
-            int offset = in.read() << 16;
-            offset |= (in.read() & 0xFF) << 8;
-            offset |= in.read() & 0xFF;
-            int sector;
-            if ((sector = in.read()) == 0) {
-                continue;
-            }
-            offsets[i] = offset;
-            sectors[i] = sector;
+            int glob = intBuffer.get(i);
+            offsets[i] = glob >>> 8;
+            sectors[i] = glob & 0xFF;
             populatedChunks++;
         }
         chunkMetaInfos = new ArrayList<>(populatedChunks);
 
         // read timestamps
+        if (4096 != in.read(byteBuffer.array())) {
+            throw new EOFException();
+        }
         for (int i = 0; i < 1024; i++) {
-            int ch1 = in.read();
-            int ch2 = in.read();
-            int ch3 = in.read();
-            int ch4 = in.read();
-            if (ch1 < 0 || ch2 < 0 || ch3 < 0 || ch4 < 0)
-                throw new EOFException();
-            int timestamp = (ch1 << 24) + (ch2 << 16) + (ch3 << 8) + ch4;
             if (offsets[i] > 0) {
-                chunkMetaInfos.add(new ChunkMetaInfo(i, offsets[i], sectors[i], timestamp));
+                chunkMetaInfos.add(new ChunkMetaInfo(i, offsets[i], sectors[i], intBuffer.get(i)));
             }
         }
         chunkMetaInfos.sort(Comparator.comparingInt(e -> e.offset));
