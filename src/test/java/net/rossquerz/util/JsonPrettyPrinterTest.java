@@ -1,7 +1,7 @@
 package net.rossquerz.util;
 
 import junit.framework.TestCase;
-import static net.rossquerz.util.JsonPrettyPrinter.prettyPrintJson;
+import static io.github.ensgijs.nbt.util.JsonPrettyPrinter.prettyPrintJson;
 
 public class JsonPrettyPrinterTest extends TestCase {
     public void testFormatObject_strict() {
