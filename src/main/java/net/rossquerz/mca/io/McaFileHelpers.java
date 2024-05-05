@@ -18,8 +18,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Provides main and utility functions to read and write .mca files and
- * to convert block, chunk, and region coordinates.
+ * Provides utility functions to read and write .mca files and to convert block, chunk, and region coordinates.
+ * @see McaFileChunkIterator
+ * @see McaFileStreamingWriter
  */
 public final class McaFileHelpers {
 
@@ -92,7 +93,8 @@ public final class McaFileHelpers {
 	 */
 	@Deprecated
 	public static McaRegionFile read(File file, long loadFlags) throws IOException {
-		McaRegionFile mcaFile = newMCAFile(file);
+		IntPointXZ xz = regionXZFromFileName(file.getName());
+		McaRegionFile mcaFile = new McaRegionFile(xz.getX(), xz.getZ());
 		try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
 			mcaFile.deserialize(raf, loadFlags);
 			return mcaFile;
@@ -456,16 +458,9 @@ public final class McaFileHelpers {
 	//</editor-fold>
 
 	/**
-	 * Creates a REGION {@link McaRegionFile} initialized with its X and Z extracted from the given file name. The file
-	 * does not need to exist.
-	 * @deprecated Legacy helper, switch to {@link #autoMCAFile(Path)} for POI (1.14+) and ENTITIES (1.17+) mca support.
+	 * Creates a {@link IntPointXZ} initialized with its X and Z extracted from the given file name.
+	 * Ex. "r.1.-4.mca" returns XZ(1, -4)
 	 */
-	@Deprecated
-	public static McaRegionFile newMCAFile(File file) {
-		IntPointXZ xz = regionXZFromFileName(file.getName());
-		return new McaRegionFile(xz.getX(), xz.getZ());
-	}
-
 	public static IntPointXZ regionXZFromFileName(String name) {
 		final Matcher m = mcaFilePattern.matcher(name);
 		if (!m.find()) {
@@ -483,6 +478,7 @@ public final class McaFileHelpers {
 
 	/**
 	 * @see #autoMCAFile(Path)
+	 * @see #autoMCAFile(String, Path) 
 	 */
 	public static <T extends McaFileBase<?>> T autoMCAFile(File file) {
 		return autoMCAFile(file.toPath());
@@ -539,6 +535,7 @@ public final class McaFileHelpers {
 	 * is no {@link #MCA_CREATORS} mapped to the mca type, or when the regions X and Z locations could not be
 	 * extracted from the filename.
 	 * @throws NullPointerException Thrown when a custom creator did not produce a result.
+	 * @see #autoMCAFile(Path) 
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends McaFileBase<?>> T autoMCAFile(String useCreatorName, Path path) {

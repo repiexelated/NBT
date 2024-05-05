@@ -4,10 +4,9 @@ import net.rossquerz.mca.EntitiesChunk;
 import net.rossquerz.mca.McaTestCase;
 import net.rossquerz.mca.PoiChunk;
 import net.rossquerz.mca.TerrainChunk;
-import net.rossquerz.mca.entities.EntityBase;
+import net.rossquerz.mca.entities.Entity;
 import net.rossquerz.mca.entities.EntityFactory;
 import net.rossquerz.mca.util.IntPointXZ;
-import net.rossquerz.mca.util.McaDumper;
 import net.rossquerz.nbt.query.NbtPath;
 import net.rossquerz.nbt.tag.CompoundTag;
 
@@ -104,7 +103,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
 //        McaDumper.dumpChunksAsTextNbt(newMca, Paths.get("TESTDBG", "relocation", "1_18_1"));
         McaFileChunkIterator<EntitiesChunk> eiter = McaFileChunkIterator.iterate(newMca, LoadFlags.LOAD_ALL_DATA);
         EntitiesChunk echunk = eiter.next();
-        List<EntityBase> entities = echunk.getEntities();
+        List<Entity> entities = echunk.getEntities();
         assertEquals(5437, (int) entities.get(3).getX());
         assertEquals(64, (int) entities.get(3).getY());
         assertEquals(4368, (int) entities.get(3).getZ());
@@ -159,7 +158,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
 //        McaDumper.dumpChunksAsTextNbt(newMca, Paths.get("TESTDBG", "relocation", "1_17_1"));
         McaFileChunkIterator<EntitiesChunk> eiter = McaFileChunkIterator.iterate(newMca, LoadFlags.LOAD_ALL_DATA);
         EntitiesChunk echunk = eiter.next();
-        List<EntityBase> entities = echunk.getEntities();
+        List<Entity> entities = echunk.getEntities();
         assertEquals(504, (int) entities.get(0).getX());
         assertEquals(64, (int) entities.get(0).getY());
         assertEquals(357, (int) entities.get(0).getZ());
@@ -196,7 +195,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
         assertEquals(-28, chunk.getChunkX());
         assertEquals(37, chunk.getChunkZ());
 
-        List<EntityBase> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
+        List<Entity> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
         assertEquals(-441, (int)entities.get(0).getX());
         assertEquals(34, (int)entities.get(0).getY());
         assertEquals(603, (int)entities.get(0).getZ());
@@ -239,7 +238,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
         assertEquals(157, chunk.getChunkX());
         assertEquals(171, chunk.getChunkZ());
 
-        List<EntityBase> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
+        List<Entity> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
         assertEquals(2517, (int)entities.get(0).getX());
         assertEquals(67, (int)entities.get(0).getY());
         assertEquals(2745, (int)entities.get(0).getZ());
@@ -286,7 +285,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
         assertEquals(31, chunk.getChunkX());
         assertEquals(16, chunk.getChunkZ());
 
-        List<EntityBase> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
+        List<Entity> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
         assertEquals(509, (int)entities.get(0).getX());
         assertEquals(40, (int)entities.get(0).getY());
         assertEquals(264, (int)entities.get(0).getZ());
@@ -325,7 +324,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
         assertEquals(22, chunk.getChunkX());
         assertEquals(19, chunk.getChunkZ());
 
-        List<EntityBase> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
+        List<Entity> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
         assertEquals(359, (int)entities.get(0).getX());
         assertEquals(63, (int)entities.get(0).getY());
         assertEquals(312, (int)entities.get(0).getZ());
@@ -403,7 +402,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
         assertEquals(42, chunk.getChunkX());
         assertEquals(43, chunk.getChunkZ());
 
-        List<EntityBase> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
+        List<Entity> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
         assertEquals(680, (int)entities.get(0).getX());
         assertEquals(40, (int)entities.get(0).getY());
         assertEquals(703, (int)entities.get(0).getZ());
@@ -429,7 +428,7 @@ public class RegionFileRelocatorTest extends McaTestCase {
         assertEquals(24, chunk.getChunkX());
         assertEquals(12, chunk.getChunkZ());
 
-        List<EntityBase> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
+        List<Entity> entities = EntityFactory.fromListTag(chunk.getEntities(), chunk.getDataVersion());
         assertEquals(387, (int)entities.get(0).getX());
         assertEquals(71, (int)entities.get(0).getY());
         assertEquals(193, (int)entities.get(0).getZ());

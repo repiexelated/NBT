@@ -22,6 +22,13 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		super(new LinkedHashMap<>(initialCapacity));
 	}
 
+	/**
+	 * @param data passed by ref
+	 */
+	protected CompoundTag(Map<String, Tag<?>> data) {
+		super(data);
+	}
+
 	@Override
 	public byte getID() {
 		return ID;
@@ -88,6 +95,19 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return getValue().get(key);
 	}
 
+	/**
+	 * Gets a NamedTag that references this compound tag's values. Setting {@link NamedTag#setTag(Tag)}
+	 * WILL NOT modify the contents of this {@link CompoundTag}, however, modifying the tag itself will.
+	 * @return new {@link NamedTag} or null if the key does not exist.
+	 */
+	public NamedTag getNamedTag(String key) {
+		Tag<?> tag = get(key);
+		if (tag != null) {
+			return new NamedTag(key, tag);
+		}
+		return null;
+	}
+
 	public NumberTag<?> getNumberTag(String key) {
 		return (NumberTag<?>) getValue().get(key);
 	}
@@ -141,7 +161,11 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return get(key, ListTag.class);
 	}
 
-	/** @see #getCompoundList */
+	/**
+	 * @return ListTag&lt;&gt; of the type requested by the context in which this method was called.
+	 * @throws ClassCastException may be thrown at call site if tag exists but cannot be cast to the necessary type.
+	 * @see #getCompoundList
+	 */
 	@SuppressWarnings("unchecked")
 	public <R extends ListTag<?>> R getListTagAutoCast(String key) {
 		return (R) get(key, ListTag.class);
@@ -151,101 +175,124 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return get(key, CompoundTag.class);
 	}
 
+	/**
+	 * @return ListTag&lt;CompoundTag&gt; identified by key
+	 * @throws ClassCastException may be thrown at call site if tag exists but is not a ListTag&lt;CompoundTag&gt;
+	 */
 	@SuppressWarnings("unchecked")
 	public ListTag<CompoundTag> getCompoundList(String key) {
 		return (ListTag<CompoundTag>) get(key, ListTag.class);
 	}
 
+	/** @return the value associated with key or false if there was none or if the tag was not of type {@link ByteTag}. */
 	public boolean getBoolean(String key) {
 		Tag<?> t = get(key);
 		return t instanceof ByteTag && ((ByteTag) t).asByte() > 0;
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public boolean getBoolean(String key, boolean defaultValue) {
 		Tag<?> t = get(key);
 		return t instanceof ByteTag ? ((ByteTag) t).asByte() > 0 : defaultValue;
 	}
 
+	/** @return the value associated with key or {@link ByteTag#ZERO_VALUE} if there was none. */
 	public byte getByte(String key) {
 		ByteTag t = getByteTag(key);
 		return t == null ? ByteTag.ZERO_VALUE : t.asByte();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public byte getByte(String key, byte defaultValue) {
 		ByteTag t = getByteTag(key);
 		return t == null ? defaultValue : t.asByte();
 	}
 
+	/** @return the value associated with key or {@link ShortTag#ZERO_VALUE} if there was none. */
 	public short getShort(String key) {
 		ShortTag t = getShortTag(key);
 		return t == null ? ShortTag.ZERO_VALUE : t.asShort();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public short getShort(String key, short defaultValue) {
 		ShortTag t = getShortTag(key);
 		return t == null ? defaultValue: t.asShort();
 	}
 
+	/** @return the value associated with key or {@link IntTag#ZERO_VALUE} if there was none. */
 	public int getInt(String key) {
 		IntTag t = getIntTag(key);
 		return t == null ? IntTag.ZERO_VALUE : t.asInt();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public int getInt(String key, int defaultValue) {
 		IntTag t = getIntTag(key);
 		return t == null ? defaultValue : t.asInt();
 	}
 
+	/** @return the value associated with key or {@link LongTag#ZERO_VALUE} if there was none. */
 	public long getLong(String key) {
 		LongTag t = getLongTag(key);
 		return t == null ? LongTag.ZERO_VALUE : t.asLong();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public long getLong(String key, long defaultValue) {
 		LongTag t = getLongTag(key);
 		return t == null ? defaultValue : t.asLong();
 	}
 
+	/** @return the value associated with key or {@link FloatTag#ZERO_VALUE} if there was none. */
 	public float getFloat(String key) {
 		FloatTag t = getFloatTag(key);
 		return t == null ? FloatTag.ZERO_VALUE : t.asFloat();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public float getFloat(String key, float defaultValue) {
 		FloatTag t = getFloatTag(key);
 		return t == null ? defaultValue : t.asFloat();
 	}
 
+	/** @return the value associated with key or {@link DoubleTag#ZERO_VALUE} if there was none. */
 	public double getDouble(String key) {
 		DoubleTag t = getDoubleTag(key);
 		return t == null ? DoubleTag.ZERO_VALUE : t.asDouble();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public double getDouble(String key, double defaultValue) {
 		DoubleTag t = getDoubleTag(key);
 		return t == null ? defaultValue: t.asDouble();
 	}
 
+	/** @return the value associated with key or {@link StringTag#ZERO_VALUE} if there was none. */
 	public String getString(String key) {
 		StringTag t = getStringTag(key);
 		return t == null ? StringTag.ZERO_VALUE : t.getValue();
 	}
 
+	/** @return the value associated with key or {@code defaultValue} if there was none. */
 	public String getString(String key, String defaultValue) {
 		StringTag t = getStringTag(key);
 		return t == null ? defaultValue: t.getValue();
 	}
 
+	/** @return the value associated with key or {@link ByteArrayTag#ZERO_VALUE} if there was none. */
 	public byte[] getByteArray(String key) {
 		ByteArrayTag t = getByteArrayTag(key);
 		return t == null ? ByteArrayTag.ZERO_VALUE : t.getValue();
 	}
 
+	/** @return the value associated with key or {@link IntArrayTag#ZERO_VALUE} if there was none. */
 	public int[] getIntArray(String key) {
 		IntArrayTag t = getIntArrayTag(key);
 		return t == null ? IntArrayTag.ZERO_VALUE : t.getValue();
 	}
 
+	/** @return the value associated with key or {@link LongArrayTag#ZERO_VALUE} if there was none. */
 	public long[] getLongArray(String key) {
 		LongArrayTag t = getLongArrayTag(key);
 		return t == null ? LongArrayTag.ZERO_VALUE : t.getValue();
@@ -296,58 +343,88 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 				.map(StringTag::getValue)
 				.collect(Collectors.toList());
 	}
-	
+
+	/** @return the previous value associated with namedTag.getName() or null if there was none. */
+	public Tag<?> put(NamedTag namedTag) {
+		return put(namedTag.getName(), namedTag.getTag());
+	}
+
+	 /** @return the previous value associated with key or null if there was none. */
 	public Tag<?> put(String key, Tag<?> tag) {
 		return getValue().put(Objects.requireNonNull(key), Objects.requireNonNull(tag));
 	}
 
+	/**
+	 * Puts the tag iff {@code namedTag != null && namedTag.getTag() != null}
+	 * @return the previous value associated with namedTag.getName() or null if there was none.
+	 */
+	public Tag<?> putIfNotNull(NamedTag namedTag) {
+		if (namedTag == null) return null;
+		return putIfNotNull(namedTag.getName(), namedTag.getTag());
+	}
+
+	/**
+	 * Puts the tag iff {tag != null}
+	 * @return the previous value associated with key or null if there was none.
+	 */
 	public Tag<?> putIfNotNull(String key, Tag<?> tag) {
 		if (tag == null) {
-			return this;
+			return null;
 		}
 		return put(key, tag);
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putBoolean(String key, boolean value) {
 		return put(key, new ByteTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putByte(String key, byte value) {
 		return put(key, new ByteTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putShort(String key, short value) {
 		return put(key, new ShortTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putInt(String key, int value) {
 		return put(key, new IntTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putLong(String key, long value) {
 		return put(key, new LongTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putFloat(String key, float value) {
 		return put(key, new FloatTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putDouble(String key, double value) {
 		return put(key, new DoubleTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putString(String key, String value) {
 		return put(key, new StringTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putByteArray(String key, byte[] value) {
 		return put(key, new ByteArrayTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putIntArray(String key, int[] value) {
 		return put(key, new IntArrayTag(value));
 	}
 
+	/** @return the previous value associated with key or null if there was none. */
 	public Tag<?> putLongArray(String key, long[] value) {
 		return put(key, new LongArrayTag(value));
 	}

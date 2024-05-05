@@ -1,6 +1,6 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.mca.entities.EntityBase;
+import net.rossquerz.mca.entities.Entity;
 import net.rossquerz.mca.io.McaFileHelpers;
 
 import java.io.IOException;
@@ -16,13 +16,13 @@ public class McaEntitiesFileTest extends McaFileBaseTest {
         assertNotNull(mca);
         EntitiesChunk chunk = mca.stream().filter(Objects::nonNull).findFirst().orElse(null);
         assertNotNull(chunk);
-        List<EntityBase> entities = chunk.getEntities();
+        List<Entity> entities = chunk.getEntities();
         assertNotNull(entities);
         assertFalse(entities.isEmpty());
 
         // mca specific checks (will need to be changed if mca file changes in meaningful ways)
         assertEquals(1, entities.size());
-        Map<String, List<EntityBase>> entitiesByType = chunk.stream().collect(Collectors.groupingBy(EntityBase::getId));
+        Map<String, List<Entity>> entitiesByType = chunk.stream().collect(Collectors.groupingBy(Entity::getId));
         assertEquals(1, entitiesByType.size());
         assertTrue(entitiesByType.containsKey("minecraft:villager"));
         assertEquals(1, entitiesByType.get("minecraft:villager").size());
@@ -33,13 +33,13 @@ public class McaEntitiesFileTest extends McaFileBaseTest {
         assertNotNull(mca);
         EntitiesChunk chunk = mca.stream().filter(Objects::nonNull).findFirst().orElse(null);
         assertNotNull(chunk);
-        List<EntityBase> entities = chunk.getEntities();
+        List<Entity> entities = chunk.getEntities();
         assertNotNull(entities);
         assertFalse(entities.isEmpty());
 
         // mca specific checks (will need to be changed if mca file changes in meaningful ways)
         assertEquals(7, entities.size());
-        Map<String, List<EntityBase>> entitiesByType = chunk.stream().collect(Collectors.groupingBy(EntityBase::getId));
+        Map<String, List<Entity>> entitiesByType = chunk.stream().collect(Collectors.groupingBy(Entity::getId));
         assertEquals(3, entitiesByType.size());
         assertTrue(entitiesByType.containsKey("minecraft:villager"));
         assertEquals(4, entitiesByType.get("minecraft:villager").size());

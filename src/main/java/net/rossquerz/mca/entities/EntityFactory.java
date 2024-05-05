@@ -11,12 +11,12 @@ import java.util.stream.Collectors;
 
 /**
  * Provides a way to customize entity data deserialization. Used by {@link net.rossquerz.mca.EntitiesChunkBase}
- * to provide users with {@link EntityBase} objects to work with instead of having to work with raw NBT data.
- * This factory can be configured to produce any custom class that implements {@link EntityBase}.
- * <p>Further customization is possible by also configuring the mca file creator factory methods found in
+ * to provide users with {@link Entity} objects to work with instead of having to work with raw NBT data.
+ * This factory can be configured to produce any custom class that implements {@link Entity}.
+ * <p>Further customization is possible by also configuring the mca file creator factory lambda functions found in
  * {@link McaFileHelpers}, specifically the {@link McaFileHelpers#MCA_CREATORS} map</p>
  */
-public class EntityFactory {
+public final class EntityFactory {
     private EntityFactory() { }
 
     // TODO: Implement "creator ai" solution to learn which creators make the "best" entity instances for
@@ -40,12 +40,14 @@ public class EntityFactory {
     //      and the registered default creator can simply "always" be in the running.
 
     /**
-     * This map controls the factory creation behavior, keys are entity id's (such as "pig").
-     * Id names in this map should not contain the "minecraft:" prefix and should be all UPPER CASE.
+     * This map controls the factory creation behavior, keys are entity ID's (such as "PIG").
+     * ID names in this map should not contain the "minecraft:" prefix and should be all UPPER CASE.
+     * @see #normalizeId(String)
      */
     private static final Map<String, EntityCreator<?>> ENTITY_CREATORS_BY_ID = new HashMap<>();
     private static EntityCreator<?> DEFAULT_ENTITY_CREATOR = new DefaultEntityCreator();
 
+    /** Provides a mapping table to translate "old id" names to new ones to simplify creator registration. */
     private static final Map<String, String> ID_REMAP;
 
     static {
@@ -57,6 +59,8 @@ public class EntityFactory {
      * Clears the entity id remapping table and removes any creators registered to one of the "old id's".
      * This should be generally safe, but if you have explicitly associated a creator with an old name, know that
      * you need to re-associate it after making this call.
+     * <p>The remapping table to translate "old id" names to new ones to simplify creator registration.</p>
+     * @see #registerIdRemap(String, String)
      */
     public static void clearEntityIdRemap() {
         // contract of supporting functions ensure that no key is also a value in this map, therefore
@@ -68,6 +72,7 @@ public class EntityFactory {
     /**
      * Resets the entity id remapping table to hard-coded defaults.
      * @see #clearCreators()
+     * @see #registerIdRemap(String, String)
      */
     public static void resetEntityIdRemap() {
         clearEntityIdRemap();
@@ -113,7 +118,7 @@ public class EntityFactory {
      * Maintains ENTITY_CREATORS_BY_ID map to ensure any creator registered for the preferredId is fired when the oldId
      * is encountered IFF there is not already a creator registered for the oldId.
      * <p>Note that creators are ALWAYS passed the preferredId even if the data source used an old id.</p>
-     * @param oldId ID found in entity nbt data for versions of minecraft prior to the preferred version.
+     * @param oldId ID found in entity nbt data for versions of minecraft prior to, or even later than, the preferred version.
      * @param preferredId Preferred ID found in the entity nbt data for the most current supported minecraft version.
      */
     public static void registerIdRemap(String oldId, String preferredId) {
@@ -141,12 +146,16 @@ public class EntityFactory {
                 .collect(Collectors.toList());
     }
 
-
+    /**
+     * Sets the default creator to use when one has not been registered for a particular entity id.
+     * @see #registerCreator(EntityCreator, String...)
+     */
     public static void setDefaultEntityCreator(EntityCreator<?> creator) {
-        if (creator == null) throw  new IllegalArgumentException();
+        if (creator == null) throw new IllegalArgumentException();
         DEFAULT_ENTITY_CREATOR = creator;
     }
 
+    /** Gets the current default entity creator instance. */
     public static EntityCreator<?> getDefaultEntityCreator() {
         return DEFAULT_ENTITY_CREATOR;
     }
@@ -162,7 +171,7 @@ public class EntityFactory {
 
     /**
      * Exposed for advanced usage only, most use cases should not need to call this function.
-     * @param id NORMALIZED IF. You can normalize an id by calling {@link #normalizeId(String)}
+     * @param id NORMALIZED ID. You can normalize an id by calling {@link #normalizeId(String)}
      * @return Registered creator or null if there is none (does not fall back to the default creator).
      */
     public static EntityCreator<?> getCreatorById(String id) {
@@ -170,7 +179,7 @@ public class EntityFactory {
     }
 
     /**
-     * Clears this factories creators map and restores the {@link DefaultEntityCreator} as the default.
+     * Clears this factory's creators map and restores the {@link DefaultEntityCreator} as the default.
      * Does NOT reset the entity id remap - call {@link #resetEntityIdRemap()} to do that.
      */
     public static void clearCreators() {
@@ -186,10 +195,9 @@ public class EntityFactory {
      * If that is what you are looking for, use {@link #normalizeAndRemapId(String)} instead.</p>
      *
      * @param id Entity ID
-     * @return Normalized entity ID - DO NOT set this value as the value of an "id" tag,
+     * @return Normalized entity ID - DO NOT set this value as the value of an "id" nbt tag,
      * that's not what this function is for.
-     * @throws IllegalArgumentException Thrown when ID is null or empty (after removing any "minecraft:" prefix)
-     * or when dataVersion LE 0.
+     * @throws IllegalArgumentException Thrown when ID is null or empty (after removing any "minecraft:" prefix).
      */
     public static String normalizeId(String id) {
         ArgValidator.requireValue(id);
@@ -200,7 +208,7 @@ public class EntityFactory {
     }
 
     /**
-     * @param id ID
+     * @param id Entity ID such as "pig" or "minecraft:pig"
      * @return Remapped normalized id if there is one, otherwise same as calling {@link #normalizeId(String)}
      */
     public static String normalizeAndRemapId(String id) {
@@ -216,6 +224,7 @@ public class EntityFactory {
      * @param creator Entity creator
      * @param entityId One or more entity id's. ID matching is performed case-insensitive and any "minecraft:"
      *                 prefixes are stripped (therefore do not need to be included).
+     * @see #registerIdRemap(String, String) 
      */
     public static void registerCreator(EntityCreator<?> creator, String... entityId) {
         if (creator == null) throw new IllegalArgumentException("creator must not be null");
@@ -233,17 +242,17 @@ public class EntityFactory {
      * @param tag must not be null; must contain an "id" tag representation of the entity's ID
      * @param dataVersion chunk data version to pass along to the creator
      * @return new entity object; never null
-     * @throws IllegalEntityTagException if the creator failed to create an instance
+     * @throws IllegalEntityTagException if the creator failed to create an instance (returned null)
      * or threw any other type of exception. Note that the offending tag is captured by this exception type.
      * @throws IllegalStateException if the entity produced by the creator does not have an ID
      */
-    public static EntityBase create(CompoundTag tag, int dataVersion) {
+    public static Entity create(CompoundTag tag, int dataVersion) {
         if (tag == null) throw new IllegalArgumentException("tag must not be null");
         String idRaw = tag.getString("id", null);
         String idNorm = normalizeId(idRaw);
         String idPreferredNorm = ID_REMAP.getOrDefault(idNorm, idNorm);
         EntityCreator<?> creator = ENTITY_CREATORS_BY_ID.getOrDefault(idNorm, DEFAULT_ENTITY_CREATOR);
-        EntityBase entity;
+        Entity entity;
         try {
             entity = creator.create(idPreferredNorm, tag, dataVersion);
         } catch (IllegalEntityTagException ex) {
@@ -270,26 +279,27 @@ public class EntityFactory {
 
     /**
      * Use this method when you know the return type - for example if you have your own base class and have
-     * reconfigured this factory with creators which always return that.
+     * reconfigured this factory with creators which always return that base.
      * Any casting exceptions which result will be thrown from the call site - not from within this function.
      * @see #create(CompoundTag, int)
      */
     @SuppressWarnings("unchecked")
-    public static <T extends EntityBase> T createAutoCast(CompoundTag tag, int dataVersion) {
+    public static <T extends Entity> T createAutoCast(CompoundTag tag, int dataVersion) {
         return (T) create(tag, dataVersion);
     }
 
     /**
-     * Convenience function to populate, or create then populate, a {@code ListTag<CompoundTag>} given a
-     * {@code List<EntityBase>}.
+     * Convenience function to populate, or create then populate, a {@code ListTag&lt;CompoundTag&gt;} given a
+     * {@code List&lt;Entity&gt;}.
+     * <p>Calls {@link Entity#updateHandle()} and adds the result to the returned {@link CompoundTag}.</p>
      * 
      * @param entities List of entities. This list must not contain the same entity instance multiple times.
      * @param entitiesTag Optional, if provided this ListTag is cleared then filled with Compound tags from the
      *                    given entities. If this argument is null, then a new ListTag will be created and populated.
      * @return The given entitiesTag or a new ListTag if entitiesTag was null
-     * @throws IllegalArgumentException Thrown if entities contains the same EntityBase instance more than once.
+     * @throws IllegalArgumentException Thrown if entities contains the same Entity instance more than once.
      */
-    public static <T extends EntityBase> ListTag<CompoundTag> toListTag(List<T> entities, ListTag<CompoundTag> entitiesTag) {
+    public static <T extends Entity> ListTag<CompoundTag> toListTag(List<T> entities, ListTag<CompoundTag> entitiesTag) {
         Set<IdentityHelper<T>> seen = new HashSet<>();
         if (entitiesTag == null) entitiesTag = new ListTag<>(CompoundTag.class, entities.size());
         else entitiesTag.clear();
@@ -304,18 +314,18 @@ public class EntityFactory {
     }
 
     /**
-     * Convenience function to create then populate a {@code ListTag<CompoundTag>} given a {@code List<EntityBase>}.
+     * Convenience function to create then populate a {@code ListTag&lt;CompoundTag&gt} given a {@code List&lt;Entity&gt;}.
      * @see #toListTag(List, ListTag)
      */
-    public static <T extends EntityBase> ListTag<CompoundTag> toListTag(List<T> entities) {
+    public static <T extends Entity> ListTag<CompoundTag> toListTag(List<T> entities) {
         return toListTag(entities, null);
     }
 
     /**
-     * Convenience function to create then populate a {@code List<EntityBase>} given a {@code ListTag<CompoundTag>}.
+     * Convenience function to create then populate a {@code List&lt;Entity&gt;} given a {@code ListTag&lt;CompoundTag&gt}.
      */
     @SuppressWarnings("unchecked")
-    public static <T extends EntityBase> List<T> fromListTag(ListTag<CompoundTag> entitiesTag, int dataVersion) {
+    public static <T extends Entity> List<T> fromListTag(ListTag<CompoundTag> entitiesTag, int dataVersion) {
         List<T> entities = new ArrayList<>();
         for (CompoundTag entityTag : entitiesTag) {
             entities.add((T) EntityFactory.create(entityTag, dataVersion));

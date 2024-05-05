@@ -1,12 +1,12 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.entities.Entity;
 import net.rossquerz.mca.entities.EntityBase;
-import net.rossquerz.mca.entities.EntityBaseImpl;
 import net.rossquerz.nbt.tag.CompoundTag;
 
 import static net.rossquerz.mca.DataVersion.*;
 
-public class EntitiesChunkTest extends EntitiesChunkBaseTest<EntityBase, EntitiesChunk> {
+public class EntitiesChunkTest extends EntitiesChunkBaseTest<Entity, EntitiesChunk> {
 
     @Override
     protected EntitiesChunk createChunk(DataVersion dataVersion) {
@@ -24,8 +24,8 @@ public class EntitiesChunkTest extends EntitiesChunkBaseTest<EntityBase, Entitie
     }
 
     @Override
-    protected EntityBase createEntity(int dataVersion, String id, double x, double y, double z, float yaw, float pitch) {
-        return new EntityBaseImpl(dataVersion, id, x, y, z, yaw, pitch);
+    protected Entity createEntity(int dataVersion, String id, double x, double y, double z, float yaw, float pitch) {
+        return new EntityBase(dataVersion, id, x, y, z, yaw, pitch);
     }
 
     @Override

@@ -24,7 +24,6 @@ import static net.rossquerz.mca.io.LoadFlags.*;
  * <p>
  *     <b>Cautionary note to implementors - DO NOT USE INLINE MEMBER INITIALIZATION IN YOUR CLASSES</b><br>
  *     Define all member initialization in {@link #initMembers()} or be very confused!
- * </p><p>
  *     Due to how Java initializes objects, this base class will call {@link #initReferences(long)} before any inline
  *     member initialization has occurred. The symptom of using inline member initialization is that you will get
  *     very confusing {@link NullPointerException}'s from within {@link #initReferences(long)} for members which
@@ -35,6 +34,7 @@ import static net.rossquerz.mca.io.LoadFlags.*;
  *     {@link #initReferences(long)} - but unless you really fully understand the warning above and its full
  *     ramifications just don't do it.
  * </p>
+ * @see SectionedChunkBase
  */
 public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, TracksUnreadDataTags {
 

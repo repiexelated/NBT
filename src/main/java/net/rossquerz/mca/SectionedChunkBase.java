@@ -66,7 +66,7 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 		}
 		if (section != null) {
 			if (sectionHeightLookup.containsKey(section)) {
-				final int oldY = sectionHeightLookup.getOrDefault(section, SectionBase.NO_HEIGHT_SENTINEL);
+				final int oldY = sectionHeightLookup.getOrDefault(section, SectionBase.NO_SECTION_Y_SENTINEL);
 				if (sectionY == oldY) return null;
 				if (!moveAllowed) {
 					throw new IllegalArgumentException(
@@ -138,14 +138,14 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 
 	/**
 	 * Looks up the section-y for the given section. This is a safer alternative to using
-	 * {@link SectionBase#getHeight()} as it will always be accurate within the context of this chunk.
+	 * {@link SectionBase#getSectionY()} as it will always be accurate within the context of this chunk.
 	 * @param section section to lookup the section-y for.
 	 * @return section-y; may be negative for worlds with a min build height below zero. If the given section is
-	 * {@code null} or is not found in this chunk then {@link SectionBase#NO_HEIGHT_SENTINEL} is returned.
+	 * {@code null} or is not found in this chunk then {@link SectionBase#NO_SECTION_Y_SENTINEL} is returned.
 	 */
 	public int getSectionY(T section) {
-		if (section == null) return SectionBase.NO_HEIGHT_SENTINEL;
-		int y = sectionHeightLookup.getOrDefault(section, SectionBase.NO_HEIGHT_SENTINEL);
+		if (section == null) return SectionBase.NO_SECTION_Y_SENTINEL;
+		int y = sectionHeightLookup.getOrDefault(section, SectionBase.NO_SECTION_Y_SENTINEL);
 		section.syncHeight(y);
 		return y;
 	}
@@ -155,30 +155,30 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 	 * <p>NOTE: fully generated terrain chunks MAY have a dummy section -1 below the world, the returned value
 	 * WILL be this value - {@link TerrainSection} will exist for this Y but it will be completely empty of the
 	 * standard tags you would expect to see (blocks, biomes, etc).</p>
-	 * @return The y of the lowest populated section in the chunk or {@link SectionBase#NO_HEIGHT_SENTINEL} if there is none.
+	 * @return The y of the lowest populated section in the chunk or {@link SectionBase#NO_SECTION_Y_SENTINEL} if there is none.
 	 * @see #getSectionY(SectionBase)
 	 */
 	public int getMinSectionY() {
 		if (!sections.isEmpty()) {
 			return sections.firstKey();
 		}
-		return SectionBase.NO_HEIGHT_SENTINEL;
+		return SectionBase.NO_SECTION_Y_SENTINEL;
 	}
 
 	/**
 	 * Gets the minimum section y-coordinate.
-	 * @return The y of the highest populated section in the chunk or {@link SectionBase#NO_HEIGHT_SENTINEL} if there is none.
+	 * @return The y of the highest populated section in the chunk or {@link SectionBase#NO_SECTION_Y_SENTINEL} if there is none.
 	 */
 	public int getMaxSectionY() {
 		if (!sections.isEmpty()) {
 			return sections.lastKey();
 		}
-		return SectionBase.NO_HEIGHT_SENTINEL;
+		return SectionBase.NO_SECTION_Y_SENTINEL;
 	}
 
 	/***
 	 * Creates a new section and places it in this chunk at the specified section-y UNLESS
-	 * the given sectionY is {@link SectionBase#NO_HEIGHT_SENTINEL} in which case the new
+	 * the given sectionY is {@link SectionBase#NO_SECTION_Y_SENTINEL} in which case the new
 	 * section is not added to this chunk.
 	 * @param sectionY section y
 	 * @return new section
@@ -189,7 +189,7 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 
 	/**
 	 * Sections provided by {@link Iterator#next()} are guaranteed to have correct values returned from
-	 * calls to {@link SectionBase#getHeight()}. Also note that the iterator itself can be queried via
+	 * calls to {@link SectionBase#getSectionY()}. Also note that the iterator itself can be queried via
 	 * {@link SectionIterator#sectionY()} for the true section-y without calling a deprecated method.
 	 * @return Section iterator. Supports {@link Iterator#remove()}.
 	 */

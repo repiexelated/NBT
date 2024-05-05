@@ -1,392 +1,799 @@
 package net.rossquerz.mca.entities;
 
-import net.rossquerz.mca.McaEntitiesFile;
-import net.rossquerz.mca.io.McaFileHelpers;
-import net.rossquerz.mca.util.TagWrapper;
+import net.rossquerz.mca.util.VersionedDataContainer;
+import net.rossquerz.nbt.tag.CompoundTag;
+import net.rossquerz.nbt.tag.ListTag;
 import net.rossquerz.util.ArgValidator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
- * Extremely basic, but complete, entity interface to allow users of this library to extend {@link McaEntitiesFile}
- * and rewire {@link McaFileHelpers} for easy integration with existing code.
- * @see EntityBaseImpl
+ * Provides a rich default implementation of {@link Entity} that exposes all properties of all
+ * entities in vanilla Minecraft and behaves in an intelligent way, making it easier to manipulate them.
+ * <p>
+ *     <b>Features worth special note</b>
+ *     <ul>
+ *         <li>{@link #generateNewUuid()} - generates a new uuid for this entity and all mounted passengers,
+ *              and their passengers, and so on.</li>
+ *         <li>{@link #setPosition(double, double, double)}, {@link #setX(double)}, {@link #setY(double)},
+ *              {@link #setZ(double)}, {@link #movePosition(double, double, double)} -
+ *              cascade relative position changes to all passengers, and their passengers, and so on.</li>
+ *         <li>{@link #setMotion(double, double, double)}, {@link #setMotionDX(double)}, {@link #setMotionDY(double)},
+ *              {@link #setMotionDZ(double)} - cascade changes to passengers, and their passengers, and so on.</li>
+ *         <li>{@link #addPassenger(Entity)} - sets the new passengers motion to match their mount and if
+ *              the passenger has no valid position set, updates it to match their mount as well.</li>
+ *         <li>{@link #setRotationYaw(float)} and {@link #setRotationPitch(float)} - automatically and intelligently
+ *         keep values in range, [0..360) and [-90..90] respectively. These functions DO NOT affect passengers.</li>
+ *         <li>{@link #getFacingCardinalAngle()} and {@link #setFacingCardinalAngle(float)} -
+ *              convenience functions where north is 0 deg, east is 90 deg, south is 180 deg, and west is 270 deg.
+ *              These functions are just wrappers around {@link #getRotationYaw()} and {@link #setRotationYaw(float)}
+ *              that perform the simple 180 deg rotation for you - because working with yaw angles is nonsensical.
+ *         </li>
+ *     </ul>
  */
-public interface EntityBase extends TagWrapper {
-    short AIR_UNSET = Short.MIN_VALUE;
+public class EntityBase implements Entity, VersionedDataContainer {
 
-    /** String representation of the entity's ID. Does not exist for the Player entity. */
-    String getId();
 
-    /** @see #getId() */
-    void setId(String id);
+    protected CompoundTag data;
+    protected int dataVersion;
+    /** not null */
+    protected String id;
+    /** nullable, if not set {@link #updateHandle()} must calculate a random UUID and assign it. UUID of ZERO must also be treated as unset */
+    protected UUID uuid;
+    /** Note {@link Entity#AIR_UNSET} is used as sentinel value indicating no value. */
+    protected short air = Entity.AIR_UNSET;
+    protected int portalCooldown;
+    protected float fallDistance;
+    protected short fireTicks = -1;
+    protected int ticksFrozen;
+    /** nullable, otherwise text nbt */
+    protected String customName;
+    protected boolean isCustomNameVisible;
+    protected boolean isInvulnerable;
+    protected boolean isSilent;
+    protected boolean isGlowing;
+    protected boolean isOnGround;
+    protected boolean noGravity;
+    protected boolean hasVisualFire;
+    protected double x = Double.NaN;
+    protected double y = Double.NaN;
+    protected double z = Double.NaN;
+    protected float yaw;
+    protected float pitch;
+    // motion
+    protected double dx;
+    protected double dy;
+    protected double dz;
+    /** nullable */
+    protected List<String> scoreboardTags;
+    /** nullable */
+    protected List<Entity> passengers;
 
-    /**
-     * This entity's Universally Unique Identifier.
-     * <p>May be null (but required by game). If uuid is null or ZERO when {@link #updateHandle()} is called,
-     * a random UUID will be generated and assigned.
-     */
-    UUID getUuid();
-
-    /**
-     * This entity's Universally Unique Identifier.
-     * @param uuid Nullable, but required by game. If uuid is null when {@link #updateHandle()} is called,
-     *             a random UUID will be generated and assigned. Prefer calling {@link #generateNewUuid()} which
-     *             will also clear UUID's of any riders instead of setting null here.
-     */
-    void setUuid(UUID uuid);
-
-    /**
-     * Generates a new random UUID for this entity and all passengers.
-     * @return New UUID for this entity.
-     */
-    UUID generateNewUuid();
-
-    /**
-     * How much air the entity has, in ticks. Decreases by 1 per tick when unable to breathe
-     * (except suffocating in a block). Increase by 1 per tick when it can breathe. If -20 while still
-     * unable to breathe, the entity loses 1 health and its air is reset to 0. Most mobs can have a
-     * maximum of 300 in air, while dolphins can reach up to 4800, and axolotls have 6000.
-     * <p>{@link #AIR_UNSET} is used as sentinel value (by this library) to indicate no value.
-     * However, generally MC stores a default of 300 even on things that don't need air.</p>
-     */
-    short getAir();
-
-    /**
-     * Set to {@link #AIR_UNSET} to indicate that "Air" should not be included in the NBT data.
-     * @see #getAir()
-     */
-    void setAir(short air);
-
-    /**
-     * Distance the entity has fallen. Larger values cause more damage when the entity lands.
-     */
-    float getFallDistance();
-
-    /** @see #getFallDistance() */
-    void setFallDistance(float fallDistance);
-
-    /**
-     * Number of ticks until the fire is put out. Negative values reflect how long the entity can
-     * stand in fire before burning. Default -20 or -1 when not on fire.
-     */
-    short getFire();
-
-    /** @see #getFire() */
-    void setFire(short fireTicks);
-
-    /**
-     * Optional. How many ticks the entity has been freezing. Although this tag is defined for
-     * all entities, it is actually only used by mobs that are not in the freeze_immune_entity_types
-     * entity type tag. Ticks up by 1 every tick while in powder snow, up to a maximum of 300
-     * (15 seconds), and ticks down by 2 while out of it.
-     */
-    int getTicksFrozen();
-
-    /** @see #getTicksFrozen() */
-    void setTicksFrozen(int ticksFrozen);
-
-    /**
-     * The number of ticks before which the entity may be teleported back through a nether portal.
-     * Initially starts at 300 ticks (15 seconds) after teleportation and counts down to 0.
-     */
-    int getPortalCooldown();
-
-    /** @see #getPortalCooldown() */
-    void setPortalCooldown(int portalCooldown);
-
-    /**
-     * The custom name JSON text component of this entity. Appears in player death messages and villager
-     * trading interfaces, as well as above the entity when the player's cursor is over it.
-     * May be empty or not exist.
-     */
-    String getCustomName();
-
-    /** @see #getCustomName() */
-    void setCustomName(String customName);
-
-    /**
-     *  if true, and this entity has a custom name, the name always appears above the entity, regardless of
-     *  where the cursor points. If the entity does not have a custom name, a default name is shown.
-     *  <p>May not exist. Default NULL</p>
-     */
-    boolean isCustomNameVisible();
-
-    /** @see #isCustomNameVisible() */
-    void setCustomNameVisible(boolean visible);
-
-    /**
-     * true if the entity should not take damage. This applies to living and nonliving entities alike: mobs should
-     * not take damage from any source (including potion effects), and cannot be moved by fishing rods, attacks,
-     * explosions, or projectiles, and objects such as vehicles and item frames cannot be destroyed unless their
-     * supports are removed.
-     */
-    boolean isInvulnerable();
-
-    /** @see #isInvulnerable() */
-    void setInvulnerable(boolean invulnerable);
-
-    /**
-     * if true, this entity is silenced.
-     * May not exist.
-     */
-    boolean isSilent();
-
-    /** @see #isSilent() */
-    void setSilent(boolean silent);
-
-    /** true if the entity has a glowing outline. */
-    boolean isGlowing();
-
-    /** @see #isGlowing() */
-    void setGlowing(boolean glowing);
-
-    /** If true, the entity does not fall down naturally. Set to true by striders in lava. */
-    boolean hasNoGravity();
-
-    /** @see #hasNoGravity() */
-    void setNoGravity(boolean noGravity);
-
-    /** true if the entity is touching the ground. */
-    boolean isOnGround();
-
-    /** @see #isOnGround() */
-    void setOnGround(boolean onGround);
-
-    /** If true, the entity visually appears on fire, even if it is not actually on fire. */
-    boolean hasVisualFire();
-
-    /** @see #hasVisualFire() */
-    void setHasVisualFire(boolean hasVisualFire);
-
-    double getX();
-    void setX(double x);
-
-    double getY();
-    void setY(double y);
-
-    double getZ();
-    void setZ(double z);
-
-    default void setPosition(double x, double y, double z) {
-        setX(x);
-        setY(y);
-        setZ(z);
+    public EntityBase(int dataVersion) {
+        this.dataVersion = ArgValidator.check(dataVersion, dataVersion >= 0);
+        this.data = new CompoundTag();
     }
 
-    default void movePosition(double dx, double dy, double dz) {
-        if (!isPositionValid()) {
-            throw new IllegalStateException("cannot move an invalid position");
+    public EntityBase(int dataVersion, String id) {
+        this.dataVersion = ArgValidator.check(dataVersion, dataVersion > 0);
+        this.id = ArgValidator.requireNotEmpty(id);
+        this.data = new CompoundTag();
+    }
+
+    public EntityBase(int dataVersion, String id, double x, double y, double z) {
+        this(dataVersion, id, x, y, z, 0, 0);
+    }
+
+    public EntityBase(int dataVersion, String id, double x, double y, double z, float yaw) {
+        this(dataVersion, id, x, y, z, yaw, 0);
+    }
+
+    public EntityBase(int dataVersion, String id, double x, double y, double z, float yaw, float pitch) {
+        this.dataVersion = ArgValidator.check(dataVersion, dataVersion > 0);
+        this.id = ArgValidator.requireNotEmpty(id);
+        this.data = new CompoundTag();
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.yaw = EntityUtil.normalizeYaw(yaw);
+        this.pitch = EntityUtil.clampPitch(pitch);
+    }
+
+    /**
+     * Copy constructor.
+     * <ul>
+     *     <li>Performs a DEEP COPY of this entity and all passengers.
+     *     <li>For passengers, {@link EntityFactory#create(CompoundTag, int)} is invoked to create strongly typed
+     *         entity instances instead of relying on each passengers clone implementation.
+     *     <li>DOES NOT copy UUID's of self or passengers, instead calls {@link #generateNewUuid()}
+     *         to ensure that each gets a new UUID.
+     *     <li>Triggers {@code other.updateHandle()} which may cause {@link #updateHandle()} to throw
+     *         {@link IllegalStateException} if it is not in a valid state.
+     *     <li>New object receives a new {@code data} {@link CompoundTag} cloned from the updated handle of
+     *         {@code other}.
+     * </ul>
+     * @param other Object to clone.
+     */
+    public EntityBase(EntityBase other) {
+        // need to call update handle to make copying passengers clean and tidy
+        this.data = other.updateHandle().clone();
+        this.dataVersion = other.dataVersion;
+        this.id = ArgValidator.requireNotEmpty(other.id);
+        this.uuid = null;
+        this.portalCooldown = other.portalCooldown;
+        this.fallDistance = other.fallDistance;
+        this.ticksFrozen = other.ticksFrozen;
+        this.customName = other.customName;
+        this.isCustomNameVisible = other.isCustomNameVisible;
+        this.isInvulnerable = other.isInvulnerable;
+        this.isSilent = other.isSilent;
+        this.isGlowing = other.isGlowing;
+        this.isOnGround = other.isOnGround;
+        this.noGravity = other.noGravity;
+        this.hasVisualFire = other.hasVisualFire;
+        this.x = other.x;
+        this.y = other.y;
+        this.z = other.z;
+        this.yaw = other.yaw;
+        this.pitch = other.pitch;
+        this.dx = other.dx;
+        this.dy = other.dy;
+        this.dz = other.dz;
+        this.scoreboardTags = other.scoreboardTags == null ? null : new ArrayList<>(other.scoreboardTags);
+        this.passengers = !this.data.containsKey("Passengers") ? null
+                : StreamSupport.stream(this.data.getListTag("Passengers").asCompoundTagList().spliterator(), false)
+                .map(tag -> EntityFactory.create(tag, dataVersion))
+                .collect(Collectors.toList());
+
+        this.generateNewUuid();
+    }
+
+    public EntityBase(CompoundTag data, int dataVersion) {
+        this.data = data;
+        this.dataVersion = dataVersion;
+        this.id = ArgValidator.requireNotEmpty(data.getString("id", null), "id tag");
+        this.uuid = EntityUtil.getUuid(dataVersion, data);
+        this.air = data.getShort("Air", Entity.AIR_UNSET);
+        this.portalCooldown = data.getInt("PortalCooldown");
+        this.fallDistance = data.getFloat("FallDistance");
+        this.fireTicks = data.getShort("Fire", (short) -1);
+        this.ticksFrozen = data.getInt("TicksFrozen", 0);
+        this.customName = data.getString("CustomName", null);
+        this.isCustomNameVisible = data.getBoolean("CustomNameVisible");
+        this.isInvulnerable = data.getBoolean("Invulnerable");
+        this.isSilent = data.getBoolean("Silent");
+        this.isGlowing = data.getBoolean("Glowing");
+        this.hasVisualFire = data.getBoolean("HasVisualFire");
+        this.isOnGround = data.getBoolean("OnGround");
+        this.noGravity = data.getBoolean("NoGravity");
+        double[] pos = data.getDoubleTagListAsArray("Pos");
+        if (pos != null && pos.length == 3) {
+            this.x = pos[0];
+            this.y = pos[1];
+            this.z = pos[2];
         }
-        setX(getX() + dx);
-        setY(getY() + dy);
-        setZ(getZ() + dz);
+        float[] rotation = data.getFloatTagListAsArray("Rotation");
+        if (rotation != null && rotation.length == 2) {
+            this.yaw = rotation[0];
+            this.pitch = rotation[1];
+        }
+        double[] motion = data.getDoubleTagListAsArray("Motion");
+        if (motion != null && motion.length == 3) {
+            this.dx = motion[0];
+            this.dy = motion[1];
+            this.dz = motion[2];
+        }
+        ListTag<CompoundTag> passengersTag = data.getListTagAutoCast("Passengers");
+        if (passengersTag != null && passengersTag.size() > 0) {
+            this.passengers = new ArrayList<>(passengersTag.size());
+            for (CompoundTag ptag : passengersTag) {
+                this.passengers.add(EntityFactory.create(ptag, dataVersion));
+            }
+        }
+        this.scoreboardTags = data.getStringTagListValues("Tags");
+    }
+
+    // <editor-fold desc="Getters Setters" defaultstate="collapsed">
+
+    @Override
+    public int getDataVersion() {
+        return dataVersion;
+    }
+
+    @Override
+    public void setDataVersion(int dataVersion) {
+        this.dataVersion = dataVersion;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setId(String id) {
+        this.id = ArgValidator.requireNotEmpty(id);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public UUID generateNewUuid() {
+        this.uuid = UUID.randomUUID();
+        if (passengers != null) {
+            for (Entity passenger : passengers) {
+                passenger.generateNewUuid();
+            }
+        }
+        return uuid;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public short getAir() {
+        return air;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setAir(short air) {
+        this.air = air;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public float getFallDistance() {
+        return fallDistance;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setFallDistance(float fallDistance) {
+        this.fallDistance = fallDistance;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public short getFire() {
+        return fireTicks;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setFire(short fireTicks) {
+        this.fireTicks = fireTicks;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int getTicksFrozen() {
+        return ticksFrozen;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setTicksFrozen(int ticksFrozen) {
+        this.ticksFrozen = ticksFrozen;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int getPortalCooldown() {
+        return portalCooldown;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setPortalCooldown(int portalCooldown) {
+        this.portalCooldown = portalCooldown;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getCustomName() {
+        return customName;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setCustomName(String customName) {
+        this.customName = customName;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isCustomNameVisible() {
+        return isCustomNameVisible;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setCustomNameVisible(boolean visible) {
+        this.isCustomNameVisible = visible;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isInvulnerable() {
+        return isInvulnerable;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setInvulnerable(boolean invulnerable) {
+        this.isInvulnerable = invulnerable;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isSilent() {
+        return isSilent;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setSilent(boolean silent) {
+        this.isSilent = silent;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isGlowing() {
+        return isGlowing;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setGlowing(boolean glowing) {
+        this.isGlowing = glowing;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean hasNoGravity() {
+        return noGravity;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setNoGravity(boolean noGravity) {
+        this.noGravity = noGravity;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isOnGround() {
+        return this.isOnGround;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setOnGround(boolean onGround) {
+        this.isOnGround = onGround;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean hasVisualFire() {
+        return hasVisualFire;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setHasVisualFire(boolean hasVisualFire) {
+        this.hasVisualFire = hasVisualFire;
     }
 
     /**
-     * @return True if x, y, and z all have finite values. Does not check for reasonable finite values.
+     * {@inheritDoc}
+     * May be {@link Double#NaN} if unset.
+     * @see #isPositionValid()
      */
-    default boolean isPositionValid() {
-        return Double.isFinite(getX()) && Double.isFinite(getY()) && Double.isFinite(getZ());
+    @Override
+    public double getX() {
+        return x;
     }
 
-    /** X velocity of the entity in meters per tick. */
-    double getMotionDX();
-
-    /**
-     * Updates this entities motion and the motion of all passengers.
-     * @see #getMotionDX()
-     */
-    void setMotionDX(double dx);
-
-    /** Y velocity of the entity in meters per tick. */
-    double getMotionDY();
-
-    /**
-     * Updates this entities motion and the motion of all passengers.
-     * @see #getMotionDY()
-     */
-    void setMotionDY(double dy);
-
-    /** Z velocity of the entity in meters per tick. */
-    double getMotionDZ();
-
-    /**
-     * Updates this entities motion and the motion of all passengers.
-     * @see #getMotionDZ()
-     */
-    void setMotionDZ(double dz);
-
-    /**
-     * Updates this entities motion and the motion of all passengers.
-     */
-    default void setMotion(double dx, double dy, double dz) {
-        setMotionDX(dx);
-        setMotionDY(dy);
-        setMotionDZ(dz);
+    /** {@inheritDoc} */
+    @Override
+    public void setX(final double x) {
+        if (passengers != null) {
+            if (!Double.isFinite(this.x) || !Double.isFinite(x)) {
+                for (Entity passenger : passengers) {
+                    passenger.setX(x);
+                }
+            } else {
+                final double dx = x - this.x;
+                for (Entity passenger : passengers) {
+                    double px = passenger.getX();
+                    if (Double.isFinite(px)) {
+                        passenger.setX(px + dx);
+                    } else {
+                        passenger.setX(x);
+                    }
+                }
+            }
+        }
+        this.x = x;
     }
 
     /**
-     * @return True if dx, dy, and dz all have finite values. Does not check for reasonable finite values.
+     * {@inheritDoc}
+     * May be {@link Double#NaN} if unset.
+     * @see #isPositionValid()
      */
-    default boolean isMotionValid() {
-        return Double.isFinite(getMotionDX()) && Double.isFinite(getMotionDY()) && Double.isFinite(getMotionDZ());
+    @Override
+    public double getY() {
+        return y;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setY(final double y) {
+        if (passengers != null) {
+            if (!Double.isFinite(this.y) || !Double.isFinite(y)) {
+                for (Entity passenger : passengers) {
+                    passenger.setY(y);
+                }
+            } else {
+                final double dy = y - this.y;
+                for (Entity passenger : passengers) {
+                    double py = passenger.getY();
+                    if (Double.isFinite(py)) {
+                        passenger.setY(py + dy);
+                    } else {
+                        passenger.setY(y);
+                    }
+                }
+            }
+        }
+        this.y = y;
     }
 
     /**
-     * The entity's rotation clockwise around the Y axis (called yaw).
-     * Due south is 0, west is 90, north is 180, east is 270.
-     * @return yaw in degrees in range [0..360)
-     * @see #getFacingCardinalAngle()
+     * {@inheritDoc}
+     * May be {@link Double#NaN} if unset.
+     * @see #isPositionValid()
      */
-    float getRotationYaw();
+    @Override
+    public double getZ() {
+        return z;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setZ(final double z) {
+        if (passengers != null) {
+            if (!Double.isFinite(this.z) || !Double.isFinite(z)) {
+                for (Entity passenger : passengers) {
+                    passenger.setZ(z);
+                }
+            } else {
+                final double dz = z - this.z;
+                for (Entity passenger : passengers) {
+                    double pz = passenger.getZ();
+                    if (Double.isFinite(pz)) {
+                        passenger.setZ(pz + dz);
+                    } else {
+                        passenger.setZ(z);
+                    }
+                }
+            }
+        }
+        this.z = z;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public float getRotationYaw() {
+        return yaw;
+    }
 
     /**
-     * Sets entity yaw (clockwise rotation about the y-axis) in degrees.
-     * Due south is 0, west is 90, north is 180, east is 270.
+     * Sets entity yaw (rotation about the y-axis) in degrees, with 0 being due south. The caller does not need
+     * to worry about passing a {@code yaw} value in the range [0..360), the given value will be normalized
+     * into the valid range.
      * @see #getRotationYaw()
      * @see #rotate(float)
      */
-    void setRotationYaw(float yaw);
-
-    /**
-     * Convenience function for working with yaw values in cardinal angles -
-     * where 0 is north, 90 is east, 180 is south, 270 is west.
-     * <p><i>Because dealing with yaw values is error prone and somewhat nonsensical.</i>
-     * @return The direction the entity is facing in cardinal angle in degrees in range [0..360)
-     */
-    default float getFacingCardinalAngle() {
-        return EntityUtil.normalizeYaw(getRotationYaw() + 180);
+    @Override
+    public void setRotationYaw(float yaw) {
+        this.yaw = EntityUtil.normalizeYaw(yaw);
     }
 
-    /**
-     * Convenience function for working with yaw values in cardinal angles -
-     * where 0 is north, 90 is east, 180 is south, 270 is west.
-     * <p><i>Because dealing with yaw values is error prone and somewhat nonsensical.</i>
-     * @param cardinalAngle Cardinal angle in degrees, used to calculate and set a new yaw value.
-     */
-    default void setFacingCardinalAngle(float cardinalAngle) {
-        setRotationYaw(EntityUtil.normalizeYaw(cardinalAngle - 180));
+    /** {@inheritDoc} */
+    @Override
+    public float getRotationPitch() {
+        return pitch;
     }
 
-    /**
-     * The entity's declination from the horizon (called pitch). Horizontal is 0. Positive values look downward.
-     * Does not exceed positive or negative 90 degrees.
-     */
-    float getRotationPitch();
-
-    /** @see #getRotationPitch() */
-    void setRotationPitch(float pitch);
-
-    /**
-     * @see #getRotationYaw()
-     * @see #getRotationPitch()
-     * @see #rotate(float)
-     */
-    default void setRotation(float yaw, float pitch) {
-        setRotationYaw(yaw);
-        setRotationPitch(pitch);
+    /** {@inheritDoc} */
+    @Override
+    public void setRotationPitch(float pitch) {
+        this.pitch = EntityUtil.clampPitch(pitch);
     }
 
-    /**
-     * Rotates this entity, and all passengers, by the given angelDegrees.
-     * <p>Note that this is different from {@link #setRotationYaw(float)} as this function is relative to
-     * the current yaw and affects passengers.
-     * @param angleDegrees Angle in degrees to rotate this entity and all passengers. May be positive or negative.
-     * @throws IllegalStateException Thrown if current yaw is not finite
-     */
-    default void rotate(float angleDegrees) {
-        if (angleDegrees == 0f) return;
-        ArgValidator.check(Float.isFinite(angleDegrees));
-        // Given the nature of floating point numbers, an extremely large given angleDegrees might
-        // squash the current yaw when added to it - this problem can be avoided by first normalizing it.
-        angleDegrees = EntityUtil.normalizeYaw(angleDegrees);
-        float currentYaw = getRotationYaw();
-        if (!Float.isFinite(currentYaw)) {
-            throw new IllegalStateException("cannot rotate non-finite yaw");
+    /** {@inheritDoc} */
+    @Override
+    public void setRotation(float yaw, float pitch) {
+        this.yaw = EntityUtil.normalizeYaw(yaw);
+        this.pitch = EntityUtil.clampPitch(pitch);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setPosition(double x, double y, double z) {
+        if (!hasPassengers()) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        } else {
+            // it's just easier to handle the passenger move logic this way
+            setX(x);
+            setY(y);
+            setZ(z);
         }
-        setRotationYaw(EntityUtil.normalizeYaw(currentYaw + angleDegrees));
-        if (hasPassengers()) {
-            for (EntityBase passenger : getPassengers()) {
-                passenger.rotate(angleDegrees);
+    }
+    /** {@inheritDoc} */
+    @Override
+    public double getMotionDX() {
+        return dx;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setMotionDX(double dx) {
+        this.dx = dx;
+        if (passengers != null) {
+            for (Entity passenger : passengers) {
+                passenger.setMotionDX(dx);
             }
         }
     }
 
-    /**
-     * Overload taking a double for your convenience and to provide increased accuracy when passing high magnitude
-     * values - the given double precision angle is normalized into the range [0..360) before passing it to
-     * {@link #rotate(float)}
-     * @see #rotate(float)
-     */
-    default void rotate(double angleDegrees) {
-        rotate(EntityUtil.normalizeYaw(angleDegrees));
+    /** {@inheritDoc} */
+    @Override
+    public double getMotionDY() {
+        return dy;
     }
 
-    /**
-     * @return True if yaw and pitch have finite values. Does not check for reasonable finite values.
-     */
-    default boolean isRotationValid() {
-        return Float.isFinite(getRotationYaw()) && Float.isFinite(getRotationPitch());
-    }
-
-    /**
-     * @see #getRotationYaw()
-     * @see #getRotationPitch()
-     */
-    default void setPosition(double x, double y, double z, float yaw, float pitch) {
-        setPosition(x, y, z);
-        setRotation(yaw, pitch);
-    }
-
-    /**
-     * The data of the entity(s) that is riding this entity. Note that both entities control movement and the
-     * topmost entity controls spawning conditions when created by a mob spawner.
-     * May be null.
-     */
-    List<EntityBase> getPassengers();
-
-    /** @see #getPassengers() */
-    void setPassengers(List<EntityBase> passengers);
-
-    default void setPassengers(EntityBase... passengers) {
-        if (passengers == null || passengers.length == 0 || (passengers.length == 1 && passengers[0] == null)) {
-            clearPassengers();
-            return;
+    /** {@inheritDoc} */
+    @Override
+    public void setMotionDY(double dy) {
+        this.dy = dy;
+        if (passengers != null) {
+            for (Entity passenger : passengers) {
+                passenger.setMotionDY(dy);
+            }
         }
-        List<EntityBase> list = new ArrayList<>(passengers.length);
-        list.addAll(Arrays.asList(passengers));
-        setPassengers(list);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public double getMotionDZ() {
+        return dz;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setMotionDZ(double dz) {
+        this.dz = dz;
+        if (passengers != null) {
+            for (Entity passenger : passengers) {
+                passenger.setMotionDZ(dz);
+            }
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setMotion(double dx, double dy, double dz) {
+        this.dx = dx;
+        this.dy = dy;
+        this.dz = dz;
+        if (passengers != null) {
+            for (Entity passenger : passengers) {
+                passenger.setMotion(dx, dy, dz);
+            }
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<Entity> getPassengers() {
+        return passengers;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setPassengers(List<Entity> passengers) {
+        if (passengers != null && !passengers.isEmpty()) {
+            for (Entity passenger : passengers) {
+                if (passenger != null) {
+                    passenger.setMotion(dx, dy, dz);
+                    if (!passenger.isPositionValid()) {
+                        passenger.setPosition(x, y, z);
+                    }
+                }
+            }
+            this.passengers = passengers;
+        } else {
+            clearPassengers();
+        }
     }
 
     /**
-     * Adds a passenger, initializing the passenger list if necessary
-     * @param passenger non-null passenger
+     * {@inheritDoc}
+     * <p>The caller is generally responsible for ensuring that the positions of passengers make sense or can be
+     * corrected by the game. However, if the given passenger does not satisfy {@link #isPositionValid()}
+     * then its position will be set to be the same as this entities position (which only helps if this entity
+     * satisfies {@link #isPositionValid()}).</p>
+     * <p>Also sets passenger motion to match this entities motion.</p>
+     * @throws IndexOutOfBoundsException if {@link #setPassengers(List)} was given a list wrapped array
+     * @throws UnsupportedOperationException if {@link #setPassengers(List)} was given an unmodifiable list
      */
-    void addPassenger(EntityBase passenger);
+    @Override
+    public void addPassenger(Entity passenger) {
+        ArgValidator.requireValue(passenger);
+        ArgValidator.check(passenger != this);  // at least prevent direct recursion
+        if (passengers == null) {
+            passengers = new ArrayList<>();
+        }
+        if (!passenger.isPositionValid()) {
+            passenger.setPosition(x, y, z);
+        }
+        passenger.setMotion(dx, dy, dz);
+        passengers.add(passenger);
+    }
 
-    /**
-     * Removes all passengers (sets passengers list to null - does not actually clear that list)
-     */
-    void clearPassengers();
+    /** {@inheritDoc} */
+    @Override
+    public void clearPassengers() {
+        passengers = null;
+    }
 
-    default boolean hasPassengers() {
-        return getPassengers() != null && !getPassengers().isEmpty();
+    /** {@inheritDoc} */
+    @Override
+    public List<String> getScoreboardTags() {
+        return scoreboardTags;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setScoreboardTags(List<String> scoreboardTags) {
+        this.scoreboardTags = scoreboardTags;
+    }
+
+    // </editor-fold>
+
+    /** {@inheritDoc} */
+    @Override
+    public CompoundTag getHandle() {
+        return data;
     }
 
     /**
-     * List of scoreboard tags of this entity.
-     * Optional - null if not present.
+     *  {@inheritDoc}
+     *  <p>If this tag is being saved into a chunk the caller is responsible for checking the
+     *  result of {@link #isPositionValid()} - this method will simply leave out the "Pos"
+     *  tag if {@link #isPositionValid()} would return false.</p>
+     *  <p>If the uuid is not defined on this entity when this method is called, a random uuid
+     *  will be generated and set.</p>
      */
-    List<String> getScoreboardTags();
+    @Override
+    public CompoundTag updateHandle() {
+        // TODO: restrict field outputs to be version appropriate - there's no harm in extra fields but might as well
+        //       be clean about it.
+        data.putString("id", ArgValidator.requireNotEmpty(id, "id"));
+        if (uuid == null || EntityUtil.ZERO_UUID.equals(uuid)) {
+            uuid = UUID.randomUUID();
+        }
+        EntityUtil.setUuid(dataVersion, data, uuid);
 
-    /** @see #getScoreboardTags() */
-    void setScoreboardTags(List<String> scoreboardTags);
+        if (isPositionValid()) {
+            data.putDoubleArrayAsTagList("Pos", x, y, z);
+        } else {
+            // For passengers... it's probably OK to not require a position and for sake of this being an
+            // abstraction / wrapper layer - we'll allow it to provide wider use case support and make
+            // caller responsible ensuring valid usage.
+            data.remove("Pos");
+        }
 
-    default boolean hasScoreboardTags() {
-        return getPassengers() != null && !getPassengers().isEmpty();
+        if (isRotationValid()) {
+            data.putFloatArrayAsTagList("Rotation", yaw, pitch);
+        } else {
+            data.remove("Rotation");
+        }
+
+        if (isMotionValid()) {
+            data.putDoubleArrayAsTagList("Motion", dx, dy, dz);
+        } else {
+            data.remove("Motion");
+        }
+
+        if (air != Entity.AIR_UNSET) {
+            data.putShort("Air", air);
+        } else {
+            data.remove("Air");
+        }
+
+        if (customName != null && !customName.isEmpty()) {
+            data.putString("CustomName", customName);
+        } else {
+            data.remove("CustomName");
+        }
+
+        if (isCustomNameVisible || data.containsKey("CustomNameVisible")) {
+            data.putBoolean("CustomNameVisible", isCustomNameVisible);
+        }
+
+        data.putFloat("FallDistance", fallDistance);
+        data.putShort("Fire", fireTicks);
+
+        if (isGlowing || data.containsKey("Glowing")) {
+            data.putBoolean("Glowing", isGlowing);
+        }
+        if (hasVisualFire || data.containsKey("HasVisualFire")) {
+            data.putBoolean("HasVisualFire", hasVisualFire);
+        }
+        if (isInvulnerable || data.containsKey("Invulnerable")) {
+            data.putBoolean("Invulnerable", isInvulnerable);
+        }
+        if (noGravity || data.containsKey("NoGravity")) {
+            data.putBoolean("NoGravity", noGravity);
+        }
+
+        data.putBoolean("OnGround", isOnGround);
+        data.putInt("PortalCooldown", portalCooldown);
+
+        if (isSilent || data.containsKey("Silent")) {
+            data.putBoolean("Silent", isSilent);
+        }
+
+        data.putStringsAsTagList("Tags", scoreboardTags);
+        data.putInt("TicksFrozen", ticksFrozen);
+
+        if (passengers != null && !passengers.isEmpty()) {
+            ListTag<CompoundTag> passengersTag = new ListTag<>(CompoundTag.class, passengers.size());
+            for (Entity passenger : passengers) {
+                if (passenger != null) {
+                    passengersTag.add(passenger.updateHandle());
+                }
+            }
+            data.put("Passengers", passengersTag);
+        } else {
+            data.remove("Passengers");
+        }
+        return data;
+    }
+
+    /**
+     * Calls the copy constructor.
+     * @return Deep clone of this entity.
+     * @see EntityBase#EntityBase(EntityBase)
+     */
+    @Override
+    public EntityBase clone() {
+        return new EntityBase(this);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s %.2f %.2f %.2f", id, x, y, z);
     }
 }

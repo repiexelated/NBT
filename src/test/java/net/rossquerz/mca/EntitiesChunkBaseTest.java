@@ -1,11 +1,10 @@
 package net.rossquerz.mca;
 
+import net.rossquerz.mca.entities.Entity;
 import net.rossquerz.mca.entities.EntityBase;
-import net.rossquerz.mca.entities.EntityBaseImpl;
 import net.rossquerz.mca.entities.EntityFactory;
 import net.rossquerz.mca.io.LoadFlags;
 import net.rossquerz.mca.io.MoveChunkFlags;
-import net.rossquerz.mca.util.McaDumper;
 import net.rossquerz.nbt.io.TextNbtHelpers;
 import net.rossquerz.nbt.tag.CompoundTag;
 import net.rossquerz.nbt.tag.ListTag;
@@ -13,11 +12,10 @@ import net.rossquerz.mca.util.ChunkBoundingRectangle;
 import org.junit.Assert;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends EntitiesChunkBase<ET>> extends ChunkBaseTest<T> {
+public abstract class EntitiesChunkBaseTest<ET extends Entity, T extends EntitiesChunkBase<ET>> extends ChunkBaseTest<T> {
 
     @Override
     protected CompoundTag createTag(int dataVersion, int chunkX, int chunkZ) {
@@ -35,11 +33,11 @@ public abstract class EntitiesChunkBaseTest<ET extends EntityBase, T extends Ent
         }
 
         if (dataVersion > 0) {
-            // Depend on the efficacy of the EntityBaseImpl tests to make life easier here
+            // Depend on the efficacy of the EntityBase tests to make life easier here
             ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(chunkX, chunkZ);
-            entitiesTagList.add(new EntityBaseImpl(dataVersion, "minecraft:zombie",
+            entitiesTagList.add(new EntityBase(dataVersion, "minecraft:zombie",
                     cbr.relocateX(5), 68, cbr.relocateZ(7), 42, -5).updateHandle());
-            entitiesTagList.add(new EntityBaseImpl(dataVersion, "minecraft:skeleton",
+            entitiesTagList.add(new EntityBase(dataVersion, "minecraft:skeleton",
                     cbr.relocateX(14), 64, cbr.relocateZ(2), 297, 2.54f).updateHandle());
         }
         return tag;

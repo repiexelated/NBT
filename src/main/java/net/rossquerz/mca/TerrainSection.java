@@ -54,12 +54,12 @@ public class TerrainSection extends TerrainSectionBase {
 	 */
 	@Deprecated
 	public CompoundTag updateHandle(int y) {
-		final int oldY = height;
+		final int oldY = sectionY;
 		try {
-			height = y;
+			sectionY = y;
 			return updateHandle();
 		} finally {
-			height = oldY;
+			sectionY = oldY;
 		}
 	}
 }

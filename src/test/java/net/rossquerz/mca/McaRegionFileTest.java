@@ -177,7 +177,7 @@ public class McaRegionFileTest extends McaTestCase {
 		assertSame(compoundTag, f.getChunk(1023).getStructures());
 		TerrainSection s = f.getChunk(1023).createSection();
 		f.getChunk(1023).setSection(0, s);
-		assertEquals(0, s.getHeight());
+		assertEquals(0, s.getSectionY());
 		assertEquals(s, f.getChunk(1023).getSection(0));
 //		assertThrowsRuntimeException(() -> f.getChunk(1023).getSection(0).setBlockStates(null), NullPointerException.class);
 //		assertThrowsRuntimeException(() -> f.getChunk(1023).getSection(0).setBlockStates(new long[321]), IllegalArgumentException.class);
@@ -517,7 +517,7 @@ public class McaRegionFileTest extends McaTestCase {
 		assertNotNull(prevSection2);
 		assertSame(section2, prevSection2);  // check we got the existing section 2 when we replaced it
 		assertSame(newSection, chunk.getSection(2));  // verify we put section 2
-		assertEquals(2, newSection.getHeight());  // insertion should update section height
+		assertEquals(2, newSection.getSectionY());  // insertion should update section height
 		final TerrainSection section3 = chunk.putSection(3, section2);  // should be OK to put old section 2 into section 3 place now
 
 		final TerrainSection section1 = chunk.getSection(1);
@@ -551,21 +551,21 @@ public class McaRegionFileTest extends McaTestCase {
 		McaRegionFile mca = assertThrowsNoException(() -> McaFileHelpers.read(copyResourceToTmp("1_17_1/region/r.-3.-2.mca")));
 		TerrainChunk chunk = mca.stream().filter(Objects::nonNull).findFirst().orElse(null);
 		assertNotNull(chunk);
-		assertEquals(SectionBase.NO_HEIGHT_SENTINEL, chunk.getSectionY(null));
-		assertEquals(SectionBase.NO_HEIGHT_SENTINEL, chunk.getSectionY(chunk.createSection()));
+		assertEquals(SectionBase.NO_SECTION_Y_SENTINEL, chunk.getSectionY(null));
+		assertEquals(SectionBase.NO_SECTION_Y_SENTINEL, chunk.getSectionY(chunk.createSection()));
 		TerrainSection section = chunk.getSection(5);
 		section.setHeight(-5);
 		assertEquals(5, chunk.getSectionY(section));
-		assertEquals(5, section.getHeight());  // getSectionY should sync Y
+		assertEquals(5, section.getSectionY());  // getSectionY should sync Y
 	}
 
 	public void testChunkSectionMinMaxSectionY() {
 		TerrainChunk chunk = new TerrainChunk(42);
 		chunk.setDataVersion(DataVersion.JAVA_1_17_1.id());
-		assertEquals(SectionBase.NO_HEIGHT_SENTINEL, chunk.getMinSectionY());
-		assertEquals(SectionBase.NO_HEIGHT_SENTINEL, chunk.getMaxSectionY());
+		assertEquals(SectionBase.NO_SECTION_Y_SENTINEL, chunk.getMinSectionY());
+		assertEquals(SectionBase.NO_SECTION_Y_SENTINEL, chunk.getMaxSectionY());
 		TerrainSection section = chunk.createSection(3);
-		assertEquals(3, section.getHeight());
+		assertEquals(3, section.getSectionY());
 		assertEquals(3, chunk.getMinSectionY());
 		assertEquals(3, chunk.getMaxSectionY());
 	}
@@ -616,7 +616,7 @@ public class McaRegionFileTest extends McaTestCase {
 			TerrainSection section = iter.next();
 			assertNotNull(section);
 			assertEquals(y, iter.sectionY());
-			assertEquals(y, section.getHeight());
+			assertEquals(y, section.getSectionY());
 			if (y > maxY - 2) {
 				iter.remove();
 			}

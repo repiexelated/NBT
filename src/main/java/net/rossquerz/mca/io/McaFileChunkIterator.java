@@ -6,13 +6,14 @@ import net.rossquerz.mca.util.ChunkIterator;
 import net.rossquerz.mca.util.IntPointXZ;
 
 import java.io.*;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
 
 /**
  * Iterates over the chunks in an MCA file. Note iteration is in file-order, not index-order!
  * Chunks which do not exist in the file are skipped - {@link #next()} will never return null.
+ * @see McaFileHelpers
+ * @see McaFileStreamingWriter
  */
 public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<T>, Closeable {
     private final Supplier<T> chunkCreator;
@@ -25,13 +26,13 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
     private ChunkMetaInfo current;
 
     /**
-     * This map controls the factory creation behavior of the various "auto" functions. When an auto function is
-     * given an mca file location the folder name which contains the .mca files is used to lookup the correct
-     * mca file creator from this map. For example, if an auto method were passed the path
-     * "foo/bar/creator_name/r.4.2.mca" it would call {@code MCA_CREATORS.get("creator_name").apply(4, 2)}.
-     * <p>By manipulating this map you can control the factory behavior to support new mca types or to specify
-     * that a custom creation method should be called which could even return a custom {@link McaFileBase}
-     * implementation.</p>
+     * This map controls the factory creation behavior of creating new chunk instances which then have their
+     * {@link ChunkBase#deserialize(InputStream, long, int, int, int)} method called to initialize the chunk data.
+     * <p>By manipulating this map you can control the factory behavior to support new chunk types not natively
+     * supported by this library or to specify that a custom creation method should be called which could even
+     * return a custom {@link ChunkBase} implementation.</p>
+     * <p>The default mapping routes "region", "poi", and "entities" to {@link TerrainChunk#TerrainChunk()},
+     * {@link PoiChunk#PoiChunk()}, and {@link EntitiesChunk#EntitiesChunk()}.</p>
      */
     public static final Map<String, Supplier<? extends ChunkBase>> DEFAULT_CHUNK_CREATORS = new HashMap<>();
 
@@ -78,7 +79,8 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
      * @param regionXZ     Region XZ location, in region coordinates such as found a filename such as r.1.2.mca
      * @param stream       Stream to read MCA data from. The stream should be positioned at the start of the mca file.
      * @param loadFlags    {@link LoadFlags} to use when loading the chunks.
-     * @throws IOException
+     * @throws IOException upon any read errors.
+     * @see McaFileHelpers#regionXZFromFileName(String)
      */
     public McaFileChunkIterator(Supplier<T> chunkCreator, IntPointXZ regionXZ, InputStream stream, long loadFlags) throws IOException {
         this.chunkCreator = Objects.requireNonNull(chunkCreator);

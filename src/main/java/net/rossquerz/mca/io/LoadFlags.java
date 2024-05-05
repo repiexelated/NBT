@@ -3,6 +3,13 @@ package net.rossquerz.mca.io;
 import net.rossquerz.mca.ChunkBase;
 import net.rossquerz.mca.TerrainSectionBase;
 
+/**
+ * Bitfield flags used to control mca data loading. Use logical OR to combine values such as
+ * <pre>{@code long loadFlags = BIOMES | HEIGHTMAPS | RELEASE_CHUNK_DATA_TAG;}</pre>
+ * <p>If you define your own {@link ChunkBase} implementations and wish to use custom flags
+ * define them in the range of the reserved byte masks {@link #RESERVE_MASK_FOR_USER_LOAD_FLAGS_DEFAULT_ON}
+ * and {@link #RESERVE_MASK_FOR_USER_LOAD_FLAGS_DEFAULT_OFF}</p>
+ */
 public final class LoadFlags {
 	private LoadFlags() {}
 
@@ -25,8 +32,17 @@ public final class LoadFlags {
 	// For fields such as below_zero_retrogen and blending_data which were added to support chunk migration to 1.18
 	public static final long WORLD_UPGRADE_HINTS  = 0x0004_0000;
 
+	/** Flags within this byte mask are reserved for custom flags which can be defined by users of this NBT library.
+	 * <p>This mask has space for 15 flags.</p>
+	 * <p>Note that flags in this range are DEFAULT ENABLED by {@link #LOAD_ALL_DATA}</p> */
+	public static final long RESERVE_MASK_FOR_USER_LOAD_FLAGS_DEFAULT_ON  = 0x0000_FFFF_0000_0000L;
+	/** Flags within this byte mask are reserved for custom flags which can be defined by users of this NBT library.
+	 * <p>This mask has space for 7 flags.</p>
+	 * <p>Note that flags in this range are DEFAULT DISABLED by {@link #LOAD_ALL_DATA}.</p> */
+	public static final long RESERVE_MASK_FOR_USER_LOAD_FLAGS_DEFAULT_OFF = 0x00FF_0000_0000_0000L;
+
 	// high byte reserved for behavioral flags that follow
-	public static final long LOAD_ALL_DATA = 0x00FF_FFFF_FFFF_FFFFL;
+	public static final long LOAD_ALL_DATA = 0x0000_FFFF_FFFF_FFFFL;
 
 	/**
 	 * When set {@link ChunkBase#data} will be nulled out after {@link ChunkBase#initReferences} has completed.

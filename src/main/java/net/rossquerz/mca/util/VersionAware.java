@@ -10,8 +10,8 @@ public class VersionAware<T> {
 
     /**
      * Registers a value.
-     * @param minVersion minimum version for which to return the given value.
-     * @param value value to associate with the given version
+     * @param minVersion minimum version for which to return the given value (inclusive).
+     * @param value value to associate with the given version up to the next registered version (exclusive).
      * @return self for chaining
      */
     public VersionAware<T> register(int minVersion, T value) {

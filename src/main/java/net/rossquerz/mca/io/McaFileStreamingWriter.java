@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Provides a streaming data sink for writing a region file. Chunks can be written in any order.
  * Attempting to write a chunk (XZ) that has already been written will throw {@link IOException}.
+ * @see McaFileHelpers
+ * @see McaFileChunkIterator
  */
 public class McaFileStreamingWriter implements Closeable {
     private final byte[] zeroFillBuffer = new byte[4096];

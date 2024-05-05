@@ -10,14 +10,15 @@ import java.util.stream.Stream;
 
 /**
  * Decorates a compound tag to track what keys have been accessed and offers some utility functions like
- * {@link #readKeys()} and {@link #unreadTagsByRef()}.
+ * {@link #readKeys()}, {@link #unreadKeys()} and {@link #unreadTagsByRef()}.
  */
 public class ObservedCompoundTag extends CompoundTag {
     private final CompoundTag wrappedTag;
     protected final Set<String> readKeys = new HashSet<>();
 
     public ObservedCompoundTag(CompoundTag wrappedTag) {
-        super(0);
+        // emptyMap saves byte overhead - we never read/write it anyway
+        super(Collections.emptyMap());
         this.wrappedTag = wrappedTag;
     }
 
@@ -27,7 +28,7 @@ public class ObservedCompoundTag extends CompoundTag {
 
     /**
      *  @return unmodifiable set of keys which one of the GET methods has been called with.
-     *  It doesn't matter if they CompoundTag contained the key or not - if get was called with a key it's in this set.
+     *  It doesn't matter if the CompoundTag contained the key or not - if get was called with a key it's in this set.
      */
     public Set<String> readKeys() {
         return Collections.unmodifiableSet(readKeys);
@@ -138,6 +139,12 @@ public class ObservedCompoundTag extends CompoundTag {
         return wrappedTag.get(key);
     }
 
+    @Override
+    public NamedTag getNamedTag(String key) {
+        readKeys.add(key);
+        return super.getNamedTag(key);
+    }
+
     /** {@inheritDoc} */
     public NumberTag<?> getNumberTag(String key) {
         readKeys.add(key);
@@ -227,6 +234,12 @@ public class ObservedCompoundTag extends CompoundTag {
     public CompoundTag getCompoundTag(String key) {
         readKeys.add(key);
         return wrappedTag.getCompoundTag(key);
+    }
+
+    @Override
+    public ListTag<CompoundTag> getCompoundList(String key) {
+        readKeys.add(key);
+        return super.getCompoundList(key);
     }
 
     /** {@inheritDoc} */
@@ -361,9 +374,19 @@ public class ObservedCompoundTag extends CompoundTag {
         return wrappedTag.getStringTagListValues(key);
     }
 
+    @Override
+    public Tag<?> put(NamedTag namedTag) {
+        return super.put(namedTag);
+    }
+
     /** {@inheritDoc} */
     public Tag<?> put(String key, Tag<?> tag) {
         return wrappedTag.put(key, tag);
+    }
+
+    @Override
+    public Tag<?> putIfNotNull(NamedTag namedTag) {
+        return super.putIfNotNull(namedTag);
     }
 
     /** {@inheritDoc} */

@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 import java.util.*;
 
-public class EntityBaseImplTest extends McaTestCase {
+public class EntityImplTest extends McaTestCase {
 
     // <editor-fold desc="NBT manipulation helpers" defaultstate="collapsed">
 
@@ -54,14 +54,14 @@ public class EntityBaseImplTest extends McaTestCase {
 
     // <editor-fold desc="Misc Test Helpers" defaultstate="collapsed">
 
-    protected void assertPositionEquals(EntityBaseImpl entity, double expectX, double expectY, double expectZ) {
+    protected void assertPositionEquals(EntityBase entity, double expectX, double expectY, double expectZ) {
         // assertEquals(double...) takes care of non-finite equality checking too!
         assertEquals(expectX, entity.getX(), 1e-4);
         assertEquals(expectY, entity.getY(), 1e-4);
         assertEquals(expectZ, entity.getZ(), 1e-4);
     }
 
-    protected void assertMotionEquals(EntityBaseImpl entity, double expectDX, double expectDY, double expectDZ) {
+    protected void assertMotionEquals(EntityBase entity, double expectDX, double expectDY, double expectDZ) {
         // assertEquals(double...) takes care of non-finite equality checking too!
         assertEquals(expectDX, entity.getMotionDX(), 1e-7);
         assertEquals(expectDY, entity.getMotionDY(), 1e-7);
@@ -104,7 +104,7 @@ public class EntityBaseImplTest extends McaTestCase {
         EntityUtil.setUuid(DataVersion.latest().id(), tag, uuid);
         CompoundTag originalTagCopy = tag.clone();
 
-        EntityBaseImpl entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        EntityBase entity = new EntityBase(tag, DataVersion.latest().id());
         assertEquals(DataVersion.latest().id(), entity.getDataVersion());
         assertEquals("pig", entity.getId());
         assertEquals(uuid, entity.getUuid());
@@ -143,56 +143,56 @@ public class EntityBaseImplTest extends McaTestCase {
 
         // now to check for copy-paste errors on booleans
         tag.putBoolean("CustomNameVisible", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.isCustomNameVisible());
 
         tag.putBoolean("Glowing", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.isGlowing());
 
         tag.putBoolean("HasVisualFire", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.hasVisualFire());
 
         tag.putBoolean("Invulnerable", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.isInvulnerable());
 
         tag.putBoolean("NoGravity", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.hasNoGravity());
 
         tag.putBoolean("OnGround", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.isOnGround());
 
         tag.putBoolean("Silent", false);
-        entity = new EntityBaseImpl(tag, DataVersion.latest().id());
+        entity = new EntityBase(tag, DataVersion.latest().id());
         assertFalse(entity.isSilent());
     }
 
     public void testCopyConstructor_withStackedPassengers() {
-        EntityBaseImpl pig = new EntityBaseImpl(makeTestEntityTag(), DataVersion.latest().id());
+        EntityBase pig = new EntityBase(makeTestEntityTag(), DataVersion.latest().id());
         pig.setPosition(12, 65, -44);
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
         UUID pigUuid = pig.generateNewUuid();
         UUID chickenUuid = chicken.generateNewUuid();
         UUID zombieUuid = zombie.generateNewUuid();
         chicken.addPassenger(zombie);
         pig.addPassenger(chicken);
 
-        EntityBaseImpl pig2 = pig.clone();
+        EntityBase pig2 = pig.clone();
         assertNotEquals(pigUuid, pig2.getUuid());
         assertTrue(pig2.hasPassengers());
         assertEquals(1, pig2.getPassengers().size());
 
-        EntityBaseImpl chicken2 = (EntityBaseImpl) pig2.getPassengers().get(0);
+        EntityBase chicken2 = (EntityBase) pig2.getPassengers().get(0);
         assertNotEquals(chickenUuid, chicken2.getUuid());
         assertTrue(chicken2.hasPassengers());
         assertEquals(1, chicken2.getPassengers().size());
 
-        EntityBaseImpl zombie2 = (EntityBaseImpl) chicken2.getPassengers().get(0);
+        EntityBase zombie2 = (EntityBase) chicken2.getPassengers().get(0);
         assertNotEquals(zombieUuid, zombie2.getUuid());
         assertFalse(zombie2.hasPassengers());
     }
@@ -202,7 +202,7 @@ public class EntityBaseImplTest extends McaTestCase {
     // <editor-fold desc="Update Handle Tests" defaultstate="collapsed">
 
     public void testUpdateHandle_positionTagNotOutputUnlessRotationIsValid() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie");
 
         assertFalse(entity.updateHandle().containsKey("Pos"));
 
@@ -220,7 +220,7 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testUpdateHandle_rotationTagNotOutputUnlessRotationIsValid() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie", 0, 0, 0);
         entity.setRotation(0, Float.NaN);
         assertFalse(entity.updateHandle().containsKey("Rotation"));
 
@@ -232,7 +232,7 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testUpdateHandle_motionTagNotOutputUnlessMotionIsValid() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie", 0, 0, 0);
         entity.setMotion(0, 0, Double.NaN);
         assertFalse(entity.updateHandle().containsKey("Motion"));
 
@@ -247,18 +247,18 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testUpdateHandle_airTagNotOutputWhenAirUnset() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie", 0, 0, 0);
         assertFalse(entity.updateHandle().containsKey("Air"));
 
         entity.setAir((short) 500);
         assertTrue(entity.updateHandle().containsKey("Air"));
 
-        entity.setAir(EntityBase.AIR_UNSET);
+        entity.setAir(Entity.AIR_UNSET);
         assertFalse(entity.updateHandle().containsKey("Air"));
     }
 
     public void testUpdateHandle_uuidGeneratedWhenUnset() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie", 0, 0, 0);
         assertNull(entity.getUuid());
         assertTrue( entity.updateHandle().containsKey("UUID"));
         assertNotNull(entity.getUuid());
@@ -266,11 +266,11 @@ public class EntityBaseImplTest extends McaTestCase {
 
     public void testUpdateHandle_withPassengers() {
         // transitively tests constructor with passengers
-        EntityBaseImpl pig = new EntityBaseImpl(makeTestEntityTag(), DataVersion.latest().id());
+        EntityBase pig = new EntityBase(makeTestEntityTag(), DataVersion.latest().id());
         pig.setPosition(12, 65, -44);
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
-        EntityBaseImpl skeleton = new EntityBaseImpl(DataVersion.latest().id(), "skeleton");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
+        EntityBase skeleton = new EntityBase(DataVersion.latest().id(), "skeleton");
         pig.addPassenger(chicken);
         assertTrue(chicken.isPositionValid());
         pig.addPassenger(skeleton);
@@ -314,21 +314,21 @@ public class EntityBaseImplTest extends McaTestCase {
     // <editor-fold desc="Misc Passenger Tests" defaultstate="collapsed">
 
     public void testPassengers_cannotSetSelfAsPassenger() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie", 0, 0, 0);
         assertThrowsIllegalArgumentException(() -> entity.addPassenger(entity));
         assertNull(entity.getPassengers());
     }
 
     public void testPassengers_cannotAddNullPassenger() {
-        EntityBaseImpl entity = new EntityBaseImpl(DataVersion.latest().id(), "zombie", 0, 0, 0);
+        EntityBase entity = new EntityBase(DataVersion.latest().id(), "zombie", 0, 0, 0);
         assertThrowsIllegalArgumentException(() -> entity.addPassenger(null));
         assertNull(entity.getPassengers());
     }
 
     public void testPassengers_addPassengerSetsRiderPositionIfUnset() {
-        EntityBaseImpl spider = new EntityBaseImpl(DataVersion.latest().id(), "spider", 42.743, 68, -96.23);
+        EntityBase spider = new EntityBase(DataVersion.latest().id(), "spider", 42.743, 68, -96.23);
         spider.setMotion(0.1, -0.05, 0.008);
-        EntityBaseImpl skeleton = new EntityBaseImpl(DataVersion.latest().id(), "skeleton");
+        EntityBase skeleton = new EntityBase(DataVersion.latest().id(), "skeleton");
         assertFalse(skeleton.isPositionValid());
         spider.addPassenger(skeleton);
         assertTrue(skeleton.isPositionValid());
@@ -343,9 +343,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetPassengers_syncsPassengerPosition() {
-        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        EntityBase boat = new EntityBase(DataVersion.latest().id(), "boat");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase cow = new EntityBase(DataVersion.latest().id(), "cow");
         boat.setPosition(12.34, -14.5, 626.989);
         boat.setPassengers(pig, cow);
         assertPositionEquals(boat, 12.34, -14.5, 626.989);
@@ -354,9 +354,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetPassengers_syncsPassengerMotion() {
-        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        EntityBase boat = new EntityBase(DataVersion.latest().id(), "boat");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase cow = new EntityBase(DataVersion.latest().id(), "cow");
         boat.setMotion(0.1, -0.12, -0.03);
         boat.setPassengers(pig, cow);
         assertMotionEquals(boat, 0.1, -0.12, -0.03);
@@ -365,9 +365,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetPassengers_null_clearsPassengers() {
-        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        EntityBase boat = new EntityBase(DataVersion.latest().id(), "boat");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase cow = new EntityBase(DataVersion.latest().id(), "cow");
         assertFalse(boat.hasPassengers());
 
         boat.setPassengers(pig, cow);
@@ -375,20 +375,20 @@ public class EntityBaseImplTest extends McaTestCase {
         assertNotNull(boat.getPassengers());
         assertEquals(2, boat.getPassengers().size());
 
-        boat.setPassengers((EntityBase) null);
+        boat.setPassengers((Entity) null);
         assertFalse(boat.hasPassengers());
         assertNull(boat.getPassengers());
 
         boat.setPassengers(pig, cow);
-        boat.setPassengers((List<EntityBase>) null);
+        boat.setPassengers((List<Entity>) null);
         assertFalse(boat.hasPassengers());
         assertNull(boat.getPassengers());
     }
 
     public void testSetPassengers_emptyList_clearsPassengers() {
-        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        EntityBase boat = new EntityBase(DataVersion.latest().id(), "boat");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase cow = new EntityBase(DataVersion.latest().id(), "cow");
 
         boat.setPassengers(pig, cow);
         assertTrue(boat.hasPassengers());
@@ -403,7 +403,7 @@ public class EntityBaseImplTest extends McaTestCase {
     // <editor-fold desc="Position and Move XYZ Tests" defaultstate="collapsed">
 
     public void testSetPosition_basic() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setPosition(19.123, 68.5, -47.89);
         assertPositionEquals(pig, 19.123, 68.5, -47.89);
 
@@ -418,11 +418,11 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetPosition_withPassengersHavingPositions() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setPosition(19.123, 68.5, -47.89);
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
         chicken.setPosition(19.456, 68.85, -47.87);
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
         zombie.setPosition(19.789, 69.15, -47.86);
         chicken.addPassenger(zombie);
         pig.addPassenger(chicken);
@@ -439,9 +439,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetPosition_withPassengersHavingInvalidPositions() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
         pig.addPassenger(chicken);
         chicken.addPassenger(zombie);
         assertFalse(pig.isPositionValid());
@@ -496,7 +496,7 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testMovePosition_basic() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setPosition(19.123, 68.5, -47.89);
         assertPositionEquals(pig, 19.123, 68.5, -47.89);
         pig.movePosition(-7, -1, 4);
@@ -504,7 +504,7 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testMovePosition_cannotMoveInvalidPosition() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         assertThrowsException(() -> pig.movePosition(-7, -1, 4), IllegalStateException.class);
         pig.setX(0);
         assertThrowsException(() -> pig.movePosition(-7, -1, 4), IllegalStateException.class);
@@ -516,9 +516,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testMovePosition_withPassengers() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
         chicken.addPassenger(zombie);
         pig.addPassenger(chicken);
 
@@ -554,7 +554,7 @@ public class EntityBaseImplTest extends McaTestCase {
     // <editor-fold desc="Rotation Yaw Pitch Tests" defaultstate="collapsed">
 
     public void testSetRotation_basic() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setRotation(73.23f, -11.55f);
         assertEquals(73.23f, pig.getRotationYaw(), 1e-3);
         assertEquals(-11.55f, pig.getRotationPitch(), 1e-3);
@@ -574,9 +574,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetRotation_doesNotAffectPassengers() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setRotation(30f, 45f);
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
         chicken.setRotation(51f, -17f);
         pig.addPassenger(chicken);
         assertEquals(30f, pig.getRotationYaw(), 1e-3);
@@ -602,7 +602,7 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testCardinalAngleHelpers() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setFacingCardinalAngle(0);
         assertEquals(0f, pig.getFacingCardinalAngle(), 1e-4f);
         assertEquals(180f, pig.getRotationYaw(), 1e-4f);
@@ -629,12 +629,12 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testRotate_givenAngleMustBeFinite() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         assertThrowsIllegalArgumentException(() -> pig.rotate(Float.POSITIVE_INFINITY));
     }
 
     public void testRotate_passingHighExponentArgDoesNotSquashExistingYaw() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setRotationYaw(213.87139458f);
         pig.rotate((float)Long.MAX_VALUE);
         float yaw = pig.getRotationYaw();
@@ -647,7 +647,7 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testRotate_noPassengers() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         pig.setRotationYaw(Float.NaN);
         assertThrowsException(() -> pig.rotate(42), IllegalStateException.class);
         pig.setRotationYaw(10);
@@ -658,9 +658,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testRotate_rotatesPassengers() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
         pig.setRotationYaw(90f);
         chicken.setRotationYaw(-15f);
         zombie.setRotationYaw(22.5f);
@@ -693,7 +693,7 @@ public class EntityBaseImplTest extends McaTestCase {
     // <editor-fold desc="Motion Tests" defaultstate="collapsed">
 
     public void testSetMotion_basic() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
         assertMotionEquals(pig, 0, 0, 0);
         pig.setMotion(0.1, -0.12, -0.03);
         assertMotionEquals(pig, 0.1, -0.12, -0.03);
@@ -722,9 +722,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testSetMotion_withPassengers() {
-        EntityBaseImpl boat = new EntityBaseImpl(DataVersion.latest().id(), "boat");
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl cow = new EntityBaseImpl(DataVersion.latest().id(), "cow");
+        EntityBase boat = new EntityBase(DataVersion.latest().id(), "boat");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase cow = new EntityBase(DataVersion.latest().id(), "cow");
         boat.setPassengers(pig, cow);
         assertMotionEquals(boat, 0, 0, 0);
         assertMotionEquals(pig, 0, 0, 0);
@@ -772,9 +772,9 @@ public class EntityBaseImplTest extends McaTestCase {
     }
 
     public void testAddPassenger_syncsPassengerMotion() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
 
         pig.setMotion(0.1, 0.2, 0.3);
 
@@ -791,9 +791,9 @@ public class EntityBaseImplTest extends McaTestCase {
     // </editor-fold>
 
     public void testGenerateNewUuid() {
-        EntityBaseImpl pig = new EntityBaseImpl(DataVersion.latest().id(), "pig");
-        EntityBaseImpl chicken = new EntityBaseImpl(DataVersion.latest().id(), "chicken");
-        EntityBaseImpl zombie = new EntityBaseImpl(DataVersion.latest().id(), "zombie");
+        EntityBase pig = new EntityBase(DataVersion.latest().id(), "pig");
+        EntityBase chicken = new EntityBase(DataVersion.latest().id(), "chicken");
+        EntityBase zombie = new EntityBase(DataVersion.latest().id(), "zombie");
         chicken.addPassenger(zombie);
         pig.addPassenger(chicken);
 

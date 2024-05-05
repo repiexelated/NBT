@@ -51,14 +51,14 @@ public class TerrainChunk extends TerrainChunkBase<TerrainSection> {
 	public TerrainSection createSection(int sectionY) throws IllegalArgumentException {
 		if (containsSection(sectionY)) throw new IllegalArgumentException("section already exists at section-y " + sectionY);
 		TerrainSection section = new TerrainSection(dataVersion);
-		if (sectionY != SectionBase.NO_HEIGHT_SENTINEL) {
+		if (sectionY != SectionBase.NO_SECTION_Y_SENTINEL) {
 			putSection(sectionY, section);  // sets section height & validates range
 		}
 		return section;
 	}
 
 	public TerrainSection createSection() {
-		return createSection(SectionBase.NO_HEIGHT_SENTINEL);
+		return createSection(SectionBase.NO_SECTION_Y_SENTINEL);
 	}
 
 	/**

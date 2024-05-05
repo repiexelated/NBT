@@ -11,7 +11,7 @@ import java.util.List;
 public class EntityFactoryTest extends McaTestCase {
 
     // <editor-fold desc="Test Stubs" defaultstate="collapsed">
-    private static class EntityStub extends EntityBaseImpl {
+    private static class EntityStub extends EntityBase {
         final String givenNormalizedId;
         final EntityCreatorStub creator;
 

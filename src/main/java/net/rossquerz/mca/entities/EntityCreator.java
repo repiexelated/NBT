@@ -7,7 +7,7 @@ import net.rossquerz.nbt.tag.CompoundTag;
  * Intended for use by {@link EntityFactory} to create custom entity classes when parsing NBT tags.
  */
 @FunctionalInterface
-public interface EntityCreator<T extends EntityBase> {
+public interface EntityCreator<T extends Entity> {
 
     /**
      * @param normalizedId normalized entity id, with no "minecraft:" prefix and all UPPER CASE.

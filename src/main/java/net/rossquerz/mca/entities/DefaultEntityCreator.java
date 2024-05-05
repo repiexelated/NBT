@@ -3,14 +3,14 @@ package net.rossquerz.mca.entities;
 import net.rossquerz.nbt.tag.CompoundTag;
 
 /**
- * The default {@link EntityCreator} which creates {@link EntityBaseImpl} that can represent any, and all, entities
+ * The default {@link EntityCreator} which creates {@link EntityBase} that can represent any, and all, entities
  * in vanilla Minecraft MCA files.
  */
-public class DefaultEntityCreator implements EntityCreator<EntityBase> {
+public class DefaultEntityCreator implements EntityCreator<Entity> {
 
     /** @see EntityCreator#create(String, CompoundTag, int) */
     @Override
-    public EntityBase create(String normalizedId, CompoundTag tag, int dataVersion) {
-        return new EntityBaseImpl(tag, dataVersion);
+    public Entity create(String normalizedId, CompoundTag tag, int dataVersion) {
+        return new EntityBase(tag, dataVersion);
     }
 }

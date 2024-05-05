@@ -9,11 +9,10 @@ import java.util.*;
 /**
  * Collection of helper methods for working with entity NBT data.
  */
-public class EntityUtil {
+public final class EntityUtil {
+    private EntityUtil() {}
 
     public static final UUID ZERO_UUID = new UUID(0, 0);
-
-    private EntityUtil() {}
 
     /**
      * May return null if tag does not contain expected UUID fields or contains ZERO UUID value.

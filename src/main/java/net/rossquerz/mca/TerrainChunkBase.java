@@ -279,7 +279,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			if (sections != null) {
 				for (CompoundTag section : sections) {
 					T newSection = createSection(section, dataVersion, loadFlags);
-					putSection(newSection.getHeight(), newSection, false);
+					putSection(newSection.getSectionY(), newSection, false);
 				}
 			}
 		}

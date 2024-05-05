@@ -1,6 +1,7 @@
 package net.rossquerz.mca;
 
 import net.rossquerz.mca.io.McaFileHelpers;
+import net.rossquerz.mca.util.IntPointXZ;
 
 /**
  * Represents a Terrain data mca file (one that lives in the /region folder).

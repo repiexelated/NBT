@@ -54,7 +54,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
     }
 
     protected void initReferences(final long loadFlags) {
-        height = data.getNumber("Y").byteValue();
+        sectionY = data.getNumber("Y").byteValue();
 
         if ((loadFlags & BIOMES) != 0) {
             // Prior to JAVA_1_18_21W39A biomes were stored at the chunk level in a ByteArrayTag and used fixed ID's
@@ -226,9 +226,9 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
      */
     @Override
     public CompoundTag updateHandle() {
-        checkY(height);
+        checkY(sectionY);
         this.data = super.updateHandle();
-        data.putByte("Y", (byte) height);
+        data.putByte("Y", (byte) sectionY);
         if (dataVersion <= JAVA_1_12_2.id()) {
             if (legacyBlockIds != null) {
                 data.putByteArray("Blocks", legacyBlockIds);

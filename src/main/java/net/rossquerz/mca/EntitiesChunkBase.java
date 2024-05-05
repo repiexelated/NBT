@@ -1,6 +1,6 @@
 package net.rossquerz.mca;
 
-import net.rossquerz.mca.entities.EntityBase;
+import net.rossquerz.mca.entities.Entity;
 import net.rossquerz.mca.entities.EntityFactory;
 import net.rossquerz.mca.entities.EntityUtil;
 import net.rossquerz.mca.io.LoadFlags;
@@ -29,7 +29,7 @@ import static net.rossquerz.mca.DataVersion.JAVA_1_17_20W45A;
  * @see EntityFactory
  * @see McaFileHelpers#MCA_CREATORS
  */
-public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase implements Iterable<ET> {
+public abstract class EntitiesChunkBase<ET extends Entity> extends ChunkBase implements Iterable<ET> {
     // Private to keep child classes clean (and well behaved) - child classes should access this via getEntities()
     // Not populated until getEntities() is called.
     private List<ET> entities;
@@ -106,7 +106,7 @@ public abstract class EntitiesChunkBase<ET extends EntityBase> extends ChunkBase
      * <p>If performance is everything for you, but you would still like to work with higher level objects
      * than nbt tags, you can use {@link #getEntitiesTag()}, find an entity record you want to manipulate
      * and use {@link EntityFactory#create(CompoundTag, int)} to get an entity instance then call
-     * {@link EntityBase#updateHandle()} to apply your changes all the way back to the entities tag held
+     * {@link Entity#updateHandle()} to apply your changes all the way back to the entities tag held
      * for this chunk.</p>
      */
     public List<ET> getEntities() {

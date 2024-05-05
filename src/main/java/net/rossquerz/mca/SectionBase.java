@@ -16,14 +16,19 @@ import static net.rossquerz.mca.io.LoadFlags.RELEASE_CHUNK_DATA_TAG;
  * stacked atop each other to create a "chunk".
  */
 public abstract class SectionBase<T extends SectionBase<?>> implements Comparable<T>, TagWrapper, TracksUnreadDataTags {
-	public static final int NO_HEIGHT_SENTINEL = Integer.MIN_VALUE;
-	/** for internal use only - must be kept in sync with chunk data version */
+	/** Used to indicate an unset section Y value. */
+	public static final int NO_SECTION_Y_SENTINEL = Integer.MIN_VALUE;
+	/** for internal use only - modify with extreme care and precision - must be kept in sync with chunk data version */
 	protected int dataVersion;
 	private boolean raw;
 	protected CompoundTag data;
 	protected Set<String> unreadDataTagKeys;
-	/** AKA: Y; AKA world bottom */
-	protected int height = NO_HEIGHT_SENTINEL;
+	/**
+	 * The height of the bottom of this section relative to Y0 as a section-y value, each 1 section-y is
+	 * equal to 16 blocks.
+	 * <p>AKA: "height"</p>
+	 */
+	protected int sectionY = NO_SECTION_Y_SENTINEL;
 
 	/**
 	 * {@inheritDoc}
@@ -102,12 +107,12 @@ public abstract class SectionBase<T extends SectionBase<?>> implements Comparabl
 
 	/**
 	 * Child classes should not call this method directly, it will be called for them.
-	 * Raw and partial data handling is taken care of, this method will not be called if {@code loadFlags} is
-	 * {@link LoadFlags#RAW}.
+	 * Raw and partial data handling is taken care of, this method will not be called if {@code loadFlags}
+	 * contains {@link LoadFlags#RAW}.
 	 */
 	protected abstract void initReferences(final long loadFlags);
 
-	/** section data version must be kept in sync with chunk data version */
+	/** Section data version must be kept in sync with chunk data version. Use with extreme care! */
 	protected void syncDataVersion(int newDataVersion) {
 		if (newDataVersion <= 0) {
 			throw new IllegalArgumentException("Invalid data version - must be GT 0");
@@ -120,7 +125,7 @@ public abstract class SectionBase<T extends SectionBase<?>> implements Comparabl
 		if (o == null) {
 			return -1;
 		}
-		return Integer.compare(height, o.height);
+		return Integer.compare(sectionY, o.sectionY);
 	}
 
 	/**
@@ -143,20 +148,20 @@ public abstract class SectionBase<T extends SectionBase<?>> implements Comparabl
 	 * chunk.</p>
 	 * @return The Y value of this section.
 	 */
-	public int getHeight() {
-		return height;
+	public int getSectionY() {
+		return sectionY;
 	}
 
 	protected void syncHeight(int height) {
-		this.height = height;
+		this.sectionY = height;
 	}
 
 	protected void checkY(int y) {
-		if (y == NO_HEIGHT_SENTINEL) {
-			throw new IndexOutOfBoundsException("section height not set");
+		if (y == NO_SECTION_Y_SENTINEL) {
+			throw new IndexOutOfBoundsException("section Y (aka 'height') not set");
 		}
 		if (y < Byte.MIN_VALUE | y > Byte.MAX_VALUE) {
-			throw new IndexOutOfBoundsException("section height (aka section-y) must be in range of BYTE [-128..127] was: " + y);
+			throw new IndexOutOfBoundsException("section Y (aka 'height') must be in range of BYTE [-128..127] was: " + y);
 		}
 	}
 
