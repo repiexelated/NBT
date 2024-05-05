@@ -30,7 +30,7 @@ public class TerrainChunkTest extends TerrainChunkBaseTest<TerrainChunk> {
         TerrainChunkBase.X_POS_PATH.get(dataVersion).put(tag, chunkX);
         TerrainChunkBase.Z_POS_PATH.get(dataVersion).put(tag, chunkZ);
         TerrainChunkBase.INHABITED_TIME_TICKS_PATH.get(dataVersion).put(tag, 42L);
-        TerrainChunkBase.POST_PROCESSING_PATH.get(dataVersion).putTag(tag, new ListTag<>(ListTag.class));
+        TerrainChunkBase.POST_PROCESSING_PATH.get(dataVersion).putTag(tag, new ListTag<ListTag<?>>(ListTag.class));
         TerrainChunkBase.STATUS_PATH.get(dataVersion).put(tag, "empty");
         TerrainChunkBase.TILE_ENTITIES_PATH.get(dataVersion).putTag(tag, new ListTag<>(CompoundTag.class));
         TerrainChunkBase.TILE_TICKS_PATH.get(dataVersion).putTag(tag, new ListTag<>(CompoundTag.class));

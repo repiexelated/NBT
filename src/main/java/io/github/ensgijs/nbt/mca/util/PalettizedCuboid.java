@@ -443,7 +443,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @param index index of the element to return
      * @return the element at the specified position in this cuboid
      * @throws IndexOutOfBoundsException if the index is out of range
-     *         (<tt>index &lt; 0 || index &gt;= size()</tt>)
+     *         (index &lt; 0 || index &gt;= size())
      */
     @SuppressWarnings("unchecked")
     public E get(int index) {
@@ -473,7 +473,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @param index index of the element to return
      * @return the element at the specified position in this cuboid
      * @throws IndexOutOfBoundsException if the index is out of range
-     *         (<tt>index &lt; 0 || index &gt;= size()</tt>)
+     *         (index &lt; 0 || index &gt;= size())
      */
     public E getByRef(int index) {
         return palette.get(data[index]);
@@ -500,7 +500,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      *
      * @param index index of the element to replace
      * @param element element to be stored at the specified position
-     * @throws IndexOutOfBoundsException if the index is out of range (<tt>index &lt; 0 || index &gt;= size()</tt>)
+     * @throws IndexOutOfBoundsException if the index is out of range (index &lt; 0 || index &gt;= size())
      */
     @SuppressWarnings("unchecked")
     public void set(int index, E element) {

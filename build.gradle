@@ -11,8 +11,8 @@ apply plugin: 'jacoco'
 group                        = 'io.github.ensgijs'
 archivesBaseName             = 'ens-nbt'
 version                      = '0.1-SNAPSHOT'
-sourceCompatibility          = '1.8'
-targetCompatibility          = '1.8'
+sourceCompatibility          = JavaLanguageVersion.of(17)
+targetCompatibility          = JavaLanguageVersion.of(17)
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
@@ -53,7 +53,7 @@ javadoc {
 	options.windowTitle 'NBT (ENS)'
 	options.encoding 'UTF-8'
 	options.linkSource true
-	options.links 'https://docs.oracle.com/javase/8/docs/api/'
+	options.links 'https://docs.oracle.com/javase/17/docs/api/'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {

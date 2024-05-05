@@ -321,7 +321,9 @@ public class NbtPath {
     }
 
     /**
-     *
+     * Putting a new list of lists tag can be finicky - if you get an "inference variable has incompatible upper bounds"
+     * error try this.
+     * <pre>{@code nbtpath.putTag(tag, new ListTag<ListTag<?>>(ListTag.class))}</pre>
      * @param root root tag to evaluate this path from
      * @param value tag value to set, may be null to remove the tag
      * @param createParents when true CompoundTag's will be created as necessary. Will not create ListTag's or ArrayTag's.
@@ -367,92 +369,92 @@ public class NbtPath {
     }
 
     // <editor-fold desc="put primitive values" defaultstate="collapsed">
-    public <T extends Tag<?>> T put(Tag<?> root, boolean value) {
+    public ByteTag put(Tag<?> root, boolean value) {
         return putTag(root, new ByteTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, byte[] value) {
+    public ByteArrayTag put(Tag<?> root, byte[] value) {
         return putTag(root, new ByteArrayTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, byte value) {
+    public ByteTag put(Tag<?> root, byte value) {
         return putTag(root, new ByteTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, double value) {
+    public DoubleTag put(Tag<?> root, double value) {
         return putTag(root, new DoubleTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, float value) {
+    public FloatTag put(Tag<?> root, float value) {
         return putTag(root, new FloatTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, int[] value) {
+    public IntArrayTag put(Tag<?> root, int[] value) {
         return putTag(root, new IntArrayTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, int value) {
+    public IntTag put(Tag<?> root, int value) {
         return putTag(root, new IntTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, long[] value) {
+    public LongArrayTag put(Tag<?> root, long[] value) {
         return putTag(root, new LongArrayTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, long value) {
+    public LongTag put(Tag<?> root, long value) {
         return putTag(root, new LongTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, short value) {
+    public ShortTag put(Tag<?> root, short value) {
         return putTag(root, new ShortTag(value), false);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, String value) {
+    public StringTag put(Tag<?> root, String value) {
         return putTag(root, new StringTag(value), false);
     }
 
 
-    public <T extends Tag<?>> T put(Tag<?> root, boolean value, boolean createParents) {
+    public ByteTag put(Tag<?> root, boolean value, boolean createParents) {
         return putTag(root, new ByteTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, byte[] value, boolean createParents) {
+    public ByteArrayTag put(Tag<?> root, byte[] value, boolean createParents) {
         return putTag(root, new ByteArrayTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, byte value, boolean createParents) {
+    public ByteTag put(Tag<?> root, byte value, boolean createParents) {
         return putTag(root, new ByteTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, double value, boolean createParents) {
+    public DoubleTag put(Tag<?> root, double value, boolean createParents) {
         return putTag(root, new DoubleTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, float value, boolean createParents) {
+    public FloatTag put(Tag<?> root, float value, boolean createParents) {
         return putTag(root, new FloatTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, int[] value, boolean createParents) {
+    public IntArrayTag put(Tag<?> root, int[] value, boolean createParents) {
         return putTag(root, new IntArrayTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, int value, boolean createParents) {
+    public IntTag put(Tag<?> root, int value, boolean createParents) {
         return putTag(root, new IntTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, long[] value, boolean createParents) {
+    public LongArrayTag put(Tag<?> root, long[] value, boolean createParents) {
         return putTag(root, new LongArrayTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, long value, boolean createParents) {
+    public LongTag put(Tag<?> root, long value, boolean createParents) {
         return putTag(root, new LongTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, short value, boolean createParents) {
+    public ShortTag put(Tag<?> root, short value, boolean createParents) {
         return putTag(root, new ShortTag(value), createParents);
     }
 
-    public <T extends Tag<?>> T put(Tag<?> root, String value, boolean createParents) {
+    public StringTag put(Tag<?> root, String value, boolean createParents) {
         return putTag(root, new StringTag(value), createParents);
     }
     // </editor-fold>
