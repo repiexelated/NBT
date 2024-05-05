@@ -55,4 +55,14 @@ public class RegionBoundingRectangle extends ChunkBoundingRectangle {
     public static RegionBoundingRectangle forBlock(int x, int z) {
         return new RegionBoundingRectangle(x >> 9, z >> 9);
     }
+
+    public ChunkBoundingRectangle asChunkBounds() {
+        return new ChunkBoundingRectangle(getMinChunkX(), getMinChunkZ(), getWidthChunkXZ());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("regions[%d %d to %d %d]",
+                getMinRegionX(), getMinRegionZ(), getMaxRegionX() - 1, getMaxRegionZ() - 1);
+    }
 }

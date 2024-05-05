@@ -95,4 +95,10 @@ public class BlockAlignedBoundingRectangle {
 
         return true;
     }
+
+    @Override
+    public String toString() {
+        return String.format("blocks[%d %d to %d %d]",
+                minBlockX, minBlockZ, maxBlockX - 1, maxBlockZ - 1);
+    }
 }
