@@ -20,7 +20,7 @@ import java.nio.file.Path;
  * @see McaFileChunkIterator
  */
 public class McaFileStreamingWriter implements Closeable {
-    private final byte[] zeroFillBuffer = new byte[4096];
+    private static final byte[] ZERO_FILL_BUFFER = new byte[4096];
     private final int[] chunkSectors = new int[1024];
     private final int[] chunkTimestamps = new int[1024];
     private final RandomAccessFile raf;
@@ -53,8 +53,8 @@ public class McaFileStreamingWriter implements Closeable {
                 raf.setLength(0);
                 raf.seek(0);
                 // zero out the chunk sector and timestamp tables
-                raf.write(zeroFillBuffer);
-                raf.write(zeroFillBuffer);
+                raf.write(ZERO_FILL_BUFFER);
+                raf.write(ZERO_FILL_BUFFER);
                 fileInitialized = true;
             }
         }
@@ -80,8 +80,8 @@ public class McaFileStreamingWriter implements Closeable {
             if (sectors > 255) throw new IOException("Chunk " + chunk.getChunkXZ() + " to large! 1MB maximum");
             long roundedEof = ((long) (startSector + sectors) << 12);
             while (roundedEof > raf.getFilePointer()) {
-                int gap = (int) Math.min(roundedEof - raf.getFilePointer(), zeroFillBuffer.length);
-                raf.write(zeroFillBuffer, 0, gap);
+                int gap = (int) Math.min(roundedEof - raf.getFilePointer(), ZERO_FILL_BUFFER.length);
+                raf.write(ZERO_FILL_BUFFER, 0, gap);
             }
             if (raf.getFilePointer() % 4096 != 0)
                 throw new IllegalStateException();
