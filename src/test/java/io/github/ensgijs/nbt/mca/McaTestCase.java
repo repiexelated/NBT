@@ -2,7 +2,7 @@ package io.github.ensgijs.nbt.mca;
 
 import io.github.ensgijs.nbt.tag.CompoundTag;
 import io.github.ensgijs.nbt.tag.ListTag;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 public abstract class McaTestCase extends NbtTestCase {
 

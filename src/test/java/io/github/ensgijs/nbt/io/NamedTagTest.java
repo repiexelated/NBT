@@ -2,7 +2,7 @@ package io.github.ensgijs.nbt.io;
 
 import io.github.ensgijs.nbt.tag.ByteTag;
 import io.github.ensgijs.nbt.tag.ShortTag;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 public class NamedTagTest extends NbtTestCase {
 

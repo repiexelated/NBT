@@ -1,6 +1,6 @@
 package io.github.ensgijs.nbt.tag;
 
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 import java.util.Arrays;
 

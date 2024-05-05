@@ -1,9 +1,8 @@
-package net.rossquerz.query;
+package io.github.ensgijs.nbt.query;
 
 import io.github.ensgijs.nbt.tag.*;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 import io.github.ensgijs.nbt.io.TextNbtParser;
-import io.github.ensgijs.nbt.query.NbtPath;
 import org.junit.Assert;
 
 public class NbtPathTest extends NbtTestCase {

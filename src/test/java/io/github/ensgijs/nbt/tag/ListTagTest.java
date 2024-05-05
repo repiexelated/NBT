@@ -2,7 +2,7 @@ package io.github.ensgijs.nbt.tag;
 
 import io.github.ensgijs.nbt.io.MaxDepthReachedException;
 import junit.framework.TestCase;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 import java.util.Arrays;
 import java.util.Comparator;

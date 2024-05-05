@@ -1,4 +1,4 @@
-package net.rossquerz.util;
+package io.github.ensgijs.nbt.util;
 
 import junit.framework.TestCase;
 import static io.github.ensgijs.nbt.util.JsonPrettyPrinter.prettyPrintJson;

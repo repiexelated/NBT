@@ -5,7 +5,7 @@ import io.github.ensgijs.nbt.tag.CompoundTag;
 import io.github.ensgijs.nbt.tag.ListTag;
 import io.github.ensgijs.nbt.tag.LongArrayTag;
 import io.github.ensgijs.nbt.tag.StringTag;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 import java.io.IOException;
 import java.util.Arrays;

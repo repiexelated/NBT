@@ -1,10 +1,10 @@
-package net.rossquerz;
+package io.github.ensgijs.nbt;
 
 import io.github.ensgijs.nbt.io.*;
+import io.github.ensgijs.nbt.tag.Tag;
 import junit.framework.AssertionFailedError;
 import junit.framework.ComparisonFailure;
 import junit.framework.TestCase;
-import io.github.ensgijs.nbt.tag.Tag;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;

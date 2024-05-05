@@ -1,7 +1,7 @@
 package io.github.ensgijs.nbt.io;
 
+import io.github.ensgijs.nbt.NbtTestCase;
 import io.github.ensgijs.nbt.tag.*;
-import net.rossquerz.NbtTestCase;
 
 import java.util.LinkedHashMap;
 

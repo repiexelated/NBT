@@ -1,4 +1,4 @@
-package net.rossquerz;
+package io.github.ensgijs.nbt;
 
 import junit.framework.TestCase;
 

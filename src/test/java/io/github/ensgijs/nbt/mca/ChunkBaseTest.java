@@ -2,7 +2,7 @@ package io.github.ensgijs.nbt.mca;
 
 import io.github.ensgijs.nbt.mca.io.LoadFlags;
 import io.github.ensgijs.nbt.tag.CompoundTag;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 import io.github.ensgijs.nbt.util.Mutable;
 
 import java.util.function.Consumer;

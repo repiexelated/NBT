@@ -2,7 +2,7 @@ package io.github.ensgijs.nbt.io;
 
 import io.github.ensgijs.nbt.tag.CompoundTag;
 import io.github.ensgijs.nbt.tag.StringTag;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 import org.junit.Assert;
 
 import java.io.File;

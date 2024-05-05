@@ -1,6 +1,6 @@
 package io.github.ensgijs.nbt.io;
 
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 public class StringPointerTest extends NbtTestCase {
 

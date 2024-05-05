@@ -2,7 +2,7 @@ package io.github.ensgijs.nbt.tag;
 
 import io.github.ensgijs.nbt.io.MaxDepthReachedException;
 import io.github.ensgijs.nbt.io.NamedTag;
-import net.rossquerz.NbtTestCase;
+import io.github.ensgijs.nbt.NbtTestCase;
 
 import java.util.*;
 import java.util.stream.Collectors;
