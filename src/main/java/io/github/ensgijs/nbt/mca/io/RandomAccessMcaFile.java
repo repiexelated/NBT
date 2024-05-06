@@ -49,6 +49,8 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     private final RegionBoundingRectangle regionBounds;
     private final IntPointXZ regionXZ;
     private final IntPointXZ regionChunkOffsetXZ;
+    private int chunksWritten;
+    private int chunksRead;
     protected final RandomAccessFile raf;
     protected final SectorManager sectorManager = new SectorManager();
     protected boolean fileInitialized = false;
@@ -60,6 +62,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     protected boolean alwaysUpdateChunkLastUpdatedTimestamp = true;
 
     private final Stopwatch fileInitializationStopwatch = Stopwatch.createUnstarted();
+    private final Stopwatch totalReadStopwatch = Stopwatch.createUnstarted();
     private final Stopwatch totalWriteStopwatch = Stopwatch.createUnstarted();
     private final Stopwatch chunkSerializationStopwatch = Stopwatch.createUnstarted();
     private final Stopwatch fileFlushStopwatch = Stopwatch.createUnstarted();
@@ -126,6 +129,19 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return String.format("chunks written: %4d; read %4d; timing[init %s; read %s; serialize %s; write %s; optimize %s; flush %s]",
+                chunksWritten,
+                chunksRead,
+                fileInitialized ? fileInitializationStopwatch : "n/a",
+                totalReadStopwatch,
+                chunkSerializationStopwatch,
+                totalWriteStopwatch.subtract(chunkSerializationStopwatch),
+                fileOptimizationStopwatch,
+                fileFlushStopwatch);
+    }
+
     protected void ensureFileInitialized() throws IOException {
         if (fileFinalized) throw new IOException("File closed!");
         if (!fileInitialized) {
@@ -161,6 +177,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     public void close() throws IOException {
         if (fileFinalized) return;
         if (autoOptimizeOnClose) optimizeFile();
+        else sectorManager.truncate(raf);
         if (fileInitialized) flush();
         raf.close();
         sectorManager.freeSectors.clear();
@@ -200,49 +217,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     public int optimizeFile() throws IOException {
         ensureFileInitialized();
         try (Stopwatch.LapToken lap = fileOptimizationStopwatch.startLap()) {
-            record ChunkSectorTableRecord(int index, int sectorStart, int sectorSize) {}
-            List<ChunkSectorTableRecord> chunkSectorTableRecords = new ArrayList<>(1024);
-            int largestChunkInSectors = 0;
-            for (int i = 0; i < 1024; i++) {
-                int sectorStart = chunkSectors[i] >> 8;
-                int sectorSize = chunkSectors[i] & 0xFF;
-                if (sectorSize > 0) {
-                    if (sectorStart < 2)
-                        throw new CorruptMcaFileException();
-                    chunkSectorTableRecords.add(new ChunkSectorTableRecord(i, sectorStart, sectorSize));
-                    if (largestChunkInSectors < sectorSize) largestChunkInSectors = sectorSize;
-                }
-            }
-            if (chunkSectorTableRecords.isEmpty()) return 0;
-            chunkSectorTableRecords.sort(Comparator.comparingInt(a -> a.sectorStart));
-            ChunkSectorTableRecord current = chunkSectorTableRecords.get(0);
-            int nextSectorStart = 2;
-            byte[] buffer = new byte[largestChunkInSectors * 4096];
-            int i = 0;
-            // scan for the first chunk sector that can be compacted
-            while (current.sectorStart == nextSectorStart) {
-                nextSectorStart += current.sectorSize;
-                current = chunkSectorTableRecords.get(++i);
-            }
-            // compact remaining chunk data
-            for (; i < chunkSectorTableRecords.size(); i++) {
-                current = chunkSectorTableRecords.get(i);
-                raf.seek(current.sectorStart * 4096L);
-                int sectorSizeBytes = current.sectorSize * 4096;
-                if (raf.read(buffer, 0, sectorSizeBytes) != sectorSizeBytes) {
-                    throw new EOFException();
-                }
-                raf.seek(nextSectorStart * 4096L);
-                raf.write(buffer, 0, sectorSizeBytes);
-                chunkSectors[current.index] = (nextSectorStart << 8) | current.sectorSize;
-                nextSectorStart += current.sectorSize;
-            }
-            int compactedBytes = (int) (raf.length() - nextSectorStart);
-            raf.setLength(nextSectorStart);
-            sectorManager.sync(chunkSectors);
-            if (sectorManager.appendAtSector != nextSectorStart)
-                throw new IllegalStateException();
-            return compactedBytes;
+            return sectorManager.optimizeFile(raf, chunkSectors);
         }
     }
 
@@ -344,31 +319,34 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         if (chunkIndex < 0 || chunkIndex >= 1024)
             throw new IndexOutOfBoundsException();
         ensureFileInitialized();
-        int sectorOffset = chunkSectors[chunkIndex] >>> 8;
-        int sectorSize = chunkSectors[chunkIndex] & 0xFF;
-        if (sectorSize == 0) return null;
-        if (raf.length() < (sectorOffset + sectorSize + 2) * 4096L) {
-            throw new EOFException();
-        }
-        raf.seek((sectorOffset + 2) * 4096L);  // +2 for the file header
-        int chunkByteSize = raf.readInt();
-        if (chunkByteSize > sectorSize * 4096) {
-            throw new CorruptMcaFileException(String.format(
-                    "MCA file header sector size %d (%d bytes) for chunk %04d (at 0x%X) is too small to hold %d bytes!",
-                    sectorSize, sectorSize * 4096, chunkIndex, (sectorOffset + 2) * 4096L, chunkByteSize));
-        }
+        try (var lap = totalReadStopwatch.startLap()) {
+            int sectorOffset = chunkSectors[chunkIndex] >>> 8;
+            int sectorSize = chunkSectors[chunkIndex] & 0xFF;
+            if (sectorSize == 0) return null;
+            if (raf.length() < (sectorOffset + sectorSize) * 4096L) {
+                throw new EOFException();
+            }
+            raf.seek(sectorOffset * 4096L);  // +2 for the file header
+            int chunkByteSize = raf.readInt();
+            if (chunkByteSize > (sectorSize * 4096) - 4) {
+                throw new CorruptMcaFileException(String.format(
+                        "MCA file header sector size %d (%d bytes) for chunk %04d (at 0x%X) is too small to hold %d bytes!",
+                        sectorSize, sectorSize * 4096, chunkIndex, sectorOffset * 4096L, chunkByteSize));
+            }
 
-        T chunk;
-        try {
-            chunk = chunkClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException ex) {
-            // TODO should wrap with a custom chunk creation exception...
-            // given that this error is something exclusively under the control of the library user I'm OK(ish) with this hacky wrap and throw
-            throw new RuntimeException(ex);
+            T chunk;
+            try {
+                chunk = chunkClass.getDeclaredConstructor().newInstance();
+            } catch (ReflectiveOperationException ex) {
+                // TODO should wrap with a custom chunk creation exception...
+                // given that this error is something exclusively under the control of the library user I'm OK(ish) with this hacky wrap and throw
+                throw new RuntimeException(ex);
+            }
+            IntPointXZ chunkXZ = McaRegionFile.getRelativeChunkXZ(chunkIndex).add(regionChunkOffsetXZ);
+            chunksRead ++;
+            chunk.deserialize(raf, loadFlags, chunkTimestamps[chunkIndex], chunkXZ.getX(), chunkXZ.getZ());
+            return chunk;
         }
-        IntPointXZ chunkXZ = McaRegionFile.getRelativeChunkXZ(chunkIndex).add(regionChunkOffsetXZ);
-        chunk.deserialize(raf, loadFlags, chunkTimestamps[chunkIndex], chunkXZ.getX(), chunkXZ.getZ());
-        return chunk;
     }
 
 
@@ -436,30 +414,32 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             final int index = chunk.getIndex();
             final int oldSectorOffset = chunkSectors[index] >>> 8;
             final int oldSectorSize = chunkSectors[index] & 0xFF;
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(2, oldSectorSize) * 4096);
+            ByteArrayOutputStream baos;
             SectorManager.SectorBlock writeToSector;
-            // Note 'totalBytes' is count 4 larger than the value written at the chunk sector offset because it includes the byte size data too
             int totalBytes;
             final int newSectorSize;
+            chunksWritten ++;
 
             try (Stopwatch.LapToken lap2 = chunkSerializationStopwatch.startLap()) {
+                baos = new ByteArrayOutputStream(Math.min(2, oldSectorSize) * 4096);
                 new BinaryNbtSerializer(CompressionType.ZLIB).toStream(
                         new NamedTag(null, autoUpdateHandelOnWrite ? chunk.updateHandle() : chunk.getHandle()), baos);
-                totalBytes = baos.size() + 4 /*size*/ + 1 /*compression sig*/;
-                newSectorSize = (totalBytes >> 12) + (totalBytes % 4096 == 0 ? 0 : 1);
-                if (newSectorSize > 255) throw new IOException("Chunk " + chunk.getChunkXZ() + " to large! 1MB maximum");
+            }
+            // Note 'totalBytes' is count 4 larger than the value written at the chunk sector offset because it includes the byte size data too
+            totalBytes = baos.size() + 4 /*size*/ + 1 /*compression sig*/;
+            newSectorSize = (totalBytes >> 12) + (totalBytes % 4096 == 0 ? 0 : 1);
+            if (newSectorSize > 255) throw new IOException("Chunk " + chunk.getChunkXZ() + " to large! 1MB maximum");
 
-                if (oldSectorSize == 0) {  // chunk has never been written to file
-                    writeToSector = sectorManager.allocate(newSectorSize);
-                } else if (newSectorSize == oldSectorSize) {  // new chunk data fits in the old slot like a glove
-                    writeToSector = new SectorManager.SectorBlock(oldSectorOffset, newSectorSize);
-                } else if (newSectorSize < oldSectorSize) {  // new chunk data still fits but there's extra room now
-                    writeToSector = new SectorManager.SectorBlock(oldSectorOffset, newSectorSize);
-                    sectorManager.release(oldSectorOffset + newSectorSize, oldSectorSize - newSectorSize);
-                } else {  // new chunk data is too large to fit in the old slot so alloc a new one
-                    writeToSector = sectorManager.allocate(newSectorSize);
-                    sectorManager.release(oldSectorOffset, oldSectorSize);
-                }
+            if (oldSectorSize == 0) {  // chunk has never been written to file
+                writeToSector = sectorManager.allocate(newSectorSize);
+            } else if (newSectorSize == oldSectorSize) {  // new chunk data fits in the old slot like a glove
+                writeToSector = new SectorManager.SectorBlock(oldSectorOffset, newSectorSize);
+            } else if (newSectorSize < oldSectorSize) {  // new chunk data still fits but there's extra room now
+                writeToSector = new SectorManager.SectorBlock(oldSectorOffset, newSectorSize);
+                sectorManager.release(oldSectorOffset + newSectorSize, oldSectorSize - newSectorSize);
+            } else {  // new chunk data is too large to fit in the old slot so alloc a new one
+                writeToSector = sectorManager.allocate(newSectorSize);
+                sectorManager.release(oldSectorOffset, oldSectorSize);
             }
             writeToSector.seekTo(raf);
             raf.writeInt(totalBytes - 4);  // don't count the int we are writing here in the byte size
@@ -620,11 +600,71 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             }
         }
 
-//        void truncate(RandomAccessFile raf) throws IOException {
-//            final long newLength = appendAtSector * 4096L;
-//            if (newLength > raf.length())
-//                throw new IOException("File is already smaller than " + newLength);
-//            raf.setLength(newLength);
-//        }
+        /** @return Number of unused bytes that were removed from the file. The file is now this much smaller. */
+        public int optimizeFile(RandomAccessFile raf, int[] chunkSectors) throws IOException {
+            if (freeSectors.isEmpty()) {
+                return truncate(raf);
+            }
+            List<SectorBlock> sectorsToMove = new ArrayList<>(1024);
+            SectorBlock[] sectors = new SectorBlock[1024];
+            final int firstFreeSector = freeSectors.getFirst().start;
+            int largestChunkInSectors = 0;
+            for (int i = 0; i < 1024; i++) {
+                SectorBlock sectorBlock = SectorBlock.unpack(chunkSectors[i]);
+                sectors[i] = sectorBlock;
+                if (sectorBlock.size > 0) {
+                    if (sectorBlock.start < 2)
+                        throw new CorruptMcaFileException();
+                    if (sectorBlock.start > firstFreeSector) {
+                        sectorsToMove.add(sectorBlock);
+                        if (largestChunkInSectors < sectorBlock.size)
+                            largestChunkInSectors = sectorBlock.size;
+                    }
+                }
+            }
+            if (largestChunkInSectors == 0) {
+                appendAtSector = 2;
+                return truncate(raf);
+            }
+
+            // by here all of these blocks have to be moved
+            // sort them in ascending location order so the relocation logic can be simplified
+            sectorsToMove.sort(Comparator.comparingInt(a -> a.start));
+
+            int nextSectorStart = firstFreeSector;
+            // This will never be GT 1MB and is usually LE 16KB
+            byte[] buffer = new byte[largestChunkInSectors * 4096];
+            for (SectorBlock sb : sectorsToMove) {
+                sb.seekTo(raf);
+                int sectorSizeBytes = sb.size * 4096;
+                if (raf.read(buffer, 0, sectorSizeBytes) != sectorSizeBytes) {
+                    throw new EOFException();
+                }
+                sb.start = nextSectorStart;
+                sb.seekTo(raf);
+                raf.write(buffer, 0, sectorSizeBytes);
+                nextSectorStart += sb.size;
+            }
+
+            // refresh the chunk sectors table
+            for (int i = 0; i < 1024; i++) {
+                chunkSectors[i] = sectors[i].pack();
+            }
+
+            // sync sector manager state
+            freeSectors.clear();
+            appendAtSector = sectorsToMove.get(sectorsToMove.size() - 1).end();
+            return truncate(raf);
+        }
+
+        /** @return Number of unused bytes that were removed from the file. The file is now this much smaller. */
+        int truncate(RandomAccessFile raf) throws IOException {
+            final long oldLength = raf.length();
+            final long newLength = appendAtSector * 4096L;
+            if (newLength > raf.length())
+                throw new IOException("File is already smaller than " + newLength);
+            raf.setLength(newLength);
+            return (int) (oldLength - newLength);
+        }
     }
 }
