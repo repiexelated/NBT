@@ -129,17 +129,97 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         return this;
     }
 
+    /** @see #chunkSectorTableToString() */
     @Override
     public String toString() {
-        return String.format("chunks written: %4d; read %4d; timing[init %s; read %s; serialize %s; write %s; optimize %s; flush %s]",
+        return String.format(
+                "region %s; %s; %s; initialized %s; finalized %s; chunks[written %d; read %d]; " +
+                        "timing[init %s; read %s; serialize %s; write %s; optimize %s; flush %s]; " +
+                        "settings[flags %s; auto-optimize %s; auto-update-handel %s; always-update-timestamp %s]; " +
+                        "sector-manager[%s]",
+                regionXZ,
+                regionBounds.asChunkBounds(),
+                regionBounds.asBlockBounds(),
+                fileInitialized,
+                fileFinalized,
                 chunksWritten,
                 chunksRead,
                 fileInitialized ? fileInitializationStopwatch : "n/a",
-                totalReadStopwatch,
-                chunkSerializationStopwatch,
-                totalWriteStopwatch.subtract(chunkSerializationStopwatch),
-                fileOptimizationStopwatch,
-                fileFlushStopwatch);
+                fileInitialized ? totalReadStopwatch : "n/a",
+                fileInitialized ? chunkSerializationStopwatch : "n/a",
+                fileInitialized ? totalWriteStopwatch.subtract(chunkSerializationStopwatch) : "n/a",
+                fileInitialized ? fileOptimizationStopwatch : "n/a",
+                fileInitialized ? fileFlushStopwatch : "n/a",
+                LoadFlags.toHexString(loadFlags),
+                isAutoOptimizeOnClose(),
+                isAutoOptimizeOnClose(),
+                isAlwaysUpdateChunkLastUpdatedTimestamp(),
+                sectorManager);
+    }
+
+    /**
+     * Creates a 32x32 textual table of chunk sector information. Useful for debugging this library as well as
+     * user code.
+     */
+    public String chunkSectorTableToString() throws IOException {
+        ensureFileInitialized();
+        StringBuilder sb = new StringBuilder();
+        // defaults set minimum lengths
+        int maxOffsetStrLen = 2;
+        int maxSizeStrLen = 1;
+        for (int i = 0; i < 1024; i++) {
+            SectorManager.SectorBlock sectorBlock = SectorManager.SectorBlock.unpack(chunkSectors[i]);
+            int offsetStrLen = String.format("%X", sectorBlock.start).length();
+            int sizeStrLen = String.format("%X", sectorBlock.size).length();
+            if (maxOffsetStrLen < offsetStrLen) maxOffsetStrLen = offsetStrLen;
+            if (maxSizeStrLen < sizeStrLen) maxSizeStrLen = sizeStrLen;
+        }
+        String sectorFormat = "%0" + maxOffsetStrLen + "X+%0" + maxSizeStrLen + "X ";
+        String noSector = "-".repeat(maxOffsetStrLen + maxSizeStrLen + 1) + " ";
+        String headerFormat = "%" + (maxOffsetStrLen + maxSizeStrLen) + "d  ";
+
+        sb.append(String.format(
+                " region %s; %s; %s\n",
+                regionXZ,
+                regionBounds.asChunkBounds(),
+                regionBounds.asBlockBounds()));
+        sb.append(" Z\\X");
+        for (int i = 0; i < 32; i++) {
+            if (i != 0 && i % 8 == 0) {
+                sb.append(' ');
+            }
+            sb.append(String.format(headerFormat, i));
+        }
+        sb.append('\n');
+
+        for (int i = 0; i < 1024; i++) {
+            if (i % 32 == 0) {
+                if (i > 0) sb.append('\n');
+                sb.append(String.format("%2d: ", i / 32));
+            } else if (i % 8 == 0) {
+                sb.append(' ');
+            }
+            SectorManager.SectorBlock sectorBlock = SectorManager.SectorBlock.unpack(chunkSectors[i]);
+            if (sectorBlock.size == 0) {
+                sb.append(noSector);
+            } else {
+                sb.append(sectorBlock.toString(sectorFormat));
+            }
+        }
+        sb.append('\n');
+        sb.append(sectorManager);
+        return sb.toString();
+    }
+
+    /**
+     * Forces initialization of chunk data. This class lazily loads the mca file header tables, touching the
+     * instance triggers this loading and is a no-op if already loaded. This method is useful mostly for debugging
+     * or for ensuring all on-close automatic actions are taken without needing to perform a chunk read/write.
+     * @return self for chaining.
+     */
+    public RandomAccessMcaFile<T> touch() throws IOException {
+        ensureFileInitialized();
+        return this;
     }
 
     protected void ensureFileInitialized() throws IOException {
@@ -148,7 +228,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             try (Stopwatch.LapToken lap = fileInitializationStopwatch.startLap()) {
                 raf.seek(0);
                 final byte[] buffer = new byte[4096];
-                if (raf.length() > 4096 * 2) {  // existing file
+                if (raf.length() >= 4096 * 2) {  // existing file
                     ByteBuffer bb = ByteBuffer.wrap(buffer);
                     raf.read(buffer);
                     bb.position(0);
@@ -176,19 +256,29 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     @Override
     public void close() throws IOException {
         if (fileFinalized) return;
-        if (autoOptimizeOnClose) optimizeFile();
-        else sectorManager.truncate(raf);
-        if (fileInitialized) flush();
-        raf.close();
-        sectorManager.freeSectors.clear();
-        fileFinalized = true;
+        try {
+            if (fileInitialized) {
+                if (isAutoOptimizeOnClose())
+                    optimizeFile();
+                if (fileInitialized)
+                    flush();
+            }
+        } finally {
+            raf.close();
+            sectorManager.freeSectors.clear();
+            fileFinalized = true;
+        }
     }
 
     /**
      * Forces immediate write of the chunk index and timestamp tables (file header information).
+     * @see #touch()
      */
     public void flush() throws IOException {
-        ensureFileInitialized();
+        if (!fileInitialized)
+            return;
+        if (fileFinalized)
+            throw new IOException("File closed!");
         try (Stopwatch.LapToken lap = fileFlushStopwatch.startLap()) {
             raf.seek(0);
             ByteBuffer byteBuffer = ByteBuffer.allocate(4096);
@@ -232,6 +322,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         if (hasChunk(chunkIndex)) {
             sectorManager.release(SectorManager.SectorBlock.unpack(chunkSectors[chunkIndex]));
             chunkSectors[chunkIndex] = 0;
+            chunkTimestamps[chunkIndex] = 0;
             return true;
         }
         return false;
@@ -283,6 +374,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         return removeChunkAbsolute(xz.getX(), xz.getZ());
     }
 
+
     /** @return True if the chunk exists. */
     public boolean hasChunk(int chunkIndex) throws IOException {
         ensureFileInitialized();
@@ -310,6 +402,36 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     public boolean hasChunkAbsolute(IntPointXZ xz) throws IOException {
         return hasChunkAbsolute(xz.getX(), xz.getZ());
     }
+
+
+    /** @return Chunk timestamp, in epoch seconds, if chunk exists else -1. */
+    public int getChunkTimestamp(int chunkIndex) throws IOException {
+        ensureFileInitialized();
+        return hasChunk(chunkIndex) ? chunkTimestamps[chunkIndex] : -1;
+    }
+
+    /** @return Chunk timestamp, in epoch seconds, if chunk exists else -1. */
+    public int getChunkTimestampRelative(int x, int z) throws IOException {
+        if (x < 0 || x >= 32 || z < 0 || z >= 32)
+            throw new IndexOutOfBoundsException();
+        return getChunkTimestamp(McaRegionFile.getChunkIndex(x, z));
+    }
+
+    /** @return Chunk timestamp, in epoch seconds, if chunk exists else -1. */
+    public int getChunkTimestampRelative(IntPointXZ xz) throws IOException {
+        return getChunkTimestampRelative(xz.getX(), xz.getZ());
+    }
+
+    /** @return Chunk timestamp, in epoch seconds, if chunk exists else -1. */
+    public int getChunkTimestampAbsolute(int x, int z) throws IOException {
+        return this.regionBounds.containsChunk(x, z) ? getChunkTimestamp(McaRegionFile.getChunkIndex(x, z)) : -1;
+    }
+
+    /** @return Chunk timestamp, in epoch seconds, if chunk exists else -1. */
+    public int getChunkTimestampAbsolute(IntPointXZ xz) throws IOException {
+        return getChunkTimestampAbsolute(xz.getX(), xz.getZ());
+    }
+
 
     /**
      * Reads the specified chunk if it exists.
@@ -349,7 +471,6 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         }
     }
 
-
     /**
      * Reads the specified chunk if it exists.
      * @return The chunk if it exists, else null.
@@ -360,7 +481,6 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         return read(McaFileBase.getChunkIndex(x, z));
     }
 
-
     /**
      * Reads the specified chunk if it exists.
      * @return The chunk if it exists, else null.
@@ -368,7 +488,6 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     public T readRelative(IntPointXZ xz) throws IOException {
         return readRelative(xz.getX(), xz.getZ());
     }
-
 
     /**
      * Reads the specified chunk if it exists.
@@ -380,7 +499,6 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         return read(McaFileBase.getChunkIndex(x, z));
     }
 
-
     /**
      * Reads the specified chunk if it exists.
      * @return The chunk if it exists, else null.
@@ -390,12 +508,27 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     }
 
     /**
+     * Writes the given chunks.
+     * @param chunks not null and all chunks must exist within bounds of this region file.
+     * @see #removeChunk
+     */
+    @SafeVarargs
+    public final void write(T... chunks) throws IOException {
+        for (T chunk : chunks) {
+            write(chunk);
+        }
+    }
+
+    /**
      * Writes the given chunk.
      * @param chunk not null and chunk must exist within bounds of this region file.
      * @see #removeChunk
      */
     public void write(T chunk) throws IOException {
         ArgValidator.requireValue(chunk);
+        if (chunk.getChunkX() == ChunkBase.NO_CHUNK_COORD_SENTINEL || chunk.getChunkZ() == ChunkBase.NO_CHUNK_COORD_SENTINEL) {
+            throw new IllegalArgumentException("Chunk XZ must be set!");
+        }
         if (!this.regionBounds.containsChunk(chunk.getChunkX(), chunk.getChunkZ()))
             throw new IndexOutOfBoundsException(String.format(
                     "ChunkXZ(%s) does not exist within regionXZ(%s) inclusive bounds %s!",
@@ -403,14 +536,11 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
                     regionXZ,
                     regionBounds.asChunkBounds()));
         ensureFileInitialized();
-        if (alwaysUpdateChunkLastUpdatedTimestamp || chunk.getLastMCAUpdate() <= 0) {
+        if (isAlwaysUpdateChunkLastUpdatedTimestamp() || chunk.getLastMCAUpdate() <= 0) {
             chunk.setLastMCAUpdate((int) (System.currentTimeMillis() / 1000));
         }
 
         try (Stopwatch.LapToken lap1 = totalWriteStopwatch.startLap()) {
-            if (chunk.getChunkX() == ChunkBase.NO_CHUNK_COORD_SENTINEL || chunk.getChunkZ() == ChunkBase.NO_CHUNK_COORD_SENTINEL) {
-                throw new IllegalArgumentException("Chunk XZ must be set!");
-            }
             final int index = chunk.getIndex();
             final int oldSectorOffset = chunkSectors[index] >>> 8;
             final int oldSectorSize = chunkSectors[index] & 0xFF;
@@ -423,7 +553,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             try (Stopwatch.LapToken lap2 = chunkSerializationStopwatch.startLap()) {
                 baos = new ByteArrayOutputStream(Math.min(2, oldSectorSize) * 4096);
                 new BinaryNbtSerializer(CompressionType.ZLIB).toStream(
-                        new NamedTag(null, autoUpdateHandelOnWrite ? chunk.updateHandle() : chunk.getHandle()), baos);
+                        new NamedTag(null, isAutoUpdateHandelOnWrite() ? chunk.updateHandle() : chunk.getHandle()), baos);
             }
             // Note 'totalBytes' is count 4 larger than the value written at the chunk sector offset because it includes the byte size data too
             totalBytes = baos.size() + 4 /*size*/ + 1 /*compression sig*/;
@@ -467,6 +597,10 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         static class SectorBlock {
             int start;
             int size;
+            SectorBlock(SectorBlock other) {
+                this.start = other.start;
+                this.size = other.size;
+            }
             SectorBlock(int start, int size) {
                 this.start = start;
                 this.size = size;
@@ -511,7 +645,12 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
 
             @Override
             public String toString() {
-                return start + "+" + size;
+                return toString("0x%X+%X");
+            }
+
+            /** @param format must have two %d placeholders, first is start, second is size */
+            public String toString(String format) {
+                return String.format(format, start, size);
             }
 
             public void seekTo(RandomAccessFile raf) throws IOException {
@@ -583,16 +722,22 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         public void release(SectorBlock sectorBlock) {
             if (sectorBlock.size == 0) return;
             ListIterator<SectorBlock> iter = freeSectors.listIterator();
+            boolean released = false;
             while (iter.hasNext()) {
                 SectorBlock sb = iter.next();
                 if (sb.merge(sectorBlock)) {
+                    released = true;
                     break;
                 }
                 if (sectorBlock.end() < sb.start) {
                     iter.previous();
-                    iter.add(sectorBlock);
+                    iter.add(new SectorBlock(sectorBlock));
+                    released = true;
                     break;
                 }
+            }
+            if (!released) {
+                freeSectors.addLast(new SectorBlock(sectorBlock));
             }
             if (freeSectors.getLast().end() == appendAtSector) {
                 SectorBlock sb = freeSectors.removeLast();
@@ -637,9 +782,11 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             for (SectorBlock sb : sectorsToMove) {
                 sb.seekTo(raf);
                 int sectorSizeBytes = sb.size * 4096;
-                if (raf.read(buffer, 0, sectorSizeBytes) != sectorSizeBytes) {
+                int read = raf.read(buffer, 0, sectorSizeBytes);
+                if (read < 0)
                     throw new EOFException();
-                }
+                if (read != sectorSizeBytes)
+                    throw new IOException("Failed to read the required number of bytes!");
                 sb.start = nextSectorStart;
                 sb.seekTo(raf);
                 raf.write(buffer, 0, sectorSizeBytes);
@@ -665,6 +812,27 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
                 throw new IOException("File is already smaller than " + newLength);
             raf.setLength(newLength);
             return (int) (oldLength - newLength);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("eof-sector ");
+            sb.append(String.format("0x%X", appendAtSector));
+            sb.append("; free-sectors");
+            if (!freeSectors.isEmpty()) {
+                sb.append("(count ").append(freeSectors.size());
+                sb.append("; sum ").append(freeSectors.stream().mapToInt(s -> s.size).sum());
+                sb.append(')');
+            }
+            sb.append('[');
+            boolean first = true;
+            for (SectorBlock fs : freeSectors) {
+                if (!first) sb.append(", ");
+                else first = false;
+                sb.append(fs);
+            }
+            sb.append("]");
+            return sb.toString();
         }
     }
 }

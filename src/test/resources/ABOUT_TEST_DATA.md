@@ -122,5 +122,8 @@ Chunks:
 - mineshaft "starts" data - runs under pillager outpost chunks
   - XZ(-91, -87)
 
+Note that the POI file is the complete file for the chunk and contains various beehives scattered about through 6 chunks.
+Poi chunks: -77 -84; -77 -73; -94 -71; -78 -70; -77 -68; -82 -67 
+
 ### 1_20_4/entities/double_passengers
 Has a baby zombie ridding a pillager riding a ravager and a few other mobs in the chunk.
