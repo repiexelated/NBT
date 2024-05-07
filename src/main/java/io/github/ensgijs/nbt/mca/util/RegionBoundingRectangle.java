@@ -62,7 +62,7 @@ public class RegionBoundingRectangle extends ChunkBoundingRectangle {
 
     @Override
     public String toString() {
-        return String.format("regions[%d %d to %d %d]",
-                getMinRegionX(), getMinRegionZ(), getMaxRegionX() - 1, getMaxRegionZ() - 1);
+        return String.format("regions[%d..%d, %d..%d]",
+                getMinRegionX(), getMaxRegionX() - 1, getMinRegionZ(), getMaxRegionZ() - 1);
     }
 }

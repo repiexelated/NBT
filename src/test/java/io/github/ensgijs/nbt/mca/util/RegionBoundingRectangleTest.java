@@ -77,4 +77,32 @@ public class RegionBoundingRectangleTest extends TestCase {
         assertTrue(RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.containsRegion(58593, 58593));
         assertFalse(RegionBoundingRectangle.MAX_WORLD_REGION_BOUNDS.containsRegion(58594, 58594));
     }
+
+    public void testAsChunkBounds() {
+        RegionBoundingRectangle rbr = new RegionBoundingRectangle(4887, 6639);
+        assertEquals(32, rbr.getWidthChunkXZ());
+        assertEquals(512, rbr.getWidthBlockXZ());
+        assertEquals(4887 * 32, rbr.getMinChunkX());
+        assertEquals(6639 * 32, rbr.getMinChunkZ());
+        assertEquals(4888 * 32, rbr.getMaxChunkX());
+        assertEquals(6640 * 32, rbr.getMaxChunkZ());
+
+        ChunkBoundingRectangle cbr = rbr.asChunkBounds();
+        assertEquals(32, cbr.getWidthChunkXZ());
+        assertEquals(512, cbr.getWidthBlockXZ());
+        assertEquals(4887 * 32, cbr.getMinChunkX());
+        assertEquals(6639 * 32, cbr.getMinChunkZ());
+        assertEquals(4888 * 32, cbr.getMaxChunkX());
+        assertEquals(6640 * 32, cbr.getMaxChunkZ());
+    }
+
+    public void testAsBlockBounds() {
+        RegionBoundingRectangle rbr = new RegionBoundingRectangle(4887, 6639);
+        BlockAlignedBoundingRectangle bbr = rbr.asBlockBounds();
+        assertEquals(512, bbr.getWidthBlockXZ());
+        assertEquals(4887 * 32 * 16, bbr.getMinBlockX());
+        assertEquals(6639 * 32 * 16, bbr.getMinBlockZ());
+        assertEquals(4888 * 32 * 16, bbr.getMaxBlockX());
+        assertEquals(6640 * 32 * 16, bbr.getMaxBlockZ());
+    }
 }

@@ -102,9 +102,13 @@ public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
         return (bin >= 0 ? minBlockZ : maxBlockZ) + bin;
     }
 
+    public BlockAlignedBoundingRectangle asBlockBounds() {
+        return new BlockAlignedBoundingRectangle(getMinBlockX(), getMinBlockZ(), getWidthBlockXZ());
+    }
+
     @Override
     public String toString() {
-        return String.format("chunks[%d %d to %d %d]",
-                getMinChunkX(), getMinChunkZ(), getMaxChunkX() - 1, getMaxChunkZ() - 1);
+        return String.format("chunks[%d..%d, %d..%d]",
+                getMinChunkX(), getMaxChunkX() - 1, getMinChunkZ(), getMaxChunkZ() - 1);
     }
 }

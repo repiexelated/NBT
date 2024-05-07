@@ -55,4 +55,20 @@ public class ChunkBoundingRectangleTest extends TestCase {
         assertFalse(cbr.containsChunk(-1, 2));
         assertFalse(cbr.containsChunk(2, 5));
     }
+
+    public void testAsBlockBounds() {
+        ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(4887, 6639);
+        assertEquals(16, cbr.getWidthBlockXZ());
+        assertEquals(4887 * 16, cbr.getMinBlockX());
+        assertEquals(6639 * 16, cbr.getMinBlockZ());
+        assertEquals(4888 * 16, cbr.getMaxBlockX());
+        assertEquals(6640 * 16, cbr.getMaxBlockZ());
+
+        BlockAlignedBoundingRectangle bbr = cbr.asBlockBounds();
+        assertEquals(16, bbr.getWidthBlockXZ());
+        assertEquals(4887 * 16, bbr.getMinBlockX());
+        assertEquals(6639 * 16, bbr.getMinBlockZ());
+        assertEquals(4888 * 16, bbr.getMaxBlockX());
+        assertEquals(6640 * 16, bbr.getMaxBlockZ());
+    }
 }
