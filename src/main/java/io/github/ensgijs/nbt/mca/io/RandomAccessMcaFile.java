@@ -295,7 +295,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     /**
      * Compacts the chunk data in the mca file by removing unused file sectors. This class will attempt to reuse any
      * free space within the chunk data as you write chunks, there's no need to call this method except before/during
-     * close.</p>
+     * close.
      * <p>If you called {@link #removeChunk(int)} this is the method that will actually remove that chunk data from the
      * file and cause the file to shrink in size.
      * Note that there are other actions which can introduce unused sectors in the mca file - for example if you
