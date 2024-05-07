@@ -67,4 +67,12 @@ public final class LoadFlags {
 	 * any tag processing.
 	 */
 	public static final long RAW                    = 0x8000_0000_0000_0000L;
+
+	public static String toHexString(long flags) {
+		return String.format("0x%04X_%04X_%04X_%04X",
+				flags >>> 48,
+				(flags >>> 32) & 0xFFFF,
+				(flags >>> 16) & 0xFFFF,
+				flags & 0xFFFF);
+	}
 }
