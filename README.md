@@ -1,10 +1,64 @@
 # NBT
-!!! THIS FORK IS UNDER HEAVY DEVELOPMENT AND IS NOT YET READY FOR CONSUMPTION - May 2024!!!
-
 <!-- [![Build Status](https://travis-ci.org/Querz/NBT.svg?branch=master)](https://travis-ci.org/Querz/NBT) [![Coverage Status](https://img.shields.io/coveralls/github/Querz/NBT/master.svg)](https://coveralls.io/github/Querz/NBT?branch=master) [![Release](https://jitpack.io/v/Querz/NBT.svg)](https://jitpack.io/#Querz/NBT) -->
-#### A java implementation of the [NBT protocol](https://minecraft.gamepedia.com/NBT_format) for Minecraft Java Edition.
+A java implementation of the [NBT protocol](https://minecraft.gamepedia.com/NBT_format) for Minecraft Java Edition.
+
+**!!! THIS FORK IS UNDER HEAVY DEVELOPMENT - May 2024!!!**
+
+But, it is ready for early adopters!
+
+This library includes a rich [NBT](https://minecraft.gamepedia.com/NBT_format) experience and powerful tools
+for working with .mca files. The NBT portion is largely stable while the mca library is still going through heavy
+iteration.
+
+#### Highlights of the NBT library
+* [NbtPath](src/main/java/io/github/ensgijs/nbt/query/NbtPath.java) Allows you to easily get and put nested tags.
+* [TextNbtHelpers](src/main/java/io/github/ensgijs/nbt/io/TextNbtHelpers.java) Utilities for reading and writing text nbt data - with pretty printing! Yes, pretty printed text nbt data is also parseable.
+* [BinaryNbtHelpers](src/main/java/io/github/ensgijs/nbt/io/BinaryNbtHelpers.java) Utilities for working with binary nbt files, compressed or uncompressed.
+
+#### Highlights of the MCA library
+* Version support from Minecraft Java 1.9.0 to 1.20.5 (no Bedrock support currently or planed at this time).
+  * [DataVersion](src/main/java/io/github/ensgijs/nbt/mca/DataVersion.java) nearly complete data version to minecraft version mapping and detection back to 1.9.0.
+* Rich javadocs on most classes and methods.
+* Excellent code coverage and extensive unit testing as well as integration testing for multiple Minecraft versions see [test resources](src/test/resources)
+  * _There's always room for improvement of the richness of integration data samples - some of the samples are a little less interesting than I would prefer._
+* Supports editing of non-vanilla world files without data loss.
+* Support for terrain (region), entities, and poi mca files - the various chunk class types are due for a heavy refactor, and I plan to add an abstraction layer to wrap all 3 mca/chunk types to provide a more seamless processing / editing experience.
+* Safely relocate (move) chunks - all chunk implementations fully support being moved to a new location. All contents are updated to exist in the new chunk location. This feature is the primary reason I dusted off this project after 3 years and is well tested and very ready for consumption.
+  * [RegionFileRelocator](src/main/java/io/github/ensgijs/nbt/mca/io/RegionFileRelocator.java) relocate entire region files.
+* Multiple options for reading and writing chunk data to .mca files using one of the following classes.
+  * [RandomAccessMcaFile](src/main/java/io/github/ensgijs/nbt/mca/io/RandomAccessMcaFile.java) read and write chunks with minimal memory overhead.
+  * [McaFileChunkIterator](src/main/java/io/github/ensgijs/nbt/mca/io/McaFileChunkIterator.java) iterate through the chunks in an mca file one after the other, again keeping memory overhead down.
+  * [McaFileStreamingWriter](src/main/java/io/github/ensgijs/nbt/mca/io/McaFileStreamingWriter.java) write an entire mca file one chunk at a time.
+* [PalettizedCuboid](src/main/java/io/github/ensgijs/nbt/mca/util/PalettizedCuboid.java) powerful class for working with block and biome palettes. This class currently only supports MC 1.17 and above palettes; I plan to add block and biome child classes to improve usability.
+
+
+#### How to get started with 0.1-SNAPSHOT
+This package is not yet published to a public repository - but using it from a local build is easy!
+
+Download the source, open the project in your IDE of choice (Intellij, etc), run the gradle rule
+`gradle publishToMavenLocal` to build the source and stash the 0.1-SNAPSHOT in your local maven cache.
+
+Gradle:
+```
+dependencies {
+	...
+	implementation 'io.github.ensgijs:ens-nbt:0.1-SNAPSHOT'
+}
+```
+
+Maven:
+```
+<dependency>
+    <groupId>io.github.ensgijs</groupId>
+    <artifactId>ens-nbt</artifactId>
+    <version>0.1-SNAPSHOT</version>
+    <scope>compile</scope>
+</dependency>
+```
+
+
 ---
-### Specification
+### NBT Specification
 According to the [specification](https://minecraft.gamepedia.com/NBT_format), there are currently 13 different types of tags:
 
 | Tag class    | Superclass | ID | Payload |
@@ -27,6 +81,7 @@ According to the [specification](https://minecraft.gamepedia.com/NBT_format), th
 
 * The maximum depth of the NBT structure is 512. If the depth exceeds this restriction during serialization, deserialization or String conversion, a `MaxDepthReachedException` is thrown. This usually happens when a circular reference exists in the NBT structure. The NBT specification does not allow circular references, as there is no tag to represent this.
 
+<!--
 ### Add the library as a dependency using Gradle:
 Add Jitpack to your `repositories`:
 ```
@@ -152,20 +207,4 @@ mcaFile.cleanupPalettesAndBlockStates();
 chunk.cleanupPalettesAndBlockStates();
 section.cleanupPaletteAndBlockStates();
 ```
-
-## TODO
-
-### 1.18
-- biome pallets moved into section
-
-### MCA
-- Make poi structure respect RAW reads and check behavior of LoadData not including poi
-- Add unit tests for entities chunks read RAW and read without ENTITIES LoadData flag
-- Add helper to EntityFactory taking a ListTag<CompoundTag> that returns a list - and its symmetrical counterpart
-- unit test IntPointXZ and IntPointXYZ
-- Update readme
-  - about entities and poi support
-  - working with the entity factory
-  - working with the mca factory
-- Add move region - akin to move chunk
-- support "extra" tags for full non-vanilla read/write idempotency support
+-->
