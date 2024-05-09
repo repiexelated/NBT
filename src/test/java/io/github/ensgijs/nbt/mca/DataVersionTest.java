@@ -1,8 +1,28 @@
 package io.github.ensgijs.nbt.mca;
 
-import java.util.HashSet;
-import java.util.Set;
+import io.github.ensgijs.nbt.io.NamedTag;
+import io.github.ensgijs.nbt.io.TextNbtDeserializer;
+import io.github.ensgijs.nbt.io.TextNbtHelpers;
+import io.github.ensgijs.nbt.io.TextNbtParser;
+import io.github.ensgijs.nbt.query.NbtPath;
+import io.github.ensgijs.nbt.tag.CompoundTag;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class DataVersionTest extends McaTestCase {
     private static final Pattern ALLOWED_ENUM_DESCRIPTION_PATTERN = Pattern.compile("^(?:FINAL|\\d{2}w\\d{2}[a-z]|CT\\d+[a-z]?|(?:XS|PRE|RC)\\d+|)");
@@ -110,5 +130,110 @@ public class DataVersionTest extends McaTestCase {
     public void testNext() {
         assertSame(DataVersion.JAVA_1_9_1, DataVersion.JAVA_1_9_1_PRE3.next());
         assertNull(DataVersion.values()[DataVersion.values().length - 1].next());
+    }
+
+    public void testFetchMissingDataVersionInformation() throws IOException {
+        Path minecraftVersionsDirectory = Paths.get(System.getenv("APPDATA"), ".minecraft", "versions");
+        if (!minecraftVersionsDirectory.toFile().exists()) {
+            // probably not on Windows
+            return;
+        }
+        // 1: weekly
+        // 2: minor
+        // 3: patch?
+        // 4: descriptor? (pre#, rc#, etc)
+        final Pattern vanillaVersionPattern = Pattern.compile("(\\d{2}w\\d{2}[a-z])|1[.](\\d+)(?:[.](\\d+))?(?:-(.+))?");
+        final String mcVerRootStr = minecraftVersionsDirectory.toFile().getAbsolutePath();
+//        CompoundTag versionManifest = TextNbtParser.parseInline(Files.readString(Paths.get(minecraftVersionsDirectory.toString(), "version_manifest_v2.json")));
+//        System.out.println(TextNbtHelpers.toTextNbt(versionManifest, true, false));
+        record NewDataVersion(int dataVersion, String enumDef) {}
+        List<NewDataVersion> newDataVersionDefs = new ArrayList<>();
+        for (String version : minecraftVersionsDirectory.toFile().list()) {
+            Matcher m = vanillaVersionPattern.matcher(version);
+            if (!m.matches())
+                continue;
+            if (Paths.get(mcVerRootStr, version).toFile().isDirectory()) {
+                DataVersion dv = DataVersion.find(version);
+                if (dv == null) {
+                    File jarFile = Paths.get(mcVerRootStr, version, version + ".jar").toFile();
+                    if (!jarFile.exists()) {
+                        fetchJar(mcVerRootStr, version);
+                    }
+                    ZipFile zip = new ZipFile(jarFile);
+                    ZipEntry ze = zip.getEntry("version.json");
+                    if (ze == null) {
+                        System.err.println("Didn't find version.json file in " + jarFile.toPath());
+                        continue;
+                    }
+                    NamedTag versionInfo = new TextNbtDeserializer().fromStream(zip.getInputStream(ze));
+                    int dataVersion = ((CompoundTag) versionInfo.getTag()).getInt("world_version");
+                    StringBuilder sb = new StringBuilder("JAVA_1_");
+                    StringBuilder sbArgs = new StringBuilder("(").append(dataVersion);
+                    String comment = "";
+
+                    if (m.group(1) != null) {  // weekly
+                        DataVersion nearest = DataVersion.bestFor(dataVersion);
+                        if (nearest != null) nearest = nearest.next();
+                        if (nearest != null) {
+                            sb.append(nearest.minor()).append('_').append(nearest.patch());
+                            sbArgs.append(", ").append(nearest.minor()).append(", ").append(nearest.patch());
+                            comment += "  // TODO: verify minor and patch versions are correct";
+                        } else {
+                            sb.append("?_?");
+                            comment += "  // TODO: determine minor and patch versions";
+                        }
+                        sb.append('_').append(m.group(1).toUpperCase());
+                        sbArgs.append(", ").append('"').append(m.group(1)).append('"');
+                    } else {
+                        sb.append(m.group(2));
+                        sbArgs.append(", ").append(m.group(2));
+                        sb.append('_');
+                        if (m.group(3) != null) {
+                            sb.append(m.group(3));
+                            sbArgs.append(", ").append(m.group(3));
+                        } else {
+                            sb.append(0);
+                            sbArgs.append(", ").append(0);
+                        }
+                        if (m.group(4) != null) {  // RC, PRE, etc
+                            sb.append('_').append(m.group(4).toUpperCase());
+                            sbArgs.append(", ").append('"').append(m.group(4).toUpperCase()).append('"');
+                        }
+                    }
+                    sbArgs.append("),");
+                    sb.append(sbArgs).append(comment);
+                    newDataVersionDefs.add(new NewDataVersion(dataVersion, sb.toString()));
+                }
+            }
+        }
+        if (!newDataVersionDefs.isEmpty()) {
+            newDataVersionDefs.sort(Comparator.comparingInt(a -> a.dataVersion));
+            for (var dv : newDataVersionDefs) {
+                System.out.println(dv.enumDef);
+            }
+            fail("Missing DataVersion's found! Please update DataVersion enums");
+        }
+    }
+
+    private void fetchJar(String mcVerRootStr, String version) throws IOException {
+        URL url = getClientJarUrl(Paths.get(mcVerRootStr, version, version + ".json"));
+        System.out.println("Downloading " + version + ".jar from " + url);
+        ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+        FileOutputStream fileOutputStream = new FileOutputStream(Paths.get(mcVerRootStr, version, version + ".jar").toFile());
+        FileChannel fileChannel = fileOutputStream.getChannel();
+        fileChannel.transferFrom(readableByteChannel, 0, 100 * (long) Math.pow(2, 20) /*MB*/);
+    }
+
+    private URL getClientJarUrl(Path versionJsonPath) throws IOException {
+        String blob = Files.readString(versionJsonPath);
+        int start = blob.indexOf('{', blob.indexOf("\"downloads\""));
+        int brackets = 1;
+        int end;
+        for (end = start + 1; end < blob.length() && brackets > 0; end++) {
+            char c = blob.charAt(end);
+            if (c == '{') brackets ++;
+            if (c == '}') brackets --;
+        }
+        return new URL(NbtPath.of("client.url").getString(TextNbtParser.parseInline(blob.substring(start, end))));
     }
 }

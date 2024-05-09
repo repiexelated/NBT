@@ -503,10 +503,29 @@ public enum DataVersion {
     JAVA_1_20_2_RC1(3576, 20, 2, "RC1"),
     JAVA_1_20_2_RC2(3577, 20, 2, "RC2"),
     JAVA_1_20_2(3578, 20, 2),  // fully complete list up to here
+    JAVA_1_20_3_23W42A(3684, 20, 3, "23w42a"),
+    JAVA_1_20_3_23W43A(3686, 20, 3, "23w43a"),
+    JAVA_1_20_3_23W43B(3687, 20, 3, "23w43b"),
+    JAVA_1_20_3_23W44A(3688, 20, 3, "23w44a"),
+    JAVA_1_20_3_RC1(3697, 20, 3, "RC1"),
     JAVA_1_20_3(3698, 20, 3),
     JAVA_1_20_4(3700, 20, 4),
+    JAVA_1_20_5_23W51B(3802, 20, 5, "23w51b"),
+    JAVA_1_20_5_24W03B(3805, 20, 5, "24w03b"),
+    JAVA_1_20_5_24W04A(3806, 20, 5, "24w04a"),
+    JAVA_1_20_5_24W05B(3811, 20, 5, "24w05b"),
+    JAVA_1_20_5_24W06A(3815, 20, 5, "24w06a"),
+    JAVA_1_20_5_24W09A(3819, 20, 5, "24w09a"),
+    JAVA_1_20_5_24W12A(3824, 20, 5, "24w12a"),
+    JAVA_1_20_5_PRE1(3829, 20, 5, "PRE1"),
+    JAVA_1_20_5_PRE2(3830, 20, 5, "PRE2"),
+    JAVA_1_20_5_PRE3(3831, 20, 5, "PRE3"),
+    JAVA_1_20_5_PRE4(3832, 20, 5, "PRE4"),
+    JAVA_1_20_5_RC2(3835, 20, 5, "RC2"),
     JAVA_1_20_5(3837, 20, 5),
-    JAVA_1_20_6_RC1(3838, 20, 6, "RC1");
+    JAVA_1_20_6_RC1(3838, 20, 6, "RC1"),
+    JAVA_1_20_6(3839, 20, 6),
+    JAVA_1_20_7_24W18A(3940, 20, 7, "24w18a");
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
@@ -514,8 +533,10 @@ public enum DataVersion {
     private final int minor;
     private final int patch;
     private final boolean isFullRelease;
+    private final boolean isWeeklyRelease;
     private final String buildDescription;
     private final String str;
+    private final String simpleStr;
 
     static {
         // enum is maintained in order with a unit test to enforce the convention - so no need to sort
@@ -546,6 +567,7 @@ public enum DataVersion {
         this.isFullRelease = buildDescription == null || "FINAL".equalsIgnoreCase(buildDescription);
         if (!isFullRelease && buildDescription.isEmpty())
             throw new IllegalArgumentException("buildDescription required for non-full releases");
+        this.isWeeklyRelease = buildDescription != null && buildDescription.length() >= 5 && buildDescription.charAt(2) == 'w';
         this.id = id;
         this.minor = minor;
         this.patch = patch;
@@ -559,6 +581,20 @@ public enum DataVersion {
         } else {
             this.str = name();
         }
+
+        StringBuilder simpleStrBuilder = new StringBuilder();
+        if (isWeeklyRelease) {
+            simpleStrBuilder.append(buildDescription);
+        } else {
+            simpleStrBuilder.append("1.").append(minor);
+            if (patch != 0) {
+                simpleStrBuilder.append('.').append(patch);
+            }
+            if (buildDescription != null) {
+                simpleStrBuilder.append('-').append(buildDescription.toLowerCase());
+            }
+        }
+        simpleStr = simpleStrBuilder.toString();
     }
 
     public int id() {
@@ -592,6 +628,10 @@ public enum DataVersion {
      */
     public boolean isFullRelease() {
         return isFullRelease;
+    }
+
+    public boolean isWeeklyRelease() {
+        return isWeeklyRelease;
     }
 
     /**
@@ -636,6 +676,15 @@ public enum DataVersion {
     }
 
     /**
+     * @param simpleVersionStr such as "1.12", "21w13a", "1.19.1-pre3"
+     * @return exact match or null
+     */
+    public static DataVersion find(String simpleVersionStr) {
+        final String seeking = simpleVersionStr.toLowerCase();
+        return Arrays.stream(values()).filter(v -> v.simpleStr.equals(seeking)).findFirst().orElse(null);
+    }
+
+    /**
      * @return The previous known data version or null if there is none.
      */
     public DataVersion previous() {
@@ -665,6 +714,10 @@ public enum DataVersion {
     @Override
     public String toString() {
         return str;
+    }
+
+    public String toSimpleString() {
+        return simpleStr;
     }
 
     /**
