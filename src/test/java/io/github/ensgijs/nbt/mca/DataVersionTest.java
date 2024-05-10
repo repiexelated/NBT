@@ -142,10 +142,31 @@ public class DataVersionTest extends McaTestCase {
         // 2: minor
         // 3: patch?
         // 4: descriptor? (pre#, rc#, etc)
-        final Pattern vanillaVersionPattern = Pattern.compile("(\\d{2}w\\d{2}[a-z])|1[.](\\d+)(?:[.](\\d+))?(?:-(.+))?");
+        final Pattern vanillaVersionPattern = Pattern.compile("^(?:(\\d{2}w\\d{2}[a-z])|1[.](\\d+)(?:[.](\\d+))?(?:-(.+))?)$");
+        final var isSaneVersionName = vanillaVersionPattern.asPredicate();
         final String mcVerRootStr = minecraftVersionsDirectory.toFile().getAbsolutePath();
-//        CompoundTag versionManifest = TextNbtParser.parseInline(Files.readString(Paths.get(minecraftVersionsDirectory.toString(), "version_manifest_v2.json")));
+
+        // phase 1 - scan version manifest, download version json files for unknown versions
+        CompoundTag versionManifest = TextNbtParser.parseInline(Files.readString(Paths.get(minecraftVersionsDirectory.toString(), "version_manifest_v2.json")));
 //        System.out.println(TextNbtHelpers.toTextNbt(versionManifest, true, false));
+        for (CompoundTag versionTag : versionManifest.getCompoundList("versions")) {
+            String version = versionTag.getString("id");
+            if ("1.9".equals(version)) {
+                break;  // 1.9 is about as far back as data versions exist
+            }
+            if (DataVersion.find(version) != null || !isSaneVersionName.test(version))
+                continue;  // we already know about this version - or it's some crazy thing like "1.RV-Pre1"
+
+            File versionFolder = Paths.get(mcVerRootStr, version).toFile();
+            if (!versionFolder.exists()) {
+                versionFolder.mkdirs();
+                URL url = new URL(versionTag.getString("url"));
+                System.out.println("Downloading " + version + ".json from " + url);
+                downloadFile(url, Paths.get(mcVerRootStr, version, version + ".json").toFile());
+            }
+        }
+
+        // phase 2 - download client jars, extract version.json info, build missing DataVersion enums.
         record NewDataVersion(int dataVersion, String enumDef) {}
         List<NewDataVersion> newDataVersionDefs = new ArrayList<>();
         for (String version : minecraftVersionsDirectory.toFile().list()) {
@@ -157,7 +178,9 @@ public class DataVersionTest extends McaTestCase {
                 if (dv == null) {
                     File jarFile = Paths.get(mcVerRootStr, version, version + ".jar").toFile();
                     if (!jarFile.exists()) {
-                        fetchJar(mcVerRootStr, version);
+                        URL url = getClientJarUrl(Paths.get(mcVerRootStr, version, version + ".json"));
+                        System.out.println("Downloading " + version + ".jar from " + url);
+                        downloadFile(url, Paths.get(mcVerRootStr, version, version + ".jar").toFile());
                     }
                     ZipFile zip = new ZipFile(jarFile);
                     ZipEntry ze = zip.getEntry("version.json");
@@ -215,13 +238,11 @@ public class DataVersionTest extends McaTestCase {
         }
     }
 
-    private void fetchJar(String mcVerRootStr, String version) throws IOException {
-        URL url = getClientJarUrl(Paths.get(mcVerRootStr, version, version + ".json"));
-        System.out.println("Downloading " + version + ".jar from " + url);
+    private void downloadFile(URL url, File saveToFile) throws IOException {
         ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-        FileOutputStream fileOutputStream = new FileOutputStream(Paths.get(mcVerRootStr, version, version + ".jar").toFile());
+        FileOutputStream fileOutputStream = new FileOutputStream(saveToFile);
         FileChannel fileChannel = fileOutputStream.getChannel();
-        fileChannel.transferFrom(readableByteChannel, 0, 100 * (long) Math.pow(2, 20) /*MB*/);
+        fileChannel.transferFrom(readableByteChannel, 0, /* 100MB max */ 100 * (long) Math.pow(2, 20));
     }
 
     private URL getClientJarUrl(Path versionJsonPath) throws IOException {
