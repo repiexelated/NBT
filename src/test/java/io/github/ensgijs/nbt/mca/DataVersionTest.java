@@ -8,7 +8,6 @@ import io.github.ensgijs.nbt.query.NbtPath;
 import io.github.ensgijs.nbt.tag.CompoundTag;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -132,6 +131,9 @@ public class DataVersionTest extends McaTestCase {
         assertNull(DataVersion.values()[DataVersion.values().length - 1].next());
     }
 
+    // Note that while this test takes a lot of the work out of keeping DataVersions updated it
+    // is limited by what Mojang puts into the version manifest. Some versions, it appears, don't
+    // make it into the manifest such as the combat test builds and other experimental builds.
     public void testFetchMissingDataVersionInformation() throws IOException {
         Path minecraftVersionsDirectory = Paths.get(System.getenv("APPDATA"), ".minecraft", "versions");
         if (!minecraftVersionsDirectory.toFile().exists()) {

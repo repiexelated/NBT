@@ -7,12 +7,19 @@ import java.util.Comparator;
 // table of versions can also be found on https://minecraft.fandom.com/wiki/Data_version#List_of_data_versions
 // google sheet to help generate enum values https://docs.google.com/spreadsheets/d/1VVGUPe9sfsd3rsFYcBGDnt1bTifBh3dUkKV9vQvNWQY
 //   - paste rows from the fandom table into the sheet and sort ascending by data version (if you don't sort it the mc version WILL BE WRONG!)
+//
+// As the wiki has been lacking in freshness lately the test DataVersionTest#testFetchMissingDataVersionInformation
+// will help keep this enum updated for all official builds - which may exclude experimental builds, but it sure
+// beats having to farm the data by hand.
 
 /**
  * List of MC versions and MCA data versions back to 1.9.0
  * The set of non-full release versions does not need to be the complete set of all versions - only those
  * which introduce changes to the MCA data structure are useful. BUT - we humans do love completeness
  * and completeness would be useful for map viewers / editors.
+ * <p>
+ *     TODO: weekly builds don't really fit with having a version but it's annoying to not have a version too - what to do?
+ * </p>
  */
 public enum DataVersion {
     // Kept in ASC order (unit test enforced)
