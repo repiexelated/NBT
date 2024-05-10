@@ -153,8 +153,8 @@ public class DataVersionTest extends McaTestCase {
 //        System.out.println(TextNbtHelpers.toTextNbt(versionManifest, true, false));
         for (CompoundTag versionTag : versionManifest.getCompoundList("versions")) {
             String version = versionTag.getString("id");
-            if ("1.9".equals(version)) {
-                break;  // 1.9 is about as far back as data versions exist
+            if ("18w47b".equals(version)) {  // the version.json file was added to the client/server jars here
+                break;  // 1.9 is about as far back as the data version concept exists
             }
             if (DataVersion.find(version) != null || !isSaneVersionName.test(version))
                 continue;  // we already know about this version - or it's some crazy thing like "1.RV-Pre1"
