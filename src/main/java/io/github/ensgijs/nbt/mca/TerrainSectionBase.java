@@ -1,6 +1,8 @@
 package io.github.ensgijs.nbt.mca;
 
 import io.github.ensgijs.nbt.io.TextNbtParser;
+import io.github.ensgijs.nbt.mca.util.VersionAware;
+import io.github.ensgijs.nbt.query.NbtPath;
 import io.github.ensgijs.nbt.tag.*;
 import io.github.ensgijs.nbt.mca.util.PalettizedCuboid;
 
@@ -24,13 +26,15 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
     protected byte[] legacyBlockDataValues;
 
     /**
-     * Only populated for MC version &gt;= 1.13; note bit packing changed in JAVA_1_16_20W17A
+     * Only populated for MC version &gt;= JAVA_1_13_17W47A; note bit packing changed in JAVA_1_16_20W17A
      * @see PalettizedCuboid
+     * @since {@link DataVersion#JAVA_1_13_17W47A}
      */
     protected CompoundTag blockStatesTag;
     /**
-     * Only populated for MC version &gt;= JAVA_1_18_21W39A (~ 1.18 pre1)
+     * Only populated for MC version &gt;= JAVA_1_18_21W37A (~ 1.18 pre1)
      * @see PalettizedCuboid
+     * @since {@link DataVersion#JAVA_1_18_21W37A}
      */
     protected CompoundTag biomesTag;
 
@@ -57,9 +61,9 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
         sectionY = data.getNumber("Y").byteValue();
 
         if ((loadFlags & BIOMES) != 0) {
-            // Prior to JAVA_1_18_21W39A biomes were stored at the chunk level in a ByteArrayTag and used fixed ID's
+            // Prior to JAVA_1_18_21W37A biomes were stored at the chunk level in a ByteArrayTag and used fixed ID's
             // Currently they are stored in a palette object at the section level
-            if (dataVersion >= JAVA_1_18_21W39A.id()) {
+            if (dataVersion >= JAVA_1_18_21W37A.id()) {
                 biomesTag = data.getCompoundTag("biomes");
             }
         }
@@ -70,13 +74,13 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
         if ((loadFlags & BLOCK_STATES) != 0) {
             // Block palettes were added in 1.13 - prior to this the "Blocks" ByteArrayTag was used with fixed id's
             // In JAVA_1_16_20W17A palette data bit packing scheme changed
-            // In JAVA_1_18_21W39A the section tag structure changed significantly and 'BlockStates' and 'Palette' were moved inside 'block_states' and renamed.
-            if (dataVersion <= JAVA_1_12_2.id()) {
+            // In JAVA_1_18_21W37A the section tag structure changed significantly and 'BlockStates' and 'Palette' were moved inside 'block_states' and renamed.
+            if (dataVersion < JAVA_1_13_17W47A.id()) {
                 ByteArrayTag legacyBlockIds = data.getByteArrayTag("Blocks");
                 if (legacyBlockIds != null) this.legacyBlockIds = legacyBlockIds.getValue();
                 ByteArrayTag legacyBlockDataValues = data.getByteArrayTag("Data");
                 if (legacyBlockDataValues != null) this.legacyBlockDataValues = legacyBlockDataValues.getValue();
-            } else if (dataVersion <= JAVA_1_18_21W38A.id()) {
+            } else if (dataVersion <= JAVA_1_18_21W37A.id()) {
                 if (data.containsKey("Palette")) {
                     ListTag<CompoundTag> palette = data.getListTag("Palette").asCompoundTagList();
                     LongArrayTag blockStates = data.getLongArrayTag("BlockStates");  // may be null
@@ -100,14 +104,14 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
         blockLight = createBlockLightBuffer();
         skyLight = createSkyLightBuffer();
 
-        if (dataVersion > JAVA_1_12_2.id()) {
+        if (dataVersion >= JAVA_1_13_17W47A.id()) {
             // blockStatesTag normalized to 1.18+
             blockStatesTag = DEFAULT_BLOCK_SATES_TAG.clone();
         } else {
             legacyBlockIds = new byte[2048];
             legacyBlockDataValues = new byte[2048];
         }
-        if (dataVersion >= JAVA_1_18_21W39A.id()) {
+        if (dataVersion >= JAVA_1_18_21W37A.id()) {
             biomesTag = DEFAULT_BIOMES_TAG.clone();
         }
     }
@@ -161,19 +165,27 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
     }
 
     public TerrainSectionBase setLegacyBlockDataValues(byte[] legacyBlockDataValues) {
-        // TODO: Unsure when exactly in 1.13 development "Blocks" and "Data" were replaced with block palette but 1.12.2 was pre block palette era.
-        if (dataVersion >= JAVA_1_13_17W43A.id()) {
-            throw new VersionLacksSupportException(dataVersion, null, JAVA_1_13_17W43A, "legacyBlockDataValues");
+        if (dataVersion >= JAVA_1_13_17W47A.id()) {
+            throw new VersionLacksSupportException(dataVersion, null, JAVA_1_13_17W47A.previous(), "legacyBlockDataValues");
         }
         this.legacyBlockDataValues = legacyBlockDataValues;
         return this;
     }
 
+    /**
+     * @since {@link DataVersion#JAVA_1_13_17W47A}
+     */
     public CompoundTag getBlockStatesTag() {
         return blockStatesTag;
     }
 
+    /**
+     * @since {@link DataVersion#JAVA_1_13_17W47A}
+     */
     public TerrainSectionBase setBlockStatesTag(CompoundTag blockStatesTag) {
+        if (dataVersion < JAVA_1_13_17W47A.id()) {
+            throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "blockStatesTag");
+        }
         this.blockStatesTag = blockStatesTag;
         return this;
     }
@@ -197,8 +209,8 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 
     /** unsupported if MC version &gt; 1.12.2 */
     public TerrainSectionBase setLegacyBlockIds(byte[] legacyBlockIds) {
-        if (dataVersion <= JAVA_1_12_2.id())
-            throw new VersionLacksSupportException(dataVersion, JAVA_1_12_2.next(), null,
+        if (dataVersion >= JAVA_1_13_17W47A.id())
+            throw new VersionLacksSupportException(dataVersion, null, JAVA_1_13_17W47A.previous(),
                     "Legacy block id usage was replaced with block palettes in MC 1.13!");
         this.legacyBlockIds = legacyBlockIds;
         return this;
@@ -214,9 +226,9 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 
     /** unsupported if MC version &gt; 1.12.2 */
     public TerrainSectionBase legacyBlockDataValues(byte[] legacyBlockDataValues) {
-        if (dataVersion <= JAVA_1_12_2.id())
-            // TODO: I'm not 100% sure what block "Data" is - this message is making assumptions
-            throw new UnsupportedOperationException("Legacy block data usage was replaced with block palettes in MC 1.13!");
+        if (dataVersion >= JAVA_1_13_17W47A.id())
+            throw new VersionLacksSupportException(dataVersion, null, JAVA_1_13_17W47A.previous(),
+                    "Legacy block id usage was replaced with block palettes in MC 1.13!");
         this.legacyBlockDataValues = legacyBlockDataValues;
         return this;
     }
@@ -229,14 +241,14 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
         checkY(sectionY);
         this.data = super.updateHandle();
         data.putByte("Y", (byte) sectionY);
-        if (dataVersion <= JAVA_1_12_2.id()) {
+        if (dataVersion < JAVA_1_13_17W47A.id()) {
             if (legacyBlockIds != null) {
                 data.putByteArray("Blocks", legacyBlockIds);
             }
             if (legacyBlockDataValues != null) {
                 data.putByteArray("Data", legacyBlockDataValues);
             }
-        } else if (dataVersion <= JAVA_1_18_21W38A.id()) {
+        } else if (dataVersion < JAVA_1_18_21W37A.id()) {
             if (blockStatesTag != null) {
                 if (blockStatesTag.containsKey("palette")) {
                     data.put("Palette", blockStatesTag.getListTag("palette"));
@@ -250,7 +262,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
                 data.put("block_states", blockStatesTag);
             }
         }
-        if (biomesTag != null && dataVersion >= JAVA_1_18_21W39A.id()) {
+        if (biomesTag != null && dataVersion >= JAVA_1_18_21W37A.id()) {
             data.put("biomes", biomesTag);
         }
         if (blockLight != null) {

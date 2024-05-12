@@ -21,7 +21,7 @@ public final class EntityUtil {
         ArgValidator.requireValue(tag);
         long most;
         long least;
-        if (dataVersion >= DataVersion.JAVA_1_16_0.id()) {
+        if (dataVersion >= DataVersion.JAVA_1_16_20W12A.id()) {
             int[] bits = tag.getIntArray("UUID");
             if (bits == null || bits.length != 4) return null;
             most = ((long)bits[0] << 32) | ((long)bits[1] & 0xFFFF_FFFFL);
@@ -49,7 +49,7 @@ public final class EntityUtil {
         ArgValidator.check(!ZERO_UUID.equals(uuid), "zero uuid");
         long most = uuid.getMostSignificantBits();
         long least = uuid.getLeastSignificantBits();
-        if (dataVersion >= DataVersion.JAVA_1_16_0.id()) {
+        if (dataVersion >= DataVersion.JAVA_1_16_20W12A.id()) {
             int[] bits = new int[4];
             bits[0] = (int) (most >> 32);
             bits[1] = (int) (most & 0xFFFF_FFFFL);
