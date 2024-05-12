@@ -133,7 +133,7 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 		}
 		String s = ptr.parseSimpleString();
 		if (s.isEmpty()) {
-			throw new ParseException("expected non empty value");
+			throw ptr.parseException("expected non empty value");
 		}
 		if (FLOAT_LITERAL_PATTERN.matcher(s).matches()) {
 			return new FloatTag(Float.parseFloat(s.substring(0, s.length() - 1)));
@@ -183,7 +183,7 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 			ptr.skipWhitespace();
 			String key = ptr.currentChar() == '"' ? ptr.parseQuotedString() : ptr.parseSimpleString();
 			if (key.isEmpty()) {
-				throw new ParseException("empty keys are not allowed");
+				throw ptr.parseException("empty keys are not allowed");
 			}
 			ptr.expectChar(':');
 
@@ -229,7 +229,7 @@ public final class TextNbtParser implements MaxDepthIO, NbtInput {
 			case 'L':
 				return parseLongArrayTag();
 		}
-		throw new ParseException("invalid array type '" + arrayType + "'");
+		throw ptr.parseException("invalid array type '" + arrayType + "'");
 	}
 
 	private ByteArrayTag parseByteArrayTag() throws ParseException {
