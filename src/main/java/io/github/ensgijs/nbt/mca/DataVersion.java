@@ -321,7 +321,7 @@ public enum DataVersion {
      * <ul>
      *   <li>region: Level.CarvingMasks.AIR  &lt;ByteArrayTag&gt;</li>
      *   <li>region: Level.CarvingMasks.LIQUID  &lt;ByteArrayTag&gt;</li>
-     *   <li>region: Level.LiquidsToBeTicked  &lt;ListTag&lt;ListTag&lt;ShortTag&gt;&gt;&gt; - NOTE: JAVA_1_18_21W43A change notes make reference to this tag so IDK<</li>
+     *   <li>region: Level.LiquidsToBeTicked  &lt;ListTag&lt;ListTag&lt;ShortTag&gt;&gt;&gt; - NOTE: JAVA_1_18_21W43A change notes make reference to this tag so IDK</li>
      *   <li>region: Level.ToBeTicked  &lt;ListTag&lt;ListTag&lt;ShortTag&gt;&gt;&gt; - NOTE: JAVA_1_18_21W43A change notes make reference to this tag so IDK</li>
      * </ul>
      */
