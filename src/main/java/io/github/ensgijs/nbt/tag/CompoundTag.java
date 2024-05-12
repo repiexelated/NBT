@@ -9,6 +9,8 @@ import io.github.ensgijs.nbt.io.MaxDepthIO;
 import io.github.ensgijs.nbt.io.NamedTag;
 import io.github.ensgijs.nbt.util.ArgValidator;
 
+import static io.github.ensgijs.nbt.tag.StringTag.escapeString;
+
 public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		implements Iterable<NamedTag>, Comparable<CompoundTag>, MaxDepthIO {
 
@@ -173,6 +175,15 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 
 	public CompoundTag getCompoundTag(String key) {
 		return get(key, CompoundTag.class);
+	}
+
+	public CompoundTag getOrCreateCompoundTag(String key) {
+		CompoundTag tag = get(key, CompoundTag.class);
+		if (tag == null) {
+			tag = new CompoundTag();
+			put(key, tag);
+		}
+		return tag;
 	}
 
 	/**

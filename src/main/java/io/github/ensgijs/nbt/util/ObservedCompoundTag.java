@@ -236,6 +236,12 @@ public class ObservedCompoundTag extends CompoundTag {
         return wrappedTag.getCompoundTag(key);
     }
 
+
+    public CompoundTag getOrCreateCompoundTag(String key) {
+        readKeys.add(key);
+        return wrappedTag.getOrCreateCompoundTag(key);
+    }
+
     @Override
     public ListTag<CompoundTag> getCompoundList(String key) {
         readKeys.add(key);
