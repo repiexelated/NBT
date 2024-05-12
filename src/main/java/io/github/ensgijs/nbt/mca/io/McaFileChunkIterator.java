@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 /**
  * Iterates over the chunks in an MCA file. Note iteration is in file-order, not index-order!
  * Chunks which do not exist in the file are skipped - {@link #next()} will never return null.
+ * <p>Remember to call {@link #close()}</p>
  * @see McaFileHelpers
  * @see McaFileStreamingWriter
  */
@@ -101,8 +102,8 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
         byteBuffer.order(ByteOrder.BIG_ENDIAN);
         IntBuffer intBuffer = byteBuffer.asIntBuffer();
 
-        // read offsets
-        if (4096 != in.read(byteBuffer.array())) {
+        // read offsets - but if the file is empty don't throw
+        if (4096 != in.read(byteBuffer.array()) && this.in.pos() != 0) {
             throw new EOFException();
         }
         int populatedChunks = 0;
@@ -114,8 +115,8 @@ public class McaFileChunkIterator<T extends ChunkBase> implements ChunkIterator<
         }
         chunkMetaInfos = new ArrayList<>(populatedChunks);
 
-        // read timestamps
-        if (4096 != in.read(byteBuffer.array())) {
+        // read timestamps - but if the file is empty don't throw
+        if (4096 != in.read(byteBuffer.array()) && this.in.pos() != 0) {
             throw new EOFException();
         }
         for (int i = 0; i < 1024; i++) {
