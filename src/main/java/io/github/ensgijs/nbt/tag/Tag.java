@@ -39,20 +39,6 @@ public abstract class Tag<T> implements Cloneable {
 	 * */
 	public static final int DEFAULT_MAX_DEPTH = 512;
 
-	private static final Map<String, String> ESCAPE_CHARACTERS;
-	static {
-		final Map<String, String> temp = new HashMap<>();
-		temp.put("\\", "\\\\\\\\");
-		temp.put("\n", "\\\\n");
-		temp.put("\t", "\\\\t");
-		temp.put("\r", "\\\\r");
-		temp.put("\"", "\\\\\"");
-		ESCAPE_CHARACTERS = Collections.unmodifiableMap(temp);
-	}
-
-	private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\\\\\n\t\r\"]");
-	private static final Pattern NON_QUOTE_PATTERN = Pattern.compile("[a-zA-Z0-9_\\-+]+");
-
 	private T value;
 
 	/**
@@ -162,26 +148,4 @@ public abstract class Tag<T> implements Cloneable {
 	 * */
 	@SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
 	public abstract Tag<T> clone();
-
-	/**
-	 * Escapes a string to fit into a JSON-like string representation for Minecraft
-	 * or to create the JSON string representation of a Tag returned from {@link Tag#toString()}
-	 * @param s The string to be escaped.
-	 * @param lenient {@code true} if it should force double quotes ({@code "}) at the start and
-	 *                the end of the string.
-	 * @return The escaped string.
-	 * */
-	protected static String escapeString(String s, boolean lenient) {
-		StringBuffer sb = new StringBuffer();
-		Matcher m = ESCAPE_PATTERN.matcher(s);
-		while (m.find()) {
-			m.appendReplacement(sb, ESCAPE_CHARACTERS.get(m.group()));
-		}
-		m.appendTail(sb);
-		m = NON_QUOTE_PATTERN.matcher(s);
-		if (!lenient || !m.matches()) {
-			sb.insert(0, "\"").append("\"");
-		}
-		return sb.toString();
-	}
 }

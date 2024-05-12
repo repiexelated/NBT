@@ -18,14 +18,11 @@ import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.util.Iterator;
-import java.util.regex.Pattern;
 
 /**
  * TextNbtWriter creates a text NBT String.
  */
 public final class TextNbtWriter implements MaxDepthIO {
-
-	private static final Pattern NON_QUOTE_PATTERN = Pattern.compile("^[a-zA-Z_.+\\-]+$");
 
 	private Writer writer;
 
@@ -90,7 +87,7 @@ public final class TextNbtWriter implements MaxDepthIO {
 			writeArray(((ByteArrayTag) tag).getValue(), ((ByteArrayTag) tag).length(), "B");
 			break;
 		case StringTag.ID:
-			writer.write(escapeString(((StringTag) tag).getValue()));
+			writer.write(StringTag.escapeString(((StringTag) tag).getValue(), true));
 			break;
 		case ListTag.ID:
 			writer.write('[');
@@ -109,7 +106,7 @@ public final class TextNbtWriter implements MaxDepthIO {
 			while (iter.hasNext()) {
 				NamedTag entry = iter.next();
 				writer.write(first ? "" : ",");
-				writer.append(escapeString(entry.getName())).write(':');
+				writer.append(NamedTag.escapeName(entry.getName())).write(':');
 				writeAnything(entry.getTag(), sortCompoundTagEntries, decrementMaxDepth(maxDepth));
 				first = false;
 			}
@@ -132,22 +129,5 @@ public final class TextNbtWriter implements MaxDepthIO {
 			writer.append(i == 0 ? "" : ",").write(Array.get(array, i).toString());
 		}
 		writer.write(']');
-	}
-
-	public static String escapeString(String s) {
-		if (!NON_QUOTE_PATTERN.matcher(s).matches()) {
-			StringBuilder sb = new StringBuilder();
-			sb.append('"');
-			for (int i = 0; i < s.length(); i++) {
-				char c = s.charAt(i);
-				if (c == '\\' || c == '"') {
-					sb.append('\\');
-				}
-				sb.append(c);
-			}
-			sb.append('"');
-			return sb.toString();
-		}
-		return s;
 	}
 }

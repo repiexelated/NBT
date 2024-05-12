@@ -5,10 +5,12 @@ import io.github.ensgijs.nbt.util.ArgValidator;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class NamedTag implements Cloneable, Comparable<NamedTag> {
-	private static final Pattern NON_QUOTE_PATTERN = Pattern.compile("^[a-zA-Z0-9_.+\\-]+$");
+	private static final Pattern TAG_NAME_NON_QUOTE_PATTERN = Pattern.compile("^[a-zA-Z0-9_+\\-]+$");
+	private static final Predicate<String> IS_INTEGER_STRING = Pattern.compile("^(?:\\+|-)?\\d+$").asPredicate();
 
 	private String name;
 	private Tag<?> tag;
@@ -69,11 +71,15 @@ public class NamedTag implements Cloneable, Comparable<NamedTag> {
 	}
 
 	/**
-	 * Wraps the name in quotes if it contains anything other than ascii letters (a-z), numbers, underscore, dash, or dot.
+	 * Wraps the name in quotes if it contains anything other than ascii letters (a-z), numbers, underscore, or dash.
 	 * If name is null, then null is returned.
 	 */
 	public String getEscapedName() {
-		if (name != null && !NON_QUOTE_PATTERN.matcher(name).matches()) {
+		return escapeName(getName());
+	}
+
+	public static String escapeName(String name) {
+		if (name != null && !TAG_NAME_NON_QUOTE_PATTERN.matcher(name).matches()) {
 			StringBuilder sb = new StringBuilder();
 			sb.append('"');
 			for (int i = 0; i < name.length(); i++) {
@@ -89,19 +95,27 @@ public class NamedTag implements Cloneable, Comparable<NamedTag> {
 		return name;
 	}
 
+
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof NamedTag)) return false;
 		NamedTag other = (NamedTag) o;
-		return Objects.equals(this.name, other.name) &&
-				Objects.equals(this.tag, other.tag);
+		return Objects.equals(this.getName(), other.getName()) &&
+				Objects.equals(this.getTag(), other.getTag());
 	}
 
 	public static int compare(NamedTag o1, NamedTag o2) {
 		if (o1 == o2) return 0;
 		if (o1 == null) return -1;
 		if (o2 == null) return 1;
-		return o1.name.compareTo(o2.name);
+		String n1Lower = o1.getName().toLowerCase();
+		String n2Lower = o2.getName().toLowerCase();
+		if (IS_INTEGER_STRING.test(n1Lower) && IS_INTEGER_STRING.test(n2Lower)) {
+			return Long.compare(Long.parseLong(n1Lower), Long.parseLong(n2Lower));
+		} else {
+			int result = n1Lower.compareTo(n2Lower);
+			return result != 0 ? result : o1.getName().compareTo(o2.getName());
+		}
 	}
 
 	@Override

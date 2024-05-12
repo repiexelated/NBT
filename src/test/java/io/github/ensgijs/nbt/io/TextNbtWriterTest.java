@@ -25,6 +25,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 
 		// write string tag
 
+//		assertEquals("\"abc\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new StringTag("abc"))));
 		assertEquals("abc", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new StringTag("abc"))));
 		assertEquals("\"123\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new StringTag("123"))));
 		assertEquals("\"123.456\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new StringTag("123.456"))));
@@ -41,6 +42,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 		lt.addString("123");
 		lt.addString("");
 		assertEquals("[blah,blubb,\"123\",\"\"]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(lt, false)));
+//		assertEquals("[\"blah\",\"blubb\",\"123\",\"\"]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(lt, false)));
 
 		// write compound tag
 		CompoundTag ct = new CompoundTag();
@@ -52,6 +54,8 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
+//		String ctExpectedUnsorted = "{key:\"value\",byte:127b,array:[B;-128,0,127],list:[\"foo\",\"bar\"]}";
+//		String ctExpectedSorted = "{array:[B;-128,0,127],byte:127b,key:\"value\",list:[\"foo\",\"bar\"]}";
 		String ctExpectedUnsorted = "{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
 		String ctExpectedSorted = "{array:[B;-128,0,127],byte:127b,key:value,list:[foo,bar]}";
 		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(ct, false)));
@@ -74,35 +78,67 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
+//		String ctExpectedUnsorted =
+//				"{\n" +
+//				"  key: \"value\",\n" +
+//				"  byte: 127b,\n" +
+//				"  array: [B;\n" +
+//				"    -128,\n" +
+//				"    0,\n" +
+//				"    127\n" +
+//				"  ],\n" +
+//				"  list: [\n" +
+//				"    \"foo\",\n" +
+//				"    \"bar\"\n" +
+//				"  ]\n" +
+//				"}";
+//
+//		String ctExpectedSorted =
+//				"{\n" +
+//						"  array: [B;\n" +
+//						"    -128,\n" +
+//						"    0,\n" +
+//						"    127\n" +
+//						"  ],\n" +
+//						"  byte: 127b,\n" +
+//						"  key: \"value\",\n" +
+//						"  list: [\n" +
+//						"    \"foo\",\n" +
+//						"    \"bar\"\n" +
+//						"  ]\n" +
+//						"}";
+
 		String ctExpectedUnsorted =
-				"{\n" +
-				"  key: value,\n" +
-				"  byte: 127b,\n" +
-				"  array: [B;\n" +
-				"    -128,\n" +
-				"    0,\n" +
-				"    127\n" +
-				"  ],\n" +
-				"  list: [\n" +
-				"    foo,\n" +
-				"    bar\n" +
-				"  ]\n" +
-				"}";
+				"""
+						{
+						  key: value,
+						  byte: 127b,
+						  array: [B;
+						    -128,
+						    0,
+						    127
+						  ],
+						  list: [
+						    foo,
+						    bar
+						  ]
+						}""";
 
 		String ctExpectedSorted =
-				"{\n" +
-						"  array: [B;\n" +
-						"    -128,\n" +
-						"    0,\n" +
-						"    127\n" +
-						"  ],\n" +
-						"  byte: 127b,\n" +
-						"  key: value,\n" +
-						"  list: [\n" +
-						"    foo,\n" +
-						"    bar\n" +
-						"  ]\n" +
-						"}";
+				"""
+						{
+						  array: [B;
+						    -128,
+						    0,
+						    127
+						  ],
+						  byte: 127b,
+						  key: value,
+						  list: [
+						    foo,
+						    bar
+						  ]
+						}""";
 		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(ct)));
 		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(ct)));
 	}
@@ -126,13 +162,14 @@ public class TextNbtWriterTest extends NbtTestCase {
 
 		// write string tag + dot in name
 
-		assertEquals("plugin.setting:abc", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("abc")), false)));
-		assertEquals("plugin.setting:\"123\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("123")), false)));
-		assertEquals("plugin.setting:\"123.456\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("123.456")), false)));
-		assertEquals("plugin.setting:\"-123\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("-123")), false)));
-		assertEquals("plugin.setting:\"-1.23e14\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("-1.23e14")), false)));
-		assertEquals("plugin.setting:\"äöü\\\\\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("äöü\\")), false)));
-		assertEquals("plugin.setting:\"\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("")), false)));
+//		assertEquals("\"plugin.setting\":\"abc\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("abc")), false)));
+		assertEquals("\"plugin.setting\":abc", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("abc")), false)));
+		assertEquals("\"plugin.setting\":\"123\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("123")), false)));
+		assertEquals("\"plugin.setting\":\"123.456\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("123.456")), false)));
+		assertEquals("\"plugin.setting\":\"-123\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("-123")), false)));
+		assertEquals("\"plugin.setting\":\"-1.23e14\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("-1.23e14")), false)));
+		assertEquals("\"plugin.setting\":\"äöü\\\\\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("äöü\\")), false)));
+		assertEquals("\"plugin.setting\":\"\"", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("plugin.setting", new StringTag("")), false)));
 
 		// write list tag
 
@@ -141,6 +178,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 		lt.addString("blubb");
 		lt.addString("123");
 		lt.addString("");
+//		assertEquals("\"foo bar\":[\"blah\",\"blubb\",\"123\",\"\"]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("foo bar", lt), false)));
 		assertEquals("\"foo bar\":[blah,blubb,\"123\",\"\"]", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("foo bar", lt), false)));
 
 		// write compound tag + number as name
@@ -153,6 +191,8 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
+//		String ctExpectedUnsorted = "1:{key:\"value\",byte:127b,array:[B;-128,0,127],list:[\"foo\",\"bar\"]}";
+//		String ctExpectedSorted = "1:{array:[B;-128,0,127],byte:127b,key:\"value\",list:[\"foo\",\"bar\"]}";
 		String ctExpectedUnsorted = "1:{key:value,byte:127b,array:[B;-128,0,127],list:[foo,bar]}";
 		String ctExpectedSorted = "1:{array:[B;-128,0,127],byte:127b,key:value,list:[foo,bar]}";
 		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(new NamedTag("1", ct), false)));
@@ -161,7 +201,7 @@ public class TextNbtWriterTest extends NbtTestCase {
 		// write compound tag containing an empty string value + float looking name
 		CompoundTag ct2 = new CompoundTag();
 		ct2.put("empty", new StringTag());
-		assertEquals("1.5:{empty:\"\"}", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("1.5", ct2), false)));
+		assertEquals("\"1.5\":{empty:\"\"}", assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("1.5", ct2), false)));
 	}
 
 	public void testToTextNbt_NamedTag_prettyPrintIsDefault() {
@@ -175,34 +215,65 @@ public class TextNbtWriterTest extends NbtTestCase {
 		clt.addString("foo");
 		clt.addString("bar");
 		ct.put("list", clt);
+//		String ctExpectedUnsorted =
+//				"my-name-is: {\n" +
+//						"  key: \"value\",\n" +
+//						"  byte: 127b,\n" +
+//						"  array: [B;\n" +
+//						"    -128,\n" +
+//						"    0,\n" +
+//						"    127\n" +
+//						"  ],\n" +
+//						"  list: [\n" +
+//						"    \"foo\",\n" +
+//						"    \"bar\"\n" +
+//						"  ]\n" +
+//						"}";
+//		String ctExpectedSorted =
+//				"my-name-is: {\n" +
+//						"  array: [B;\n" +
+//						"    -128,\n" +
+//						"    0,\n" +
+//						"    127\n" +
+//						"  ],\n" +
+//						"  byte: 127b,\n" +
+//						"  key: \"value\",\n" +
+//						"  list: [\n" +
+//						"    \"foo\",\n" +
+//						"    \"bar\"\n" +
+//						"  ]\n" +
+//						"}";
+
 		String ctExpectedUnsorted =
-				"my-name-is: {\n" +
-						"  key: value,\n" +
-						"  byte: 127b,\n" +
-						"  array: [B;\n" +
-						"    -128,\n" +
-						"    0,\n" +
-						"    127\n" +
-						"  ],\n" +
-						"  list: [\n" +
-						"    foo,\n" +
-						"    bar\n" +
-						"  ]\n" +
-						"}";
+				"""
+						my-name-is: {
+						  key: value,
+						  byte: 127b,
+						  array: [B;
+						    -128,
+						    0,
+						    127
+						  ],
+						  list: [
+						    foo,
+						    bar
+						  ]
+						}""";
 		String ctExpectedSorted =
-				"my-name-is: {\n" +
-						"  array: [B;\n" +
-						"    -128,\n" +
-						"    0,\n" +
-						"    127\n" +
-						"  ],\n" +
-						"  byte: 127b,\n" +
-						"  key: value,\n" +
-						"  list: [\n" +
-						"    foo,\n" +
-						"    bar\n" +
-						"  ]\n" +
-						"}";
+				"""
+						my-name-is: {
+						  array: [B;
+						    -128,
+						    0,
+						    127
+						  ],
+						  byte: 127b,
+						  key: value,
+						  list: [
+						    foo,
+						    bar
+						  ]
+						}""";
 		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(new NamedTag("my-name-is", ct))));
 		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("my-name-is", ct))));
 	}
