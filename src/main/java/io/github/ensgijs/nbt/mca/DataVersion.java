@@ -272,6 +272,7 @@ public enum DataVersion {
     JAVA_1_16_20W17A(2529, 16, 0, "20w17a"),
     JAVA_1_16_20W18A(2532, 16, 0, "20w18a"),
     JAVA_1_16_20W19A(2534, 16, 0, "20w19a"),
+    /** The server.jar build of this version was DOA with a null pointer exception on initialization. */
     JAVA_1_16_20W20A(2536, 16, 0, "20w20a"),
     JAVA_1_16_20W20B(2537, 16, 0, "20w20b"),
     JAVA_1_16_20W21A(2554, 16, 0, "20w21a"),
@@ -551,7 +552,9 @@ public enum DataVersion {
     JAVA_1_20_5(3837, 20, 5),
     JAVA_1_20_6_RC1(3838, 20, 6, "RC1"),
     JAVA_1_20_6(3839, 20, 6),
-    JAVA_1_20_7_24W18A(3940, 20, 7, "24w18a");
+    JAVA_1_20_7_24W18A(3940, 20, 7, "24w18a"),
+    JAVA_1_20_7_24W19A(3941, 20, 7, "24w19a"),
+    JAVA_1_20_7_24W19B(3942, 20, 7, "24w19b");
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
