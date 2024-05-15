@@ -116,7 +116,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testHasChunkAbsolute() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertTrue(poiMca.hasChunkAbsolute(-77, -84));
         assertTrue(poiMca.hasChunkAbsolute(new IntPointXZ(-77, -73)));
         assertTrue(poiMca.hasChunkAbsolute(-94, -71));
@@ -131,7 +131,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testHasChunkRelative() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertTrue(poiMca.hasChunkRelative(19, 12));
         assertTrue(poiMca.hasChunkRelative(19, 23));
         assertFalse(poiMca.hasChunkRelative(0, 0));
@@ -142,7 +142,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testReadWriteReadIdempotency() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         PoiChunk chunksA[] = {
             poiMca.readAbsolute(-77, -84),
             poiMca.readAbsolute(-77, -73),
@@ -154,7 +154,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         assertEquals(0, poiMca.optimizeFile());
         poiMca.flush();
         poiMca.close();
-        poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         PoiChunk chunksB[] = {
                 poiMca.readAbsolute(-77, -84),
                 poiMca.readAbsolute(-77, -73),
@@ -171,7 +171,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testRemoveChunkAbsolute() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         assertTrue(poiMca.removeChunkAbsolute(new IntPointXZ(-77, -84)));
         assertTrue(poiMca.removeChunkAbsolute(-94, -71));
         assertTrue(poiMca.removeChunkAbsolute(-78, -70));
@@ -188,7 +188,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         assertTrue(poiMca.optimizeFile() > 0);
         poiMca.close();
 
-        poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         assertFalse(poiMca.hasChunkAbsolute(-77, -84));
         assertTrue(poiMca.hasChunkAbsolute(-77, -73));
         assertFalse(poiMca.hasChunkAbsolute(-94, -71));
@@ -200,7 +200,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testRemoveChunkRelative() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         assertTrue(poiMca.removeChunkRelative(new IntPointXZ(19, 12)));
         assertTrue(poiMca.removeChunkRelative(19, 23));
         assertFalse(poiMca.removeChunkRelative(new IntPointXZ(0, 0)));
@@ -212,14 +212,14 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testRemoveChunkRelative_outOfBoundsThrows() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertThrowsException(() -> poiMca.removeChunkRelative(32, 32), IndexOutOfBoundsException.class);
         poiMca.close();
     }
 
     public void testRemoveChunk_removingAllChunks() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         assertTrue(poiMca.removeChunkRelative(14, 29));
         assertTrue(poiMca.removeChunkAbsolute(-77, -73));
         assertTrue(poiMca.removeChunkAbsolute(-94, -71));
@@ -233,7 +233,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testChunkSectorTableToString() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertEquals(1024 - 6L, Pattern.compile("\\s----(?=\\s)").matcher(poiMca.chunkSectorTableToString()).results().count());
         poiMca.close();
 
@@ -241,7 +241,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testCanBeUsedToCreateNewMcaFile_empty() throws IOException {
         File file = getNewTmpFile("poi/r.1.2.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         assertEquals(new IntPointXZ(1, 2), poiMca.getRegionXZ());
         poiMca.touch();
         poiMca.close();
@@ -250,7 +250,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testGetChunkTimestamp() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertEquals(1713564485, poiMca.getChunkTimestampRelative(new IntPointXZ(14, 29)));
         assertEquals(1713564485, poiMca.getChunkTimestampAbsolute(new IntPointXZ(-77, -73)));
         assertEquals(-1, poiMca.getChunkTimestampAbsolute(-900, -70));  // out of bounds
@@ -262,7 +262,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testRead_indexOutOfBounds() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertThrowsException(() -> poiMca.read(-1), IndexOutOfBoundsException.class);
         assertThrowsException(() -> poiMca.read(1024), IndexOutOfBoundsException.class);
         assertThrowsException(() -> poiMca.readRelative(new IntPointXZ(0, 32)), IndexOutOfBoundsException.class);
@@ -278,9 +278,10 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         raf.close();
 
         assertEquals(2 * 4096, Files.size(file.toPath()));
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         assertThrowsException(() -> poiMca.read(0), EOFException.class);
-        assertThrowsException(poiMca::close, IOException.class);
+        assertThrowsException(poiMca::optimizeFile, IOException.class);
+        assertThrowsNoException(poiMca::close);
         assertTrue(poiMca.fileFinalized);
     }
 
@@ -294,14 +295,14 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         raf.close();
 
         assertEquals(4 * 4096, Files.size(file.toPath()));
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "r");
         assertThrowsException(() -> poiMca.read(0), CorruptMcaFileException.class);
         poiMca.close();
     }
 
     public void testWrite_chunkOutOfBoundsThrows() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         var chunk = poiMca.readAbsolute(-77, -73);
         chunk.moveChunk(0, 0, MoveChunkFlags.MOVE_CHUNK_DEFAULT_FLAGS);
         assertThrowsException(() -> poiMca.write(chunk), IndexOutOfBoundsException.class);
@@ -311,7 +312,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testWrite_chunkXzNotSetThrows() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         var chunk = new PoiChunk(TextNbtParser.parseInline("{DataVersion: 3700, Sections: {}}"));
         assertThrowsException(() -> {
             try {
@@ -326,7 +327,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testWrite_chunkWrittenForFirstTime() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/poi/r.-3.-3.mca");
-        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file);
+        var poiMca = new RandomAccessMcaFile<>(PoiChunk.class, file, "rw");
         var chunk = new PoiChunk(TextNbtParser.parseInline("{DataVersion: 3700, Sections: {}}"));
         chunk.moveChunk(-90, -70, 0);
         poiMca.write(chunk);
@@ -336,7 +337,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testWrite_chunkSizeReduced_placedInPreviousSectorAndRemainderSectorsReleased() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/region/r.-3.-3.mca");
-        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, file);
+        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, file, "rw");
         terrainMca.touch();
         final int index = McaFileBase.getChunkIndex(5, 9);
         assertEquals(0x0202, terrainMca.chunkSectors[index]);
@@ -354,7 +355,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
 
     public void testWrite_chunkSizeIncreased_placedAtEndOfFile() throws IOException {
         File file = super.copyResourceToTmp("1_20_4/region/r.-3.-3.mca");
-        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, file);
+        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, file, "rw");
         terrainMca.touch();
         final int index = McaFileBase.getChunkIndex(5, 9);
         assertEquals(0x0202, terrainMca.chunkSectors[index]);
@@ -369,6 +370,33 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         terrainMca.write(chunk);
         assertEquals(0x0C0A, terrainMca.chunkSectors[index]);
         assertEquals(SectorBlock.unpack(0x0202), terrainMca.sectorManager.freeSectors.getFirst());
+        terrainMca.close();
+    }
+
+    public void testReadOnly_writeThrows() throws IOException {
+        File file = super.copyResourceToTmp("1_20_4/region/r.-3.-3.mca");
+        RandomAccessFile raf = new RandomAccessFile(file, "rw");
+        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, raf, IntPointXZ.XZ(-3, -3), "r");
+        terrainMca.touch();
+        TerrainChunk chunk = terrainMca.readRelative(5, 9);
+        assertNotNull(chunk);
+        assertThrowsException(() -> terrainMca.write(chunk), IOException.class);
+        terrainMca.close();
+    }
+
+    public void testReadOnly_optimizeFileThrows() throws IOException {
+        File file = super.copyResourceToTmp("1_20_4/region/r.-3.-3.mca");
+        RandomAccessFile raf = new RandomAccessFile(file, "rw");
+        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, raf, IntPointXZ.XZ(-3, -3), "r");
+        assertThrowsException(() -> terrainMca.optimizeFile(), IOException.class);
+        terrainMca.close();
+    }
+
+    public void testReadOnly_flushDoesNotThrow() throws IOException {
+        File file = super.copyResourceToTmp("1_20_4/region/r.-3.-3.mca");
+        RandomAccessFile raf = new RandomAccessFile(file, "rw");
+        var terrainMca = new RandomAccessMcaFile<>(TerrainChunk.class, raf, IntPointXZ.XZ(-3, -3), "r");
+        assertThrowsNoException(terrainMca::flush);
         terrainMca.close();
     }
 }

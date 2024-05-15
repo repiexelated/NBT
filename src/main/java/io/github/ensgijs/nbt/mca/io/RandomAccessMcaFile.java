@@ -57,9 +57,13 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     protected boolean fileFinalized = false;
 
     protected long loadFlags = LoadFlags.LOAD_ALL_DATA;
-    protected boolean autoOptimizeOnClose = true;
+    protected boolean autoOptimizeOnClose = false;
     protected boolean autoUpdateHandelOnWrite = true;
     protected boolean alwaysUpdateChunkLastUpdatedTimestamp = true;
+    // TODO: use this flag to short-circuit file write operations if they are not necessary.
+    //   Currently this flag is only ever set, never cleared.
+    protected boolean isDirty = false;  // set true if any chunks were written or removed
+    protected final boolean isReadOnly;
 
     private final Stopwatch fileInitializationStopwatch = Stopwatch.createUnstarted();
     private final Stopwatch totalReadStopwatch = Stopwatch.createUnstarted();
@@ -69,67 +73,149 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     private final Stopwatch fileOptimizationStopwatch = Stopwatch.createUnstarted();
 
 
-    public RandomAccessMcaFile(Class<T> chunkClass, RandomAccessFile raf, IntPointXZ regionXZ) {
+    /**
+     * @param chunkClass class type to operate upon
+     * @param raf random access file object
+     * @param regionXZ XZ coords of the region data - usually as extracted from the file name such as [1 -2] from r.1.-2.mca
+     * @param mode one of the modes accepted by RandomAccessFile ("r", "rw" are the most common). This mode can be
+     *             more restrictive than the mode the RandomAccessFile was actually opened with. Specifying a mode of
+     *             "r" will cause all calls to {@link #write}, {@link #removeChunk}, and {@link #optimizeFile()} to
+     *             fail with an exception and all calls to {@link #flush()} to silently do nothing.
+     */
+    public RandomAccessMcaFile(Class<T> chunkClass, RandomAccessFile raf, IntPointXZ regionXZ, String mode) {
         this.chunkClass = ArgValidator.requireValue(chunkClass, "chunkClass");
         this.raf = ArgValidator.requireValue(raf, "RandomAccessFile");
         this.regionXZ = ArgValidator.requireValue(regionXZ, "regionXZ");
         this.regionChunkOffsetXZ = regionXZ.transformRegionToChunk();
         this.regionBounds = new RegionBoundingRectangle(regionXZ.getX(), regionXZ.getZ());
+        this.isReadOnly = !mode.startsWith("rw");
     }
 
-    public RandomAccessMcaFile(Class<T> chunkClass, File file) throws IOException {
-        this(chunkClass, new RandomAccessFile(file, "rw"), McaFileHelpers.regionXZFromFileName(file.getName()));
+    /**
+     * @param chunkClass class type to operate upon
+     * @param file Mca file to open. The file name must follow the standard naming of "r.X.Z.mca".
+     * @param mode one of the modes accepted by RandomAccessFile ("r", "rw" are the most common). This mode can be
+     *             more restrictive than the mode the RandomAccessFile was actually opened with. Specifying a mode of
+     *             "r" will cause all calls to {@link #write} and {@link #optimizeFile()} to fail with an exception
+     *             and all calls to {@link #flush()} to silently do nothing.
+     */
+    public RandomAccessMcaFile(Class<T> chunkClass, File file, String mode) throws IOException {
+        this(chunkClass, new RandomAccessFile(file, mode), McaFileHelpers.regionXZFromFileName(file.getName()), mode);
     }
 
-    public RandomAccessMcaFile(Class<T> chunkClass, String file) throws IOException {
-        this(chunkClass, new File(file));
+    /**
+     * @param chunkClass class type to operate upon
+     * @param file Mca file to open. The file name must follow the standard naming of "r.X.Z.mca".
+     * @param mode one of the modes accepted by RandomAccessFile ("r", "rw" are the most common). This mode can be
+     *             more restrictive than the mode the RandomAccessFile was actually opened with. Specifying a mode of
+     *             "r" will cause all calls to {@link #write} and {@link #optimizeFile()} to fail with an exception
+     *             and all calls to {@link #flush()} to silently do nothing.
+     */
+    public RandomAccessMcaFile(Class<T> chunkClass, String file, String mode) throws IOException {
+        this(chunkClass, new File(file), mode);
     }
 
-    public RandomAccessMcaFile(Class<T> chunkClass, Path path) throws IOException {
-        this(chunkClass, path.toFile());
+    /**
+     * @param chunkClass class type to operate upon
+     * @param path Mca file to open. The file name must follow the standard naming of "r.X.Z.mca".
+     * @param mode one of the modes accepted by RandomAccessFile ("r", "rw" are the most common). This mode can be
+     *             more restrictive than the mode the RandomAccessFile was actually opened with. Specifying a mode of
+     *             "r" will cause all calls to {@link #write} and {@link #optimizeFile()} to fail with an exception
+     *             and all calls to {@link #flush()} to silently do nothing.
+     */
+    public RandomAccessMcaFile(Class<T> chunkClass, Path path, String mode) throws IOException {
+        this(chunkClass, path.toFile(), mode);
     }
 
+    /** True if opened in read only mode. */
+    public boolean isReadOnly() {
+        return isReadOnly;
+    }
+
+    /**
+     * @return XZ coords of the region, in region coordinates.
+     */
     public IntPointXZ getRegionXZ() {
         return regionXZ;
     }
 
+    /** LoadFlags which are passed to the chunk deserialization method. */
     public long getLoadFlags() {
         return loadFlags;
     }
 
+    /** LoadFlags which are passed to the chunk deserialization method. */
     public RandomAccessMcaFile<T> setLoadFlags(long loadFlags) {
         this.loadFlags = loadFlags;
         return this;
     }
 
+    /**
+     * Automatically call {@link #optimizeFile()} when {@link #close()} is called.
+     * <p>When set the mca file will be auto optimized (compacted) when {@link #close()} is called IFF any chunks
+     * were written or removed.</p>
+     */
     public boolean isAutoOptimizeOnClose() {
         return autoOptimizeOnClose;
     }
 
+    /**
+     * Automatically call {@link #optimizeFile()} when {@link #close()} is called.
+     * <p>When set the mca file will be auto optimized (compacted) when {@link #close()} is called IFF any chunks
+     * were written or removed.</p>
+     */
     public RandomAccessMcaFile<T> setAutoOptimizeOnClose(boolean autoOptimizeOnClose) {
         this.autoOptimizeOnClose = autoOptimizeOnClose;
         return this;
     }
 
+    /**
+     * When set calls to {@link #write} will automatically call {@link ChunkBase#updateHandle()} before writing to
+     * disk. If unset the library user is responsible for ensuring that the chunk handel is updated prior to calling
+     * {@link #write}. Note that mca last updated timestamp data is NOT stored in the chunk handle, it is part of the
+     * mca file header.
+     */
     public boolean isAutoUpdateHandelOnWrite() {
         return autoUpdateHandelOnWrite;
     }
 
+
+    /**
+     * When set calls to {@link #write} will automatically call {@link ChunkBase#updateHandle()} before writing to
+     * disk. If unset the library user is responsible for ensuring that the chunk handel is updated prior to calling
+     * {@link #write}. Note that mca last updated timestamp data is NOT stored in the chunk handle, it is part of the
+     * mca file header.
+     */
     public RandomAccessMcaFile<T> setAutoUpdateHandelOnWrite(boolean autoUpdateHandelOnWrite) {
         this.autoUpdateHandelOnWrite = autoUpdateHandelOnWrite;
         return this;
     }
 
+    /**
+     * When set any call to {@link #write} will set the given chunks last modified timestamp by calling
+     * {@link ChunkBase#setLastMCAUpdate(int)} with the current system timestamp.
+     * <p>Note that if the chunk passed to write currently has no timestamp, one will be set irregardless of
+     * this setting.</p>
+     */
     public boolean isAlwaysUpdateChunkLastUpdatedTimestamp() {
         return alwaysUpdateChunkLastUpdatedTimestamp;
     }
 
+    /**
+     * When set any call to {@link #write} will set the given chunks last modified timestamp by calling
+     * {@link ChunkBase#setLastMCAUpdate(int)} with the current system timestamp.
+     * <p>Note that if the chunk passed to write currently has no timestamp, one will be set irregardless of
+     * this setting.</p>
+     */
     public RandomAccessMcaFile<T> setAlwaysUpdateChunkLastUpdatedTimestamp(boolean alwaysUpdateChunkLastUpdatedTimestamp) {
         this.alwaysUpdateChunkLastUpdatedTimestamp = alwaysUpdateChunkLastUpdatedTimestamp;
         return this;
     }
 
-    /** @see #chunkSectorTableToString() */
+    /**
+     * @return A diagnostic information string.
+     * @see #chunkSectorTableToString()
+     */
     @Override
     public String toString() {
         return String.format(
@@ -159,7 +245,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
 
     /**
      * Creates a 32x32 textual table of chunk sector information. Useful for debugging this library as well as
-     * user code.
+     * user code. Includes free-sector information.
      */
     public String chunkSectorTableToString() throws IOException {
         ensureFileInitialized();
@@ -222,6 +308,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
         return this;
     }
 
+    /** Causes the mca file header tables to be read if they have not yet been read. */
     protected void ensureFileInitialized() throws IOException {
         if (fileFinalized) throw new IOException("File closed!");
         if (!fileInitialized) {
@@ -257,11 +344,10 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
     public void close() throws IOException {
         if (fileFinalized) return;
         try {
-            if (fileInitialized) {
+            if (!isReadOnly && fileInitialized) {
                 if (isAutoOptimizeOnClose())
                     optimizeFile();
-                if (fileInitialized)
-                    flush();
+                flush();
             }
         } finally {
             raf.close();
@@ -275,7 +361,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
      * @see #touch()
      */
     public void flush() throws IOException {
-        if (!fileInitialized)
+        if (!fileInitialized || isReadOnly)
             return;
         if (fileFinalized)
             throw new IOException("File closed!");
@@ -306,9 +392,13 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
      */
     public int optimizeFile() throws IOException {
         ensureFileInitialized();
+        if (isReadOnly)
+            throw new IOException("File was opened in read-only mode.");
+        int bytesRemoved = 0;
         try (Stopwatch.LapToken lap = fileOptimizationStopwatch.startLap()) {
-            return sectorManager.optimizeFile(raf, chunkSectors);
+            bytesRemoved = sectorManager.optimizeFile(raf, chunkSectors);
         }
+        return bytesRemoved;
     }
 
     /**
@@ -319,7 +409,10 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
      * @see #setAutoOptimizeOnClose(boolean)
      */
     public boolean removeChunk(int chunkIndex) throws IOException {
+        if (isReadOnly)
+            throw new IOException("File was opened in read-only mode.");
         if (hasChunk(chunkIndex)) {
+            isDirty = true;
             sectorManager.release(SectorManager.SectorBlock.unpack(chunkSectors[chunkIndex]));
             chunkSectors[chunkIndex] = 0;
             chunkTimestamps[chunkIndex] = 0;
@@ -526,6 +619,8 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
      */
     public void write(T chunk) throws IOException {
         ArgValidator.requireValue(chunk);
+        if (isReadOnly)
+            throw new IOException("File was opened in read-only mode.");
         if (chunk.getChunkX() == ChunkBase.NO_CHUNK_COORD_SENTINEL || chunk.getChunkZ() == ChunkBase.NO_CHUNK_COORD_SENTINEL) {
             throw new IllegalArgumentException("Chunk XZ must be set!");
         }
@@ -536,6 +631,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
                     regionXZ,
                     regionBounds.asChunkBounds()));
         ensureFileInitialized();
+        isDirty = true;
         if (isAlwaysUpdateChunkLastUpdatedTimestamp() || chunk.getLastMCAUpdate() <= 0) {
             chunk.setLastMCAUpdate((int) (System.currentTimeMillis() / 1000));
         }
