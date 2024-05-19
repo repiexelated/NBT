@@ -76,7 +76,7 @@ import java.util.Objects;
  *         "brain" subtracted from the max tickets for that poi type</li>
  *     </ul>
  */
-public class PoiRecord implements TagWrapper, Comparable<PoiRecord> {
+public class PoiRecord implements TagWrapper<CompoundTag>, Comparable<PoiRecord> {
     protected String type;
     protected int freeTickets;
     protected int x;

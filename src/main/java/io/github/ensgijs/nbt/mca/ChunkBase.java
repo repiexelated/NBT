@@ -35,7 +35,7 @@ import java.util.function.Function;
  * </p>
  * @see SectionedChunkBase
  */
-public abstract class ChunkBase implements VersionedDataContainer, TagWrapper, TracksUnreadDataTags {
+public abstract class ChunkBase implements VersionedDataContainer, TagWrapper<CompoundTag>, TracksUnreadDataTags {
 
 	public static final int NO_CHUNK_COORD_SENTINEL = Integer.MIN_VALUE;
 

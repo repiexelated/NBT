@@ -15,7 +15,7 @@ import static io.github.ensgijs.nbt.mca.io.LoadFlags.RELEASE_CHUNK_DATA_TAG;
  * Sections can be thought of as "sub-chunks" which are 16x16x16 block cubes
  * stacked atop each other to create a "chunk".
  */
-public abstract class SectionBase<T extends SectionBase<?>> implements Comparable<T>, TagWrapper, TracksUnreadDataTags {
+public abstract class SectionBase<T extends SectionBase<?>> implements Comparable<T>, TagWrapper<CompoundTag>, TracksUnreadDataTags {
 	/** Used to indicate an unset section Y value. */
 	public static final int NO_SECTION_Y_SENTINEL = Integer.MIN_VALUE;
 	/** for internal use only - modify with extreme care and precision - must be kept in sync with chunk data version */

@@ -3,6 +3,7 @@ package io.github.ensgijs.nbt.mca.entities;
 import io.github.ensgijs.nbt.mca.McaEntitiesFile;
 import io.github.ensgijs.nbt.mca.io.McaFileHelpers;
 import io.github.ensgijs.nbt.mca.util.TagWrapper;
+import io.github.ensgijs.nbt.tag.CompoundTag;
 import io.github.ensgijs.nbt.util.ArgValidator;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ import java.util.UUID;
  * and rewire {@link McaFileHelpers} for easy integration with existing code.
  * @see EntityBase
  */
-public interface Entity extends TagWrapper {
+public interface Entity extends TagWrapper<CompoundTag> {
     short AIR_UNSET = Short.MIN_VALUE;
 
     /** String representation of the entity's ID. Does not exist for the Player entity. */
