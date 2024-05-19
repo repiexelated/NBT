@@ -8,6 +8,7 @@ import io.github.ensgijs.nbt.util.ArgValidator;
 import java.util.Arrays;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.function.IntPredicate;
 
 import static io.github.ensgijs.nbt.mca.DataVersion.JAVA_1_16_20W17A;
 import static io.github.ensgijs.nbt.mca.DataVersion.UNKNOWN;
@@ -59,7 +60,7 @@ import static io.github.ensgijs.nbt.mca.DataVersion.UNKNOWN;
  *
  * @see #builder()
  */
-public class LongArrayTagPackedIntegers implements Iterable<Integer> {
+public class LongArrayTagPackedIntegers implements Iterable<Integer>, Cloneable {
 
     public static final VersionAware<PackingStrategy> MOJANG_PACKING_STRATEGY = new VersionAware<PackingStrategy>()
             // technically, I don't believe long packing was used in any form until JAVA_1_12_2... or was it JAVA_1_13_17W47A
@@ -107,7 +108,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         private int valueOffset = 0;
         private int minBitsPerValue;
         private int initializeForStoring = Integer.MIN_VALUE;
-        private PackingStrategy packingStrategy;
+        private PackingStrategy packingStrategy = MOJANG_PACKING_STRATEGY.get(DataVersion.latest().id());
 
         /** Use {@link #builder()} instead. */
         private Builder() {}
@@ -116,9 +117,9 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
          * Count of values to be stored, this value cannot be changed once built and
          * is usually one of: 64, 256, 4096.
          */
-        public Builder capacity(int capacity) {
-            ArgValidator.check(capacity > 0);
-            this.capacity = capacity;
+        public Builder length(int length) {
+            ArgValidator.check(length > 0);
+            this.capacity = length;
             return this;
         }
 
@@ -178,14 +179,21 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
             return this;
         }
 
-        /** Sets the packing strategy based on data version. */
+        /**
+         * Sets the packing strategy based on data version.
+         * @param dataVersion if EQ 0 then {@link DataVersion#latest()}.id() is used.
+         */
         public Builder dataVersion(int dataVersion) {
-            ArgValidator.check(dataVersion > 0);
-            this.packingStrategy = MOJANG_PACKING_STRATEGY.get(dataVersion);
+            ArgValidator.check(dataVersion >= 0);
+            this.packingStrategy = MOJANG_PACKING_STRATEGY.get(
+                    dataVersion > 0 ? dataVersion : DataVersion.latest().id());
             return this;
         }
 
-        /** Sets the packing strategy based on data version. */
+        /**
+         * Sets the packing strategy based on data version.
+         * @param dataVersion if EQ {@link DataVersion#UNKNOWN} then {@link DataVersion#latest()} is used.
+         */
         public Builder dataVersion(DataVersion dataVersion) {
             ArgValidator.check(dataVersion != null);
             return dataVersion(dataVersion.id());
@@ -194,13 +202,13 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         /**
          * Sets the capacity to match the length of the given values and sets an appropriate initialBitsPerValue.
          *
-         * <p>Note: while {@link #initializeForStoring(int)} and {@link #capacity(int)} will be set for you,
+         * <p>Note: while {@link #initializeForStoring(int)} and {@link #length(int)} will be set for you,
          * it's still important to properly set {@link #minBitsPerValue(int)} and {@link #valueOffset(int)}.</p>
          */
         LongArrayTagPackedIntegers build(int[] values) {
             capacity = values.length;
             LongArrayTagPackedIntegers packed = build(new LongArrayTag());
-            packed.setFromValueArray(values);
+            packed.setFromArray(values);
             return packed;
         }
 
@@ -236,7 +244,8 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
     }
     // </editor-fold>
 
-    private final int capacity;
+    /** Number of values stored - <em>not the length of the long array.</em> */
+    public final int length;
     private final LongArrayTag packedBitsTag;
     private int valueOffset;
 
@@ -250,13 +259,13 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
     private double splitIndicesPerLong;
 
     /**
-     * @param tag Tag with existing longs. If this tag's {@link LongArrayTag#getValue()#length()} is 0 it is initialized
+     * @param tag Tag with existing longs. If this tag's {@link LongArrayTag#getValue()#length} is 0 it is initialized
      *            with an appropriately sized long[], otherwise this length is validated based on the other provided arguments.
      * @param packingStrategy Controls how values are packed into the long array.
      *                       Prior to {@link io.github.ensgijs.nbt.mca.DataVersion#JAVA_1_16_20W17A}
      *                       {@link PackingStrategy#SPLIT_VALUES_ACROSS_LONGS} was used, from this version on
      *                       {@link PackingStrategy#NO_SPLIT_VALUES_ACROSS_LONGS} is used.
-     * @param capacity Count of values to be stored, this value cannot be changed and is usually one of: 64, 256, 4096
+     * @param length Count of values to be stored, this value cannot be changed and is usually one of: 64, 256, 4096
      * @param minBitsPerValue Minimum bits per value used to store values. Must be GE 1.
      *                        In practice for unchanging things (such as biomes) this is always 1 and for things which
      *                        may change often (such as block palettes) this is always 4. Presumably setting this value
@@ -270,22 +279,22 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
      *                    {@link TerrainChunk#getChunkY()} * 64 - 1) to interact with this LongArrayTagPackedIntegers
      *                    instance in world coordinates instead of having to calculate those offsets yourself.</p>
      */
-    private LongArrayTagPackedIntegers(LongArrayTag tag, PackingStrategy packingStrategy, int capacity, int minBitsPerValue, int initialBitsPerValue, int valueOffset) {
+    private LongArrayTagPackedIntegers(LongArrayTag tag, PackingStrategy packingStrategy, int length, int minBitsPerValue, int initialBitsPerValue, int valueOffset) {
         ArgValidator.requireValue(tag, "tag");
         ArgValidator.requireValue(packingStrategy, "packingStrategy");
         ArgValidator.check(minBitsPerValue > 0 && minBitsPerValue < 32, "minBitsPerValue must be in range [1..31]");
         this.packingStrategy = packingStrategy;
-        this.capacity = capacity;
+        this.length = length;
         this.minBitsPerValue = minBitsPerValue;
         this.bitsPerValue = Math.max(minBitsPerValue, initialBitsPerValue);
         this.valueOffset = valueOffset;
         this.packedBitsTag = tag;
         int expectLongCount;
         if (packingStrategy == PackingStrategy.NO_SPLIT_VALUES_ACROSS_LONGS) {
-            expectLongCount = (int) Math.ceil(capacity / (double) (64 / bitsPerValue));
+            expectLongCount = (int) Math.ceil(length / (double) (64 / bitsPerValue));
             this.noSplitIndicesPerLong = 64 / bitsPerValue;
         } else {
-            expectLongCount = (int) Math.ceil(bitsPerValue * capacity / 64d);
+            expectLongCount = (int) Math.ceil(bitsPerValue * length / 64d);
             this.splitIndicesPerLong = 64D / bitsPerValue;
         }
         if (tag.getValue().length == 0) {
@@ -301,10 +310,24 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         this.currentMaxPackableValue = (1 << bitsPerValue) - 1;
     }
 
-    /** Number of values stored - <em>not the length of the long array.</em> */
-    public int length() {
-        return capacity;
+    protected LongArrayTagPackedIntegers(LongArrayTagPackedIntegers other) {
+        this.length = other.length;
+        this.valueOffset = other.valueOffset;
+        this.minBitsPerValue = other.minBitsPerValue;
+        this.bitsPerValue = other.bitsPerValue;
+        this.currentMaxPackableValue = other.currentMaxPackableValue;
+        this.noSplitIndicesPerLong = other.noSplitIndicesPerLong;
+        this.splitIndicesPerLong = other.splitIndicesPerLong;
+        this.packingStrategy = other.packingStrategy;
+        this.packedBitsTag = other.packedBitsTag.clone();
+        this.packedBits = this.packedBitsTag.getValue();
     }
+
+    @Override
+    public LongArrayTagPackedIntegers clone() {
+        return new LongArrayTagPackedIntegers(this);
+    }
+
 
     /**
      * The long array tag which is being used to store the packed values.
@@ -315,6 +338,10 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         return packedBitsTag;
     }
 
+    /** Returns the actual longs array - modifying the values in this array will modify the stored values. */
+    public long[] longs() {
+        return packedBits;
+    }
 
     /**
      * The packing strategy controls how bits are packed into longs. Changing the packing strategy results
@@ -340,7 +367,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
      */
     public int getActualUsedBitsPerValue() {
         int maxValue = 0;
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             maxValue = Math.max(maxValue, getRaw(i));
         }
         return calculateBitsRequired(maxValue);
@@ -400,7 +427,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
 
     /** Does not apply valueOffset */
     private int getRaw(int index) {
-        if (index < 0 || index >= capacity)
+        if (index < 0 || index >= length)
             throw new IndexOutOfBoundsException();
         if (packingStrategy == PackingStrategy.NO_SPLIT_VALUES_ACROSS_LONGS) {
             int longIndex = index / noSplitIndicesPerLong;
@@ -422,7 +449,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
 
     /** Sets the value at the specified index. */
     public void set(int index, int value) {
-        if (index < 0 || index >= capacity)
+        if (index < 0 || index >= length)
             throw new IndexOutOfBoundsException();
         setRaw(index, value - valueOffset);
     }
@@ -460,12 +487,12 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
             return;
         bitsPerValue = requiredBitsPerValue;
         if (packingStrategy == PackingStrategy.NO_SPLIT_VALUES_ACROSS_LONGS) {
-            final int newLength = (int) Math.ceil(capacity / (double) (64 / bitsPerValue));
+            final int newLength = (int) Math.ceil(length / (double) (64 / bitsPerValue));
             packedBitsTag.setValue(packedBits = new long[newLength]);
             noSplitIndicesPerLong = 64 / bitsPerValue;
             splitIndicesPerLong = 0;
         } else {
-            final int newLength = (int) Math.ceil((bitsPerValue * capacity) / 64d);
+            final int newLength = (int) Math.ceil((bitsPerValue * length) / 64d);
             packedBitsTag.setValue(packedBits = new long[newLength]);
             splitIndicesPerLong = 64D / bitsPerValue;
             noSplitIndicesPerLong = 0;
@@ -479,7 +506,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         if (value < 0 || value > currentMaxPackableValue)
             return false;
 
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             if (value == getRaw(i)) {
                 return true;
             }
@@ -493,8 +520,19 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         if (value < 0 || value > currentMaxPackableValue)
             return 0;
         int count = 0;
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             if (value == getRaw(i)) {
+                count ++;
+            }
+        }
+        return count;
+    }
+
+    /** Counts the number of times the given tester returns true while being passed the entire set of values. */
+    public int count(IntPredicate tester) {
+        int count = 0;
+        for (int i = 0; i < length; i++) {
+            if (tester.test(get(i))) {
                 count ++;
             }
         }
@@ -512,7 +550,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
             throw new IllegalArgumentException("oldValue must be GE " + valueOffset);
         if (newValue < 0)
             throw new IllegalArgumentException("newValue must be GE " + valueOffset);
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             int v = getRaw(i);
             if (v == oldValue) {
                 setRaw(i, newValue);
@@ -527,7 +565,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
      */
     public void remap(RemapFunction remapFunction) {
         ArgValidator.requireValue(remapFunction);
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             int oldOffsetValue = get(i);
             int newOffsetValue = remapFunction.remap(oldOffsetValue);
             if (newOffsetValue < valueOffset)
@@ -557,9 +595,9 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
     }
 
     /** Creates a new int[] and populates it by calling {@link #get(int)} successively. */
-    public int[] toValueArray() {
-        int[] values = new int[capacity];
-        for (int i = 0; i < capacity; i++) {
+    public int[] toArray() {
+        int[] values = new int[length];
+        for (int i = 0; i < length; i++) {
             values[i] = get(i);
         }
         return values;
@@ -567,13 +605,13 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
 
     /**
      * Populates the given array by calling {@link #get(int)} successively.
-     * @param array must be exactly {@link #length()} in size.
+     * @param array must be exactly {@link #length} in size.
      * @return the same array that was passed as an argument.
      */
-    public int[] toValueArray(int[] array) {
-        ArgValidator.check(array.length == capacity,
-                String.format("Expected array to be of length %d but it was %d", capacity, array.length));
-        for (int i = 0; i < capacity; i++) {
+    public int[] toArray(int[] array) {
+        ArgValidator.check(array.length == length,
+                String.format("Expected array to be of length %d but it was %d", length, array.length));
+        for (int i = 0; i < length; i++) {
             array[i] = get(i);
         }
         return array;
@@ -585,9 +623,9 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
      * @param startIndex the index to start copying values into.
      * @return the same array that was passed as an argument.
      */
-    public int[] toValueArray(int[] array, int startIndex) {
-        ArgValidator.check(startIndex >= 0 && (startIndex + capacity) <= array.length);
-        for (int i = 0; i < capacity; i++) {
+    public int[] toArray(int[] array, int startIndex) {
+        ArgValidator.check(startIndex >= 0 && (startIndex + length) <= array.length);
+        for (int i = 0; i < length; i++) {
             array[i + startIndex] = get(i);
         }
         return array;
@@ -598,13 +636,13 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
      * checks that all values are in the allowed range (GE {@link #getValueOffset()}), then calls {@link #set}
      * successively for each value.
      * <p>There is never a need to call {@link #compact()} immediately following this call.</p>
-     * @param values must be exactly {@link #length()} in size.
+     * @param values must be exactly {@link #length} in size.
      * @throws IllegalArgumentException if any value is LT {@link #getValueOffset()}.
      */
-    public void setFromValueArray(int[] values) {
-        ArgValidator.check(values.length == capacity,
-                String.format("Expected array to be of length %d but it was %d", capacity, values.length));
-        setFromValueArray(values, 0);
+    public void setFromArray(int[] values) {
+        ArgValidator.check(values.length == length,
+                String.format("Expected array to be of length %d but it was %d", length, values.length));
+        setFromArray(values, 0);
     }
 
     /**
@@ -612,14 +650,14 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
      * checks that all values are in the allowed range (GE {@link #getValueOffset()}), then calls {@link #set}
      * successively for each value.
      * <p>There is never a need to call {@link #compact()} immediately following this call.</p>
-     * @param values must be at least {@link #length()} in size.
+     * @param values must be at least {@link #length} in size.
      * @param startIndex the index to start copying values from.
      * @throws IllegalArgumentException if any value is LT {@link #getValueOffset()}.
      */
-    public void setFromValueArray(int[] values, int startIndex) {
-        ArgValidator.check(startIndex >= 0 && (startIndex + capacity) <= values.length);
+    public void setFromArray(int[] values, int startIndex) {
+        ArgValidator.check(startIndex >= 0 && (startIndex + length) <= values.length);
         int maxVal = valueOffset;
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             int v = values[i + startIndex];
             if (v < valueOffset)
                 throw new IllegalArgumentException(
@@ -628,29 +666,29 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
             maxVal = Math.max(maxVal, v);
         }
         reallocateCapacity(Math.max(minBitsPerValue, calculateBitsRequired(maxVal - valueOffset)));
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             set(i, values[i + startIndex]);
         }
     }
 
     /**
      * Renders the values as a 2D grid where 0,0 is in the top left.
-     * @throws UnsupportedOperationException if {@link #length()} doesn't have an integer square root
+     * @throws UnsupportedOperationException if {@link #length} doesn't have an integer square root
      * (isn't the product of n^2)
      */
     public String toString2dGrid() {
-        final int rectangleEdgeLength = (int) Math.round(Math.sqrt(capacity));
-        if (rectangleEdgeLength * rectangleEdgeLength != capacity)
+        final int rectangleEdgeLength = (int) Math.round(Math.sqrt(length));
+        if (rectangleEdgeLength * rectangleEdgeLength != length)
             throw new UnsupportedOperationException(
                     "Attempted to format as a 2D grid, but sqrt(count of values) is not an integer!");
         int maxStrLen = 0;
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             maxStrLen = Math.max(maxStrLen, Integer.toString(get(i)).length());
         }
         String format = "%" + maxStrLen + "d";
         StringBuilder sb = new StringBuilder();
         int wrap = rectangleEdgeLength - 1;
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             sb.append(String.format(format, get(i)));
             if (i % rectangleEdgeLength != wrap) {
                 sb.append(' ');
@@ -663,16 +701,16 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
 
     /**
      * Renders the values as a 3D grid where each 2D slice is rendered with 0,0 in the top left.
-     * @throws UnsupportedOperationException if {@link #length()} doesn't have an integer cubic root
+     * @throws UnsupportedOperationException if {@link #length} doesn't have an integer cubic root
      * (isn't the product of n^3)
      */
     public String toString3dGrid() {
-        final int cubeEdgeLength = (int) Math.round(Math.pow(capacity, 1/3d));
-        if (cubeEdgeLength * cubeEdgeLength * cubeEdgeLength != capacity)
+        final int cubeEdgeLength = (int) Math.round(Math.pow(length, 1/3d));
+        if (cubeEdgeLength * cubeEdgeLength * cubeEdgeLength != length)
             throw new UnsupportedOperationException(
                     "Attempted to format as a 3D grid, but cube-root(count of values) is not an integer!");
         int maxStrLen = 0;
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < length; i++) {
             maxStrLen = Math.max(maxStrLen, Integer.toString(get(i)).length());
         }
         String format = "%" + maxStrLen + "d";
@@ -723,11 +761,11 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
 
         final int newMaxValidValue = (int) Math.pow(2, newBitsPerValue) - 1;
         if (newPackingStrategy == PackingStrategy.NO_SPLIT_VALUES_ACROSS_LONGS) {
-            final int newLength = (int) Math.ceil(capacity / (double) (64 / newBitsPerValue));
+            final int newLength = (int) Math.ceil(length / (double) (64 / newBitsPerValue));
             final long[] newLongs = new long[newLength];
             final int newNoSplitIndicesPerLong = 64 / newBitsPerValue;
 
-            for (int i = 0; i < capacity; i++) {
+            for (int i = 0; i < length; i++) {
                 int value = getRaw(i);
                 if (value > newMaxValidValue) {
                     throw new IllegalArgumentException(
@@ -739,10 +777,10 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
             splitIndicesPerLong = 0;
             packedBits = newLongs;
         } else {
-            final int newLength = (int) Math.ceil((newBitsPerValue * capacity) / 64d);
+            final int newLength = (int) Math.ceil((newBitsPerValue * length) / 64d);
             final long[] newLongs = new long[newLength];
             final double newSplitIndicesPerLong = 64D / newBitsPerValue;
-            for (int i = 0; i < capacity; i++) {
+            for (int i = 0; i < length; i++) {
                 int value = getRaw(i);
                 if (value > newMaxValidValue) {
                     throw new IllegalArgumentException(
@@ -785,12 +823,6 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
     static int calculateBitsRequired(int num) {
         if (num < 0) throw new IllegalArgumentException();
         return 32 - Integer.numberOfLeadingZeros(num);
-//        int k = 0;
-//        while (num > 0) {
-//            num >>>= 1;
-//            k++;
-//        }
-//        return k;
     }
 
     @Override
@@ -805,7 +837,7 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer> {
         /** {@inheritDoc} */
         @Override
         public boolean hasNext() {
-            return i < capacity;
+            return i < length;
         }
 
         /** {@inheritDoc} */
