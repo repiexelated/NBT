@@ -18,6 +18,12 @@ import static io.github.ensgijs.nbt.mca.DataVersion.UNKNOWN;
  * occupies a fixed number of bits, that number of bits is not necessarily a constant, it can be resized as-needed,
  * but each value occupies the same number of bits as all others.
  *
+ * <p>This class maintains its values in the packed long[] in the {@link LongArrayTag} given to / created at
+ * construction time. This can result in significant memory savings over when working with a large number of
+ * packed value arrays but will, of course, use more CPU to get and set values than an int[] would.
+ * If you would prefer to work with int[]'s you can use the family of {@link #toArray} and {@link #setFromArray}
+ * functions.</p>
+ *
  * <p>Negative values are supported by the use of {@link #setValueOffset(int)}, the actual stored data
  * is always GE 0, valueOffset is for your convenience when accessing and modifying the data.
  * See below about heightmaps.</p>
@@ -27,7 +33,8 @@ import static io.github.ensgijs.nbt.mca.DataVersion.UNKNOWN;
  * while respecting {@link #getMinBitsPerValue()}.</p>
  *
  * <p>WARNING: The user is responsible for calling {@link #compact()} before storing the {@link LongArrayTag}
- * in MCA data! Failing to do so may cause Minecraft to fail to properly interpret the values.</p>
+ * in MCA data! Failing to do so may cause Minecraft to fail to properly interpret the values. Getting the
+ * tag via {@link #updateHandle()} does this for you.</p>
  *
  * <p>The packing strategy may be changed to facilitate upgrade/downgrade operations by calling
  * {@link #setPackingStrategy(PackingStrategy)}</p>
@@ -60,7 +67,7 @@ import static io.github.ensgijs.nbt.mca.DataVersion.UNKNOWN;
  *
  * @see #builder()
  */
-public class LongArrayTagPackedIntegers implements Iterable<Integer>, Cloneable {
+public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Iterable<Integer>, Cloneable {
 
     public static final VersionAware<PackingStrategy> MOJANG_PACKING_STRATEGY = new VersionAware<PackingStrategy>()
             // technically, I don't believe long packing was used in any form until JAVA_1_12_2... or was it JAVA_1_13_17W47A
@@ -328,14 +335,25 @@ public class LongArrayTagPackedIntegers implements Iterable<Integer>, Cloneable 
         return new LongArrayTagPackedIntegers(this);
     }
 
-
     /**
      * The long array tag which is being used to store the packed values.
-     * <p>Note: this is the same tag instance that was passed to the constructor.</p>
-     * <p>The user is responsible for calling {@link #compact()} before storing this tag in MCA data!</p>
+     * <p>Note: this is the same tag instance that was passed to the constructor and will contain the current
+     * longs[]. However, the user is responsible for calling {@link #compact()} before storing this tag in
+     * MCA data!</p>
+     * <p>Generally, if you are getting the tag to store it <b>use {@link #updateHandle()} instead</b>.</p>
      */
-    public LongArrayTag getTag() {
+    @Override
+    public LongArrayTag getHandle() {
         return packedBitsTag;
+    }
+
+    /**
+     * Calls {@link #compact()} and returns the {@link LongArrayTag}.
+     * <p>Note this is the same {@link LongArrayTag} instance given to, or created by, {@link Builder#build}.</p>
+     */
+    @Override
+    public LongArrayTag updateHandle() {
+        return compact();
     }
 
     /** Returns the actual longs array - modifying the values in this array will modify the stored values. */

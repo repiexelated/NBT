@@ -160,14 +160,14 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .valueOffset(-4)
                 .build();
         assertEquals(NO_SPLIT_VALUES_ACROSS_LONGS, packed.getPackingStrategy());
-        assertEquals(4, packed.getTag().length());
+        assertEquals(4, packed.getHandle().length());
         assertEquals(64, packed.length);
         assertEquals(3, packed.getMinBitsPerValue());
         assertEquals(3, packed.getBitsPerValue());
         assertEquals(-4, packed.getValueOffset());
         assertEquals((int) Math.pow(2, 3) - 1 - 4, packed.getCurrentMaxPackableValue());
         assertEquals(0, packed.getActualUsedBitsPerValue());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
     }
 
     public void testBuilder_build_packingStrategyHasDefault() {
@@ -361,7 +361,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .valueOffset(-65)
                 .build(new LongArrayTag(getNoSplitValuesAcrossLongsTestData()));
         assertEquals(expectedNoSplitAcrossLongsGrid, packed.toString2dGrid());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
     }
 
     public void testSplitValuesAcrossLongs() {
@@ -372,7 +372,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .minBitsPerValue(9)
                 .build(tag);
         assertEquals(expectedSplitAcrossLongsGrid, packed.toString2dGrid());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
     }
 
     public void testNoSplitValuesAcrossLongs_convertTo_Split() {
@@ -382,11 +382,11 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .minBitsPerValue(9)
                 .valueOffset(-65)
                 .build(new LongArrayTag(getNoSplitValuesAcrossLongsTestData()));
-        assertEquals(37, packed.getTag().length());
+        assertEquals(37, packed.getHandle().length());
         packed.setPackingStrategy(SPLIT_VALUES_ACROSS_LONGS);
-        assertEquals(36, packed.getTag().length());
+        assertEquals(36, packed.getHandle().length());
         assertEquals(expectedNoSplitAcrossLongsGrid, packed.toString2dGrid());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
     }
 
     public void testSplitValuesAcrossLongs_convertTo_NoSplit() {
@@ -395,11 +395,11 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .length(256)
                 .minBitsPerValue(9)
                 .build(new LongArrayTag(getSplitValuesAcrossLongsTestData()));
-        assertEquals(36, packed.getTag().length());
+        assertEquals(36, packed.getHandle().length());
         packed.setPackingStrategy(NO_SPLIT_VALUES_ACROSS_LONGS);
-        assertEquals(37, packed.getTag().length());
+        assertEquals(37, packed.getHandle().length());
         assertEquals(expectedSplitAcrossLongsGrid, packed.toString2dGrid());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
     }
 
     public void testSetMinBitsPerValue_noSplitAcrossLongs() {
@@ -412,13 +412,13 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertThrows(IllegalArgumentException.class, () -> packed.setMinBitsPerValue(0));
         assertThrows(IllegalArgumentException.class, () -> packed.setMinBitsPerValue(32));
         assertEquals(1, packed.getMinBitsPerValue());
-        assertEquals(1, packed.getTag().length());
+        assertEquals(1, packed.getHandle().length());
         assertEquals(0, packed.getCurrentMinPackableValue());
         assertEquals(1, packed.getCurrentMaxPackableValue());
         packed.setMinBitsPerValue(31);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(31, packed.getMinBitsPerValue());
-        assertEquals(32, packed.getTag().length());
+        assertEquals(32, packed.getHandle().length());
         assertEquals(0, packed.getCurrentMinPackableValue());
         assertEquals(Integer.MAX_VALUE, packed.getCurrentMaxPackableValue());
         assertEquals(1, packed.get(42));
@@ -427,9 +427,9 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
 
         packed.set(0, 99);
         packed.setMinBitsPerValue(5);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(5, packed.getMinBitsPerValue());
-        assertEquals(32, packed.getTag().length());
+        assertEquals(32, packed.getHandle().length());
         assertEquals(99, packed.get(0));
     }
 
@@ -443,13 +443,13 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertThrows(IllegalArgumentException.class, () -> packed.setMinBitsPerValue(0));
         assertThrows(IllegalArgumentException.class, () -> packed.setMinBitsPerValue(32));
         assertEquals(1, packed.getMinBitsPerValue());
-        assertEquals(1, packed.getTag().length());
+        assertEquals(1, packed.getHandle().length());
         assertEquals(0, packed.getCurrentMinPackableValue());
         assertEquals(1, packed.getCurrentMaxPackableValue());
         packed.setMinBitsPerValue(31);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(31, packed.getMinBitsPerValue());
-        assertEquals(31, packed.getTag().length());
+        assertEquals(31, packed.getHandle().length());
         assertEquals(0, packed.getCurrentMinPackableValue());
         assertEquals(Integer.MAX_VALUE, packed.getCurrentMaxPackableValue());
         assertEquals(1, packed.get(42));
@@ -458,9 +458,9 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
 
         packed.set(0, 99);
         packed.setMinBitsPerValue(5);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(5, packed.getMinBitsPerValue());
-        assertEquals(31, packed.getTag().length());
+        assertEquals(31, packed.getHandle().length());
         assertEquals(99, packed.get(0));
     }
 
@@ -500,21 +500,21 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .length(64)
                 .minBitsPerValue(1)
                 .build();
-        assertEquals(1, packed.getTag().length());
+        assertEquals(1, packed.getHandle().length());
         packed.set(5, 1);
         assertEquals(1, packed.get(5));
-        assertEquals(1, packed.getTag().length());
+        assertEquals(1, packed.getHandle().length());
         packed.set(5, 2);
         assertEquals(2, packed.get(5));
-        assertEquals(2, packed.getTag().length());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertEquals(2, packed.getHandle().length());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         packed.set(5, 3);
         assertEquals(3, packed.get(5));
-        assertEquals(2, packed.getTag().length());
+        assertEquals(2, packed.getHandle().length());
         packed.set(5, 31);
         assertEquals(31, packed.get(5));
-        assertEquals(5, packed.getTag().length());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertEquals(5, packed.getHandle().length());
+        assertSame(packed.getHandle().getValue(), packed.longs());
     }
 
     public void testClear_noSplitAcrossLongs() {
@@ -523,15 +523,15 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .length(256)
                 .minBitsPerValue(9)
                 .build(new LongArrayTag(getNoSplitValuesAcrossLongsTestData()));
-        assertEquals(37, packed.getTag().length());
+        assertEquals(37, packed.getHandle().length());
         packed.setMinBitsPerValue(5);
-        assertEquals(37, packed.getTag().length());
+        assertEquals(37, packed.getHandle().length());
         packed.clear(false);
-        assertEquals(37, packed.getTag().length());
+        assertEquals(37, packed.getHandle().length());
         assertEquals(0, packed.get(0));
         packed.clear(true);
-        assertEquals(22, packed.getTag().length());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertEquals(22, packed.getHandle().length());
+        assertSame(packed.getHandle().getValue(), packed.longs());
 
         // check that bits per value and values per long didn't get broken
         packed.set(57, 29);
@@ -544,15 +544,15 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .length(256)
                 .minBitsPerValue(9)
                 .build(new LongArrayTag(getSplitValuesAcrossLongsTestData()));
-        assertEquals(36, packed.getTag().length());
+        assertEquals(36, packed.getHandle().length());
         packed.setMinBitsPerValue(5);
-        assertEquals(36, packed.getTag().length());
+        assertEquals(36, packed.getHandle().length());
         packed.clear(false);
-        assertEquals(36, packed.getTag().length());
+        assertEquals(36, packed.getHandle().length());
         assertEquals(0, packed.get(0));
         packed.clear(true);
-        assertEquals(20, packed.getTag().length());
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertEquals(20, packed.getHandle().length());
+        assertSame(packed.getHandle().getValue(), packed.longs());
 
         // check that bits per value and values per long didn't get broken
         packed.set(57, 29);
@@ -664,7 +664,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(-1, 0));
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(0, -1));
         packed.replaceAll(130, 1300);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertTrue(packed.contains(1300));
         assertFalse(packed.contains(130));
         assertEquals(11, packed.getBitsPerValue());
@@ -674,7 +674,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(-66, 0));
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(0, -66));
         packed.replaceAll(1235, 0);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertTrue(packed.contains(0));
         assertFalse(packed.contains(1235));
     }
@@ -688,7 +688,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(-1, 0));
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(0, -1));
         packed.replaceAll(80, 800);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertTrue(packed.contains(800));
         assertFalse(packed.contains(80));
         assertEquals(10, packed.getBitsPerValue());
@@ -697,7 +697,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(-66, 0));
         assertThrows(IllegalArgumentException.class, () -> packed.replaceAll(0, -66));
         packed.replaceAll(-2, -60);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertTrue(packed.contains(-60));
         assertFalse(packed.contains(-2));
     }
@@ -710,7 +710,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .build(new LongArrayTag(getNoSplitValuesAcrossLongsTestData()));
         assertThrows(IllegalArgumentException.class, () -> packed.remap(v -> v > 135 ? -1 : v));
         packed.remap(v -> v > 135 ? 0 : v);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals("""
         129 129   0   0   0   0   0   0   0 129   0 129 129 129 129 129
         129 129   0   0   0   0   0   0   0 129 129 129 129 129 129 129
@@ -734,7 +734,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         packed.setValueOffset(-65);
         assertThrows(IllegalArgumentException.class, () -> packed.remap(v -> v % 2 == 0 ? -999 : v));
         packed.remap(v -> v % 2 == 0 ? 999 : v);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals("""
         999 999 -65 -65 -65 -65 -65 -65 -65 999 -65 999 999 999 999 999
         999 999 -65 -65 -65 -65 -65 -65 -65 999 999 999 999 999 999 999
@@ -763,7 +763,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
                 .build(new LongArrayTag(getSplitValuesAcrossLongsTestData()));
         assertThrows(IllegalArgumentException.class, () -> packed.remap(v -> -v));
         packed.remap(v -> Math.min(v, 75));
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals("""
         70 69 69 69 71 73 73 73 71 71 71 70 64 64 63 63
         70 70 70 69 71 71 73 71 71 73 71 71 64 64 64 63
@@ -786,7 +786,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         packed.setValueOffset(-65);
         assertThrows(IllegalArgumentException.class, () -> packed.remap(v -> v < 0 ? v * 100 : v));
         packed.remap(v -> v < 0 ? v * 10 : v);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(
           """
             5   4   4   4   6   8   8   8   6   6   6   5 -10 -10 -20 -20
@@ -818,16 +818,16 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         packed.remap(v -> v / 3);
         assertFalse(packed.shouldCompact());
         packed.setMinBitsPerValue(1);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertTrue(packed.shouldCompact());
         String expect = packed.toString2dGrid();
         assertEquals(7, packed.getActualUsedBitsPerValue());
         assertEquals(9, packed.getBitsPerValue());
         packed.compact();
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(7, packed.getBitsPerValue());
         assertEquals(expect, packed.toString2dGrid());
-        assertEquals(29, packed.getTag().length());
+        assertEquals(29, packed.getHandle().length());
     }
 
     public void testCompact_splitAcrossLongs() {
@@ -839,16 +839,16 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         packed.remap(v -> v / 3);
         assertFalse(packed.shouldCompact());
         packed.setMinBitsPerValue(1);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertTrue(packed.shouldCompact());
         String expect = packed.toString2dGrid();
         assertEquals(5, packed.getActualUsedBitsPerValue());
         assertEquals(9, packed.getBitsPerValue());
         packed.compact();
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(5, packed.getBitsPerValue());
         assertEquals(expect, packed.toString2dGrid());
-        assertEquals(20, packed.getTag().length());
+        assertEquals(20, packed.getHandle().length());
     }
 
 
@@ -867,11 +867,11 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertEquals(packed.getCurrentMaxPackableValue(), packed2.getCurrentMaxPackableValue());
         assertEquals(packed.getCurrentMinPackableValue(), packed2.getCurrentMinPackableValue());
         assertEquals(packed.getPackingStrategy(), packed2.getPackingStrategy());
-        assertEquals(packed.getTag(), packed2.getTag());
-        assertNotSame(packed.getTag(), packed2.getTag());
+        assertEquals(packed.getHandle(), packed2.getHandle());
+        assertNotSame(packed.getHandle(), packed2.getHandle());
         assertNotSame(packed.longs(), packed2.longs());
-        assertNotSame(packed.getTag().getValue(), packed2.getTag().getValue());
-        assertSame(packed2.getTag().getValue(), packed2.longs());
+        assertNotSame(packed.getHandle().getValue(), packed2.getHandle().getValue());
+        assertSame(packed2.getHandle().getValue(), packed2.longs());
         assertEquals(packed.getValueOffset(), packed2.getValueOffset());
     }
 
@@ -891,11 +891,11 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertEquals(packed.getCurrentMaxPackableValue(), packed2.getCurrentMaxPackableValue());
         assertEquals(packed.getCurrentMinPackableValue(), packed2.getCurrentMinPackableValue());
         assertEquals(packed.getPackingStrategy(), packed2.getPackingStrategy());
-        assertEquals(packed.getTag(), packed2.getTag());
-        assertNotSame(packed.getTag(), packed2.getTag());
+        assertEquals(packed.getHandle(), packed2.getHandle());
+        assertNotSame(packed.getHandle(), packed2.getHandle());
         assertNotSame(packed.longs(), packed2.longs());
-        assertNotSame(packed.getTag().getValue(), packed2.getTag().getValue());
-        assertSame(packed2.getTag().getValue(), packed2.longs());
+        assertNotSame(packed.getHandle().getValue(), packed2.getHandle().getValue());
+        assertSame(packed2.getHandle().getValue(), packed2.longs());
         assertEquals(packed.getValueOffset(), packed2.getValueOffset());
     }
 
@@ -947,14 +947,14 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         // should grow bits per value
         final int[] given = new int[] {1, 7, 2, 0};
         packed.setFromArray(given);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(3, packed.getBitsPerValue());
         assertArrayEquals(given, packed.toArray());
 
         // should shrink bits per value
         final int[] given2 = new int[] {1, 3, 2, 0};
         packed.setFromArray(given2);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(2, packed.getBitsPerValue());
         assertArrayEquals(given2, packed.toArray());
     }
@@ -971,18 +971,18 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         // should grow bits per value
         final int[] given = new int[] {1, 7, 2, 0, 5, 4, 9, 6, 0, -1, 1, -1};
         packed.setFromArray(given, 0);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(3, packed.getBitsPerValue());
         assertArrayEquals(new int[] {1, 7, 2, 0}, packed.toArray());
 
         packed.setFromArray(given, 4);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(4, packed.getBitsPerValue());
         assertArrayEquals(new int[] {5, 4, 9, 6}, packed.toArray());
 
         packed.setValueOffset(-1);
         packed.setFromArray(given, 8);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertEquals(2, packed.getBitsPerValue());
         assertArrayEquals(new int[] {0, -1, 1, -1}, packed.toArray());
 
@@ -1053,7 +1053,7 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         iter.next();
         iter.previous();
         iter.set(42);
-        assertSame(packed.getTag().getValue(), packed.longs());
+        assertSame(packed.getHandle().getValue(), packed.longs());
         assertArrayEquals(new int[] {5, 7, 42, -1}, packed.toArray());
         iter.previous();
         iter.set(-1);
