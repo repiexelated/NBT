@@ -1,8 +1,6 @@
 package io.github.ensgijs.nbt.tag;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -14,7 +12,7 @@ import io.github.ensgijs.nbt.io.MaxDepthIO;
  * The type of an empty untyped {@link ListTag} can be set by using any of the {@code add()}
  * methods or any of the {@code as...List()} methods.
  */
-public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<T>, Comparable<ListTag<T>>, MaxDepthIO, Collection<T> {
+public class ListTag<E extends Tag<?>> extends Tag<List<E>> implements List<E>, Comparable<ListTag<E>>, MaxDepthIO, Collection<E> {
 
 	public static final byte ID = 9;
 
@@ -30,11 +28,41 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	 * @throws NullPointerException if usingList is null or contains null elements.
 	 */
 	@SuppressWarnings("unchecked")
-	public ListTag(List<T> usingList) {
+	public ListTag(List<E> usingList) {
 		super(usingList);
-		if (usingList.stream().anyMatch(Objects::isNull))
-			throw new NullPointerException("usingList must not contain nulls");
-		this.typeClass = (Class<T>) ((ParameterizedType) usingList.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+		validateContainsNoNullsAndTypeOk(usingList);
+		assignTypeClassIfNeeded(usingList);
+	}
+
+	protected Collection<? extends E> validateContainsNoNullsAndTypeOk(Collection<? extends E> c) {
+		Objects.requireNonNull(c);
+		if (c.isEmpty()) return c;
+		final Class<?> tagType;
+		if (this.typeClass == null || this.typeClass == EndTag.class)
+			// If this throws an NPE - we don't allow null elements anyway!
+			// This will throw a ClassCastException if the entry doesn't match the erasure.
+			tagType = c.iterator().next().getClass();
+		else
+			tagType = this.typeClass;
+
+		for (E e : c) {
+			if (e == null)
+				throw new NullPointerException();
+			if (!tagType.isAssignableFrom(e.getClass()))
+				throw new ClassCastException("list contained " + e.getClass().getName()
+						+ " which is not a child type of " + tagType.getName());
+		}
+		return c;
+	}
+
+	protected Collection<? extends E> assignTypeClassIfNeeded(Collection<? extends E> c) {
+		if (this.typeClass == null || this.typeClass == EndTag.class) {
+			Class<?> tagType = !c.isEmpty() ? c.iterator().next().getClass() : EndTag.class;
+			if (!Tag.class.isAssignableFrom(tagType))
+				throw new IllegalArgumentException("Type must extend Tag");
+			this.typeClass = tagType;
+		}
+		return c;
 	}
 
 	/** {@inheritDoc} */
@@ -87,7 +115,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	 * @throws IllegalArgumentException When {@code typeClass} is {@link EndTag}{@code .class}
 	 * @throws NullPointerException     When {@code typeClass} is {@code null}
 	 */
-	public ListTag(Class<? super T> typeClass) throws IllegalArgumentException, NullPointerException {
+	public ListTag(Class<? super E> typeClass) throws IllegalArgumentException, NullPointerException {
 		this(typeClass, 3);
 	}
 
@@ -97,7 +125,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	 * @throws IllegalArgumentException When {@code typeClass} is {@link EndTag}{@code .class}
 	 * @throws NullPointerException     When {@code typeClass} is {@code null}
 	 */
-	public ListTag(Class<? super T> typeClass, int initialCapacity) throws IllegalArgumentException, NullPointerException {
+	public ListTag(Class<? super E> typeClass, int initialCapacity) throws IllegalArgumentException, NullPointerException {
 		super(createEmptyValue(initialCapacity));
 		if (typeClass == EndTag.class) {
 			throw new IllegalArgumentException("cannot create ListTag with EndTag elements");
@@ -121,126 +149,181 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return getValue().isEmpty();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean contains(Object o) {
 		return getValue().contains(o);
 	}
 
-	public T remove(int index) {
+	/** {@inheritDoc} */
+	@Override
+	public E remove(int index) {
 		return getValue().remove(index);
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public int indexOf(Object o) {
+		return getValue().indexOf(o);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public int lastIndexOf(Object o) {
+		return getValue().lastIndexOf(o);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public ListIterator<E> listIterator() {
+		return new NullRejectingListIterator<>(getValue().listIterator());
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public ListIterator<E> listIterator(int index) {
+		return new NullRejectingListIterator<>(getValue().listIterator(index));
+	}
+
+	/** unsupported */
+	@Override
+	public List<E> subList(int fromIndex, int toIndex) {
+		return new ListTag<>(getValue().subList(fromIndex, toIndex));
+	}
+
+	/** {@inheritDoc} */
 	@Override
 	public void clear() {
 		getValue().clear();
 	}
 
-	public boolean contains(T t) {
-		return getValue().contains(t);
-	}
-
+	/** {@inheritDoc} */
 	@Override
 	public boolean containsAll(Collection<?> tags) {
 		return getValue().containsAll(tags);
 	}
 
-	public void sort(Comparator<T> comparator) {
-		getValue().sort(comparator);
-	}
-
+	/** {@inheritDoc} */
 	@Override
-	public Iterator<T> iterator() {
-		return getValue().iterator();
+	public Iterator<E> iterator() {
+		return listIterator();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public Object[] toArray() {
 		return getValue().toArray();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public <T1> T1[] toArray(T1[] a) {
 		return getValue().toArray(a);
 	}
 
+	/** {@inheritDoc} */
 	@Override
-	public Spliterator<T> spliterator() {
+	public Spliterator<E> spliterator() {
 		return getValue().spliterator();
 	}
 
+	/** {@inheritDoc} */
 	@Override
-	public void forEach(Consumer<? super T> action) {
-		getValue().forEach(action);
-	}
-
-	public Stream<T> stream() {
+	public Stream<E> stream() {
 		return getValue().stream();
 	}
 
-	public T set(int index, T t) {
-		return getValue().set(index, Objects.requireNonNull(t));
+	/**
+	 * <p>Value cannot be null.</p>
+	 * {@inheritDoc}
+	 */
+	@Override
+	public E set(int index, E element) {
+		return getValue().set(index, Objects.requireNonNull(element));
 	}
 
 	/**
-	 * Adds a Tag to this ListTag after the last index.
-	 *
-	 * @param t The element to be added.
-	 * @return true if this collection changed as a result of the call
+	 * <p>Value cannot be null.</p>
+	 * {@inheritDoc}
 	 */
-	public boolean add(T t) {
-		return getValue().add(t);
+	@Override
+	public boolean add(E element) {
+		Objects.requireNonNull(element);
+		if (getTypeClass() == EndTag.class) {
+			typeClass = checkTypeClass(element.getClass());
+		} else if (!typeClass.isAssignableFrom(element.getClass())) {
+			throw new ClassCastException(
+					String.format("cannot add %s to ListTag<%s>",
+							element.getClass().getSimpleName(),
+							typeClass.getSimpleName()));
+		}
+		return getValue().add(element);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean remove(Object o) {
 		return getValue().remove(o);
 	}
 
-	public void add(int index, T t) {
-		Objects.requireNonNull(t);
+	/**
+	 * <p>Value cannot be null.</p>
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void add(int index, E element) {
+		Objects.requireNonNull(element);
 		if (getTypeClass() == EndTag.class) {
-			typeClass = t.getClass();
-		} else if (typeClass != t.getClass()) {
+			typeClass = checkTypeClass(element.getClass());
+		} else if (!typeClass.isAssignableFrom(element.getClass())) {
 			throw new ClassCastException(
 					String.format("cannot add %s to ListTag<%s>",
-							t.getClass().getSimpleName(),
+							element.getClass().getSimpleName(),
 							typeClass.getSimpleName()));
 		}
-		getValue().add(index, t);
+		getValue().add(index, element);
 	}
 
 	/**
-	 * Adds all the given Tags to this ListTag after the last index.
-	 *
-	 * @param t The element to be added.
-	 * @return true if this collection changed as a result of the call
+	 * <p>Collection must not contain null elements.</p>
+	 * {@inheritDoc}
 	 */
 	@Override
-	public boolean addAll(Collection<? extends T> t) {
-		return getValue().addAll(t);
+	public boolean addAll(Collection<? extends E> c) {
+		return getValue().addAll(assignTypeClassIfNeeded(validateContainsNoNullsAndTypeOk(c)));
 	}
 
+	/**
+	 * <p>Collection must not contain null elements.</p>
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean addAll(int index, Collection<? extends E> c) {
+		return getValue().addAll(index, assignTypeClassIfNeeded(validateContainsNoNullsAndTypeOk(c)));
+	}
+
+	/** {@inheritDoc} */
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		return getValue().removeAll(c);
 	}
 
+	/** {@inheritDoc} */
 	@Override
-	public boolean removeIf(Predicate<? super T> filter) {
+	public boolean removeIf(Predicate<? super E> filter) {
 		return getValue().removeIf(filter);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		return getValue().retainAll(c);
 	}
 
-	public void addAll(int index, Collection<T> t) {
-		int i = 0;
-		for (T tt : t) {
-			add(index + i, tt);
-			i++;
-		}
+	/** {@inheritDoc} */
+	@Override
+	public void sort(Comparator<? super E> c) {
+		getValue().sort(c);
 	}
 
 	public void addBoolean(boolean value) {
@@ -287,12 +370,10 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		addUnchecked(new LongArrayTag(value));
 	}
 
-	public T get(int index) {
+	/** {@inheritDoc} */
+	@Override
+	public E get(int index) {
 		return getValue().get(index);
-	}
-
-	public int indexOf(T t) {
-		return getValue().indexOf(t);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -342,10 +423,10 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	}
 
 	@SuppressWarnings("unchecked")
-	public ListTag<ListTag<?>> asListTagList() {
+	public <T extends Tag<?>> ListTag<ListTag<T>> asListTagList() {
 		checkTypeClass(ListTag.class);
 		typeClass = ListTag.class;
-		return (ListTag<ListTag<?>>) this;
+		return (ListTag<ListTag<T>>) this;
 	}
 
 	public ListTag<CompoundTag> asCompoundTagList() {
@@ -389,7 +470,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 
 	/** {@inheritDoc} */
 	@Override
-	public int compareTo(ListTag<T> o) {
+	public int compareTo(ListTag<E> o) {
 		int k = Integer.compare(this.size(), o.size());
 		if (k != 0) return k;
 		k = this.typeClass == o.typeClass ? 0 : this.typeClass.getName().compareTo(o.typeClass.getName());
@@ -402,12 +483,12 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 	/** {@inheritDoc} */
 	@SuppressWarnings("unchecked")
 	@Override
-	public ListTag<T> clone() {
-		ListTag<T> copy = new ListTag<>(this.size());
+	public ListTag<E> clone() {
+		ListTag<E> copy = new ListTag<>(this.size());
 		// assure type safety for clone
 		copy.typeClass = typeClass;
-		for (T t : getValue()) {
-			copy.add((T) t.clone());
+		for (E e : getValue()) {
+			copy.add((E) e.clone());
 		}
 		return copy;
 	}
@@ -420,14 +501,67 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 					"cannot add %s to ListTag<%s>",
 					tag.getClass().getSimpleName(), typeClass.getSimpleName()));
 		}
-		add(size(), (T) tag);
+		add((E) tag);
 	}
 
-	private void checkTypeClass(Class<?> clazz) {
+	private Class<?> checkTypeClass(Class<?> clazz) {
 		if (getTypeClass() != EndTag.class && typeClass != clazz) {
 			throw new ClassCastException(String.format(
 					"cannot cast ListTag<%s> to ListTag<%s>",
 					typeClass.getSimpleName(), clazz.getSimpleName()));
+		}
+		return clazz;
+	}
+
+	private static class NullRejectingListIterator<E extends Tag<?>> implements ListIterator<E> {
+		private final ListIterator<E> iter;
+		public NullRejectingListIterator(ListIterator<E> iter) {
+			this.iter = iter;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return iter.hasNext();
+		}
+
+		@Override
+		public E next() {
+			return iter.next();
+		}
+
+		@Override
+		public boolean hasPrevious() {
+			return iter.hasPrevious();
+		}
+
+		@Override
+		public E previous() {
+			return iter.previous();
+		}
+
+		@Override
+		public int nextIndex() {
+			return iter.nextIndex();
+		}
+
+		@Override
+		public int previousIndex() {
+			return iter.previousIndex();
+		}
+
+		@Override
+		public void remove() {
+			iter.remove();
+		}
+
+		@Override
+		public void set(E e) {
+			iter.set(Objects.requireNonNull(e));
+		}
+
+		@Override
+		public void add(E e) {
+			iter.add(Objects.requireNonNull(e));
 		}
 	}
 }

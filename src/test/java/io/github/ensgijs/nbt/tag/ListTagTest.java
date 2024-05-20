@@ -4,10 +4,7 @@ import io.github.ensgijs.nbt.io.MaxDepthReachedException;
 import junit.framework.TestCase;
 import io.github.ensgijs.nbt.NbtTestCase;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertNotEquals;
@@ -211,7 +208,7 @@ public class ListTagTest extends NbtTestCase {
 
 		ListTag<ListTag<?>> lis = new ListTag<>(ListTag.class);
 		lis.add(new ListTag<>(IntTag.class));
-		assertThrowsNoRuntimeException(lis::asListTagList);
+		assertThrowsNoRuntimeException(() -> lis.asListTagList());
 		assertThrowsRuntimeException(lis::asCompoundTagList, ClassCastException.class);
 
 		ListTag<CompoundTag> lco = new ListTag<>(CompoundTag.class);
@@ -292,6 +289,46 @@ public class ListTagTest extends NbtTestCase {
 		l.forEach(TestCase::assertNotNull);
 	}
 
+	public void testListIterator() {
+		ListTag<IntTag> l = new ListTag<>(IntTag.class);
+		l.addInt(1);
+		l.addInt(2);
+		l.addInt(3);
+		l.addInt(4);
+
+		ListIterator<IntTag> iter = l.listIterator(1);
+		assertTrue(iter.hasNext());
+		assertTrue(iter.hasPrevious());
+		assertEquals(0, iter.previousIndex());
+		assertEquals(1, iter.nextIndex());
+		assertEquals(2, iter.next().asInt());
+		iter.set(new IntTag(44));
+		assertEquals(44, l.get(1).asInt());
+		assertEquals(44, iter.previous().asInt());
+		assertTrue(iter.hasPrevious());
+		iter.previous();
+		assertFalse(iter.hasPrevious());
+		iter.next();
+		iter.next();
+		assertEquals(1, iter.previousIndex());
+		assertEquals(2, iter.nextIndex());
+		iter.next();
+		iter.next();
+		assertFalse(iter.hasNext());
+		assertTrue(iter.hasPrevious());
+		assertEquals(4, iter.previous().asInt());
+		iter.add(new IntTag(5));
+		assertEquals(5, iter.previous().asInt());
+		assertEquals(3, iter.previous().asInt());
+		iter.remove();
+
+		assertEquals(4, l.size());
+		assertEquals(1, l.get(0).asInt());
+		assertEquals(44, l.get(1).asInt());
+		assertEquals(5, l.get(2).asInt());
+		assertEquals(4, l.get(3).asInt());
+	}
+
 	public void testSet() {
 		ListTag<ByteTag> l = createListTag();
 		l.set(1, new ByteTag((byte) 5));
@@ -310,6 +347,69 @@ public class ListTagTest extends NbtTestCase {
 		assertEquals(7, l.size());
 		assertEquals(9, l.get(1).asByte());
 		assertEquals(11, l.get(2).asByte());
+
+		assertThrowsException(() -> l.addAll(null), NullPointerException.class);
+		assertThrowsException(() -> l.addAll(0, null), NullPointerException.class);
+
+		ListTag uncheckedListTag = ListTag.createUnchecked(EndTag.class);
+		uncheckedListTag.addAll(Arrays.asList(new ByteTag((byte) 9), new ByteTag((byte) 11)));
+		assertSame(ByteTag.class, uncheckedListTag.getTypeClass());
+		assertEquals(2, uncheckedListTag.size());
+
+		uncheckedListTag = ListTag.createUnchecked(EndTag.class);
+		uncheckedListTag.addAll(0, Arrays.asList(new IntTag(9), new IntTag(11)));
+		assertSame(IntTag.class, uncheckedListTag.getTypeClass());
+		assertEquals(2, uncheckedListTag.size());
+
+		// null element in given list
+		List<StringTag> badSeed = new ArrayList<>();
+		badSeed.add(new StringTag("bang"));
+		badSeed.add(null);
+		assertThrowsException(() -> new ListTag<>(StringTag.class).addAll(badSeed), NullPointerException.class);
+		assertThrowsException(() -> new ListTag<>(StringTag.class).addAll(0, badSeed), NullPointerException.class);
+
+		// wrong type in given strongly typed list is blocked at compile time - but mixed types is an interesting edge case
+		List everythingGoes = new ArrayList();
+		everythingGoes.add(new StringTag("bang"));
+		everythingGoes.add(new IntTag(24));
+		assertThrowsException(() -> new ListTag<>(IntTag.class).addAll(everythingGoes), ClassCastException.class);
+		assertThrowsException(() -> ListTag.createUnchecked(null).addAll(everythingGoes), ClassCastException.class);
+	}
+
+	public void testConstructorUsingList() {
+		ListTag<ByteTag> list = new ListTag<>(Arrays.asList(new ByteTag((byte) 9), new ByteTag((byte) 11)));
+		assertSame(ByteTag.class, list.getTypeClass());
+		assertEquals(2, list.size());
+		assertEquals(9, list.get(0).asInt());
+
+		assertThrowsException(() -> new ListTag((List) null), NullPointerException.class);
+		list = new ListTag<>(Arrays.asList(new ByteTag((byte) 9), new ByteTag((byte) 11)));
+		assertSame(ByteTag.class, list.getTypeClass());
+		assertEquals(2, list.size());
+		assertEquals(9, list.get(0).asInt());
+
+		// null element in given list
+		List<StringTag> badSeed = new ArrayList<>();
+		badSeed.add(new StringTag("bang"));
+		badSeed.add(null);
+		assertThrowsException(() -> new ListTag<>(badSeed), NullPointerException.class);
+
+		// wrong type in given strongly typed list is blocked at compile time - but mixed types is an interesting edge case
+		List everythingGoes = new ArrayList();
+		everythingGoes.add(new StringTag("bang"));
+		everythingGoes.add(new IntTag(24));
+		assertThrowsException(() -> new ListTag<>(everythingGoes), ClassCastException.class);
+
+		// trying to use a type that doesn't extend Tag
+		List badfood = new ArrayList();
+		badfood.add("badfood");
+		assertThrowsException(() -> new ListTag<StringTag>(badfood), ClassCastException.class);
+		assertThrowsException(() -> new ListTag(badfood), ClassCastException.class);
+		List badfood2 = new ArrayList();
+		badfood2.add(new StringTag("ok"));
+		badfood2.add("badfood");
+		assertThrowsException(() -> new ListTag<StringTag>(badfood2), ClassCastException.class);
+		assertThrowsException(() -> new ListTag(badfood2), ClassCastException.class);
 	}
 
 	public void testIndexOf() {

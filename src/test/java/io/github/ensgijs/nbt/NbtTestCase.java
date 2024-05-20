@@ -163,7 +163,7 @@ public abstract class NbtTestCase extends TestCase {
 	protected <T, E extends Exception> void assertThrowsException(ExceptionSupplier<T, E> r, Class<? extends Exception> e) {
 		try {
 			r.run();
-			TestCase.fail();
+			TestCase.fail("expected exception " + e.getSimpleName() + " to be thrown but it was not");
 		} catch (Exception ex) {
 			if (!e.equals(ex.getClass())) {
 				throw new WrongExceptionThrownException(e, ex);
