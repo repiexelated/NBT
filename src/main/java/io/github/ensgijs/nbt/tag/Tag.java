@@ -1,12 +1,7 @@
 package io.github.ensgijs.nbt.tag;
 
 import io.github.ensgijs.nbt.io.MaxDepthReachedException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Base class for all NBT tags.
@@ -45,19 +40,19 @@ public abstract class Tag<T> implements Cloneable {
 	 * Initializes this Tag with some value. If the value is {@code null}, it will
 	 * throw a {@code NullPointerException}
 	 * @param value The value to be set for this Tag.
-	 * */
+	 */
 	public Tag(T value) {
 		setValue(value);
 	}
 
 	/**
-	 * @return This Tag's ID, usually used for serialization and deserialization.
-	 * */
+	 * This Tag's ID, usually used for serialization and deserialization.
+	 */
 	public abstract byte getID();
 
 	/**
-	 * @return The value of this Tag.
-	 * */
+	 * The value of this Tag.
+	 */
 	protected T getValue() {
 		return value;
 	}
@@ -66,7 +61,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * Sets the value for this Tag directly.
 	 * @param value The value to be set.
 	 * @throws NullPointerException If the value is null
-	 * */
+	 */
 	protected void setValue(T value) {
 		this.value = checkValue(value);
 	}
@@ -76,7 +71,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * @param value The value to check
 	 * @throws NullPointerException If {@code value} was {@code null}
 	 * @return The parameter {@code value}
-	 * */
+	 */
 	protected T checkValue(T value) {
 		return Objects.requireNonNull(value);
 	}
@@ -85,7 +80,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * Calls {@link Tag#toString(int)} with an initial depth of {@code 0}.
 	 * @see Tag#toString(int)
 	 * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
-	 * */
+	 */
 	@Override
 	public final String toString() {
 		return toString(DEFAULT_MAX_DEPTH);
@@ -96,7 +91,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * @param maxDepth The maximum nesting depth.
 	 * @return The string representation of this Tag.
 	 * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
-	 * */
+	 */
 	public String toString(int maxDepth) {
 		return "{\"type\":\""+ getClass().getSimpleName() + "\"," +
 				"\"value\":" + valueToString(maxDepth) + "}";
@@ -106,7 +101,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * Calls {@link Tag#valueToString(int)} with {@link Tag#DEFAULT_MAX_DEPTH}.
 	 * @return The string representation of the value of this Tag.
 	 * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
-	 * */
+	 */
 	public String valueToString() {
 		return valueToString(DEFAULT_MAX_DEPTH);
 	}
@@ -116,7 +111,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * @param maxDepth The maximum nesting depth.
 	 * @return The string representation of the value of this Tag.
 	 * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
-	 * */
+	 */
 	public abstract String valueToString(int maxDepth);
 
 	/**
@@ -126,7 +121,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * of this {@code super}-method while comparing.
 	 * @param other The Tag to compare to.
 	 * @return {@code true} if they are equal based on the conditions mentioned above.
-	 * */
+	 */
 	@Override
 	public boolean equals(Object other) {
 		return other != null && getClass() == other.getClass();
@@ -136,7 +131,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * Calculates the hash code of this Tag. Tags which are equal according to {@link Tag#equals(Object)}
 	 * must return an equal hash code.
 	 * @return The hash code of this Tag.
-	 * */
+	 */
 	@Override
 	public int hashCode() {
 		return value.hashCode();
@@ -148,4 +143,28 @@ public abstract class Tag<T> implements Cloneable {
 	 * */
 	@SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
 	public abstract Tag<T> clone();
+
+	@SuppressWarnings("unchecked")
+	public static int compare(Tag<?> tag1, Tag<?> tag2) {
+		if (tag1 == null && tag2 == null) return 0;
+		if (tag1 == null) return -1;
+		if (tag2 == null) return 1;
+		int k = Integer.compare(tag1.getID(), tag2.getID());
+		if (k != 0) return k;
+		return switch (tag1.getID()) {
+			case ByteTag.ID -> ((ByteTag) tag1).compareTo((ByteTag) tag2);
+			case ShortTag.ID -> ((ShortTag) tag1).compareTo((ShortTag) tag2);
+			case IntTag.ID -> ((IntTag) tag1).compareTo((IntTag) tag2);
+			case LongTag.ID -> ((LongTag) tag1).compareTo((LongTag) tag2);
+			case FloatTag.ID -> ((FloatTag) tag1).compareTo((FloatTag) tag2);
+			case DoubleTag.ID -> ((DoubleTag) tag1).compareTo((DoubleTag) tag2);
+			case ByteArrayTag.ID -> ((ByteArrayTag) tag1).compareTo((ByteArrayTag) tag2);
+			case StringTag.ID -> ((StringTag) tag1).compareTo((StringTag) tag2);
+			case ListTag.ID -> ((ListTag) tag1).compareTo((ListTag) tag2);
+			case CompoundTag.ID -> ((CompoundTag) tag1).compareTo((CompoundTag) tag2);
+			case IntArrayTag.ID -> ((IntArrayTag) tag1).compareTo((IntArrayTag) tag2);
+			case LongArrayTag.ID -> ((LongArrayTag) tag1).compareTo((LongArrayTag) tag2);
+			default -> throw new UnsupportedOperationException("New tag type? ID: " + tag1.getID());
+		};
+	}
 }

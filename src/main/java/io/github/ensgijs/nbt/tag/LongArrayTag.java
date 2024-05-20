@@ -16,26 +16,33 @@ public class LongArrayTag extends ArrayTag<long[]> implements Comparable<LongArr
 		super(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public byte getID() {
 		return ID;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean equals(Object other) {
 		return super.equals(other) && Arrays.equals(getValue(), ((LongArrayTag) other).getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int hashCode() {
 		return Arrays.hashCode(getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int compareTo(LongArrayTag other) {
-		return Integer.compare(length(), other.length());
+		int k = Integer.compare(length(), other.length());
+		if (k != 0) return k;
+		return Arrays.compare(getValue(), other.getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public LongArrayTag clone() {
 		return new LongArrayTag(Arrays.copyOf(getValue(), length()));

@@ -56,7 +56,7 @@ public class IntArrayTagTest extends NbtTestCase {
 		IntArrayTag t3 = new IntArrayTag(new int[]{Integer.MAX_VALUE, 0, Integer.MIN_VALUE});
 		IntArrayTag t4 = new IntArrayTag(new int[]{0, Integer.MIN_VALUE});
 		assertEquals(0, t.compareTo(t2));
-		assertEquals(0, t.compareTo(t3));
+		assertTrue(0 > t.compareTo(t3));
 		assertTrue(0 < t.compareTo(t4));
 		assertTrue(0 > t4.compareTo(t));
 		assertThrowsRuntimeException(() -> t.compareTo(null), NullPointerException.class);

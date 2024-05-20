@@ -15,26 +15,33 @@ public class ByteArrayTag extends ArrayTag<byte[]> implements Comparable<ByteArr
 		super(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public byte getID() {
 		return ID;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean equals(Object other) {
 		return super.equals(other) && Arrays.equals(getValue(), ((ByteArrayTag) other).getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int hashCode() {
 		return Arrays.hashCode(getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int compareTo(ByteArrayTag other) {
-		return Integer.compare(length(), other.length());
+		int k = Integer.compare(length(), other.length());
+		if (k != 0) return k;
+		return Arrays.compare(getValue(), other.getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public ByteArrayTag clone() {
 		return new ByteArrayTag(Arrays.copyOf(getValue(), length()));

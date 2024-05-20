@@ -4,8 +4,10 @@ import io.github.ensgijs.nbt.io.MaxDepthReachedException;
 import junit.framework.TestCase;
 import io.github.ensgijs.nbt.NbtTestCase;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertNotEquals;
@@ -14,7 +16,12 @@ public class ListTagTest extends NbtTestCase {
 
 	public void testCreateInvalidList() {
 		assertThrowsException(() -> new ListTag<>(EndTag.class), IllegalArgumentException.class);
-		assertThrowsException(() -> new ListTag<>(null), NullPointerException.class);
+		assertThrowsException(() -> new ListTag<>((Class) null), NullPointerException.class);
+		assertThrowsException(() -> new ListTag<>((List) null), NullPointerException.class);
+
+		List<StringTag> nullContaining = new ArrayList<>();
+		nullContaining.add(null);
+		assertThrowsException(() -> new ListTag<>(nullContaining), NullPointerException.class);
 	}
 	
 	private ListTag<ByteTag> createListTag() {
@@ -226,7 +233,7 @@ public class ListTagTest extends NbtTestCase {
 		ListTag<IntTag> lo = new ListTag<>(IntTag.class);
 		lo.addInt(3);
 		lo.addInt(4);
-		assertEquals(0, li.compareTo(lo));
+		assertTrue(0 > li.compareTo(lo));
 		lo.addInt(5);
 		assertEquals(-1, li.compareTo(lo));
 		lo.remove(2);

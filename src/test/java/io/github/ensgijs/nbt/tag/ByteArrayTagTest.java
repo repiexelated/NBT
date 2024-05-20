@@ -56,7 +56,7 @@ public class ByteArrayTagTest extends NbtTestCase {
 		ByteArrayTag t3 = new ByteArrayTag(new byte[]{Byte.MAX_VALUE, 0, Byte.MIN_VALUE});
 		ByteArrayTag t4 = new ByteArrayTag(new byte[]{0, Byte.MIN_VALUE});
 		assertEquals(0, t.compareTo(t2));
-		assertEquals(0, t.compareTo(t3));
+		assertTrue(0 > t.compareTo(t3));
 		assertTrue(0 < t.compareTo(t4));
 		assertTrue(0 > t4.compareTo(t));
 		assertThrowsRuntimeException(() -> t.compareTo(null), NullPointerException.class);

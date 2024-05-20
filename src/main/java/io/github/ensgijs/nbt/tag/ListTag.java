@@ -1,5 +1,6 @@
 package io.github.ensgijs.nbt.tag;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -23,6 +24,20 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		super(createEmptyValue(initialCapacity));
 	}
 
+	/**
+	 * Creates a new ListTag that uses the given list.
+	 * @param usingList List instance to use to back this ListTag. Values are NOT cloned.
+	 * @throws NullPointerException if usingList is null or contains null elements.
+	 */
+	@SuppressWarnings("unchecked")
+	public ListTag(List<T> usingList) {
+		super(usingList);
+		if (usingList.stream().anyMatch(Objects::isNull))
+			throw new NullPointerException("usingList must not contain nulls");
+		this.typeClass = (Class<T>) ((ParameterizedType) usingList.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+	}
+
+	/** {@inheritDoc} */
 	@Override
 	public byte getID() {
 		return ID;
@@ -94,11 +109,13 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return typeClass == null ? EndTag.class : typeClass;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int size() {
 		return getValue().size();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean isEmpty() {
 		return getValue().isEmpty();
@@ -335,6 +352,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return asTypedList(CompoundTag.class);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public String valueToString(int maxDepth) {
 		StringBuilder sb = new StringBuilder("{\"type\":\"").append(getTypeClass().getSimpleName()).append("\",\"list\":[");
@@ -345,6 +363,7 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return sb.toString();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean equals(Object other) {
 		if (this == other) {
@@ -362,16 +381,25 @@ public class ListTag<T extends Tag<?>> extends Tag<List<T>> implements Iterable<
 		return true;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int hashCode() {
 		return Objects.hash(getTypeClass().hashCode(), getValue().hashCode());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int compareTo(ListTag<T> o) {
-		return Integer.compare(size(), o.getValue().size());
+		int k = Integer.compare(this.size(), o.size());
+		if (k != 0) return k;
+		k = this.typeClass == o.typeClass ? 0 : this.typeClass.getName().compareTo(o.typeClass.getName());
+		for (int i = 0, len = size(); k == 0 && i < len; i++) {
+			k = Tag.compare(this.get(i), o.get(i));
+		}
+		return k;
 	}
 
+	/** {@inheritDoc} */
 	@SuppressWarnings("unchecked")
 	@Override
 	public ListTag<T> clone() {

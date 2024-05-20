@@ -20,16 +20,19 @@ public abstract class ArrayTag<T> extends Tag<T> {
 		return Array.getLength(getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public T getValue() {
 		return super.getValue();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public void setValue(T value) {
 		super.setValue(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public String valueToString(int maxDepth) {
 		return arrayToString("", "");

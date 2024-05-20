@@ -263,7 +263,7 @@ public class CompoundTagTest extends NbtTestCase {
 		CompoundTag co = new CompoundTag();
 		co.putInt("three", 3);
 		co.putInt("four", 4);
-		assertEquals(0, ci.compareTo(co));
+		assertTrue(0 < ci.compareTo(co));
 		co.putInt("five", 5);
 		assertEquals(-1, ci.compareTo(co));
 		co.remove("five");

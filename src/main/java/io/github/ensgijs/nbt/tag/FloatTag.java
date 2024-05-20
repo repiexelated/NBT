@@ -13,25 +13,33 @@ public class FloatTag extends NumberTag<Float> implements Comparable<FloatTag> {
 		super(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public byte getID() {
 		return ID;
 	}
 
+	/**
+	 * Sets the value for this Tag directly.
+	 * @param value The value to be set.
+	 */
 	public void setValue(float value) {
 		super.setValue(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean equals(Object other) {
 		return super.equals(other) && getValue().equals(((FloatTag) other).getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int compareTo(FloatTag other) {
 		return getValue().compareTo(other.getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public FloatTag clone() {
 		return new FloatTag(getValue());

@@ -56,7 +56,7 @@ public class LongArrayTagTest extends NbtTestCase {
 		LongArrayTag t3 = new LongArrayTag(new long[]{Long.MAX_VALUE, 0, Long.MIN_VALUE});
 		LongArrayTag t4 = new LongArrayTag(new long[]{0, Long.MIN_VALUE});
 		assertEquals(0, t.compareTo(t2));
-		assertEquals(0, t.compareTo(t3));
+		assertTrue(0 > t.compareTo(t3));
 		assertTrue(0 < t.compareTo(t4));
 		assertTrue(0 > t4.compareTo(t));
 		assertThrowsRuntimeException(() -> t.compareTo(null), NullPointerException.class);

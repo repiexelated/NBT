@@ -1,5 +1,10 @@
 package io.github.ensgijs.nbt.tag;
 
+/**
+ * NumberTag is an abstract representation of any {@link Number} tag.
+ *
+ * @param <T> The array type.
+ */
 public abstract class NumberTag<T extends Number & Comparable<T>> extends Tag<T> {
 
 	public NumberTag(T value) {
@@ -30,6 +35,7 @@ public abstract class NumberTag<T extends Number & Comparable<T>> extends Tag<T>
 		return getValue().doubleValue();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public String valueToString(int maxDepth) {
 		return getValue().toString();

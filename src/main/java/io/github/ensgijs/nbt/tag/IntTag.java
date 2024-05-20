@@ -13,25 +13,33 @@ public class IntTag extends NumberTag<Integer> implements Comparable<IntTag> {
 		super(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public byte getID() {
 		return ID;
 	}
 
+	/**
+	 * Sets the value for this Tag directly.
+	 * @param value The value to be set.
+	 */
 	public void setValue(int value) {
 		super.setValue(value);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean equals(Object other) {
 		return super.equals(other) && asInt() == ((IntTag) other).asInt();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int compareTo(IntTag other) {
 		return getValue().compareTo(other.getValue());
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public IntTag clone() {
 		return new IntTag(getValue());

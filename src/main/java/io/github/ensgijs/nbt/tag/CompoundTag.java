@@ -31,6 +31,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		super(data);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public byte getID() {
 		return ID;
@@ -72,6 +73,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return getValue().keySet();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public Iterator<NamedTag> iterator() {
 		return new CompoundTagIterator(getValue().entrySet());
@@ -499,6 +501,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return put(key, listTag);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public String valueToString(int maxDepth) {
 		StringBuilder sb = new StringBuilder("{");
@@ -517,6 +520,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return sb.toString();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean equals(Object other) {
 		if (this == other) {
@@ -534,11 +538,38 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return true;
 	}
 
+	/**
+	 * Compares this compound tag to another one.
+	 * <p>Comparison sequence:</p>
+	 * <ul>
+	 *     <li>key set length</li>
+	 *     <li>key names</li>
+	 *     <li>tag value compare result (tag type before value comparison)</li>
+	 * </ul>
+	 */
 	@Override
 	public int compareTo(CompoundTag o) {
-		return Integer.compare(size(), o.getValue().size());
+		final var thisMap = getValue();
+		final var otherMap = o.getValue();
+		int k = Integer.compare(size(), otherMap.size());
+		if (k != 0) return k;
+		if (!thisMap.keySet().containsAll(otherMap.keySet())) {
+			ArrayList<String> keys1 = new ArrayList<>(thisMap.keySet());
+			ArrayList<String> keys2 = new ArrayList<>(otherMap.keySet());
+			keys1.sort(String::compareTo);
+			keys2.sort(String::compareTo);
+			k = Arrays.compare(keys1.toArray(new String[0]), keys2.toArray(new String[0]));
+			if (k != 0) return k;
+			for (String key: keys1) {
+				k = Tag.compare(thisMap.get(key), otherMap.get(key));
+				if (k != 0)
+					return k;
+			}
+		}
+		return 0;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public CompoundTag clone() {
 		// Choose initial capacity based on default load factor (0.75) so all entries fit in map without resizing
