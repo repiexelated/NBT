@@ -483,4 +483,31 @@ public class ListTagTest extends NbtTestCase {
 		assertEquals("A quick brown fox jumps over the lazy dog",
 				tag.stream().map(StringTag::getValue).collect(Collectors.joining(" ")));
 	}
+
+	public void testSubList() {
+		ListTag<StringTag> tag = new ListTag<>(StringTag.class);
+		tag.addString("A");
+		tag.addString("quick");
+		tag.addString("brown");
+		tag.addString("fox");
+		tag.addString("jumps");
+		tag.addString("over");
+		tag.addString("the");
+		tag.addString("lazy");
+		tag.addString("dog");
+
+		var subList = tag.subList(2, 5);
+		assertEquals("brown", subList.get(0).getValue());
+		assertEquals("fox", subList.get(1).getValue());
+		assertEquals("jumps", subList.get(2).getValue());
+		subList.set(1, new StringTag("dog"));
+		assertEquals("dog", subList.get(1).getValue());
+		assertEquals("dog", tag.get(3).getValue());
+		subList.remove(0);
+		assertEquals("A quick dog jumps over the lazy dog",
+				tag.stream().map(StringTag::getValue).collect(Collectors.joining(" ")));
+		subList.add(1, new StringTag("almost"));
+		assertEquals("A quick dog almost jumps over the lazy dog",
+				tag.stream().map(StringTag::getValue).collect(Collectors.joining(" ")));
+	}
 }

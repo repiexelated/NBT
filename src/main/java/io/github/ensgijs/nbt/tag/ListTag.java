@@ -185,9 +185,17 @@ public class ListTag<E extends Tag<?>> extends Tag<List<E>> implements List<E>, 
 		return new NullRejectingListIterator<>(getValue().listIterator(index));
 	}
 
-	/** unsupported */
+	/** {@inheritDoc}
+	 *
+	 * @param fromIndex low endpoint (inclusive) of the subList
+	 * @param toIndex high endpoint (exclusive) of the subList
+	 * @return a view of the specified range within this list
+	 * @throws IndexOutOfBoundsException for an illegal endpoint index value
+	 *         ({@code fromIndex < 0 || toIndex > size ||
+	 *         fromIndex > toIndex})
+	 */
 	@Override
-	public List<E> subList(int fromIndex, int toIndex) {
+	public ListTag<E> subList(int fromIndex, int toIndex) {
 		return new ListTag<>(getValue().subList(fromIndex, toIndex));
 	}
 
