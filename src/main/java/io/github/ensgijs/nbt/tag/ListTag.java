@@ -12,7 +12,7 @@ import io.github.ensgijs.nbt.io.MaxDepthIO;
  * The type of an empty untyped {@link ListTag} can be set by using any of the {@code add()}
  * methods or any of the {@code as...List()} methods.
  */
-public class ListTag<E extends Tag<?>> extends Tag<List<E>> implements List<E>, Comparable<ListTag<E>>, MaxDepthIO, Collection<E> {
+public class ListTag<E extends Tag<?>> extends Tag<List<E>> implements List<E>, Comparable<ListTag<E>>, MaxDepthIO {
 
 	public static final byte ID = 9;
 
