@@ -1,10 +1,7 @@
 package io.github.ensgijs.nbt.mca.util;
 
 import io.github.ensgijs.nbt.mca.DataVersion;
-import io.github.ensgijs.nbt.tag.CompoundTag;
-import io.github.ensgijs.nbt.tag.ListTag;
-import io.github.ensgijs.nbt.tag.LongArrayTag;
-import io.github.ensgijs.nbt.tag.Tag;
+import io.github.ensgijs.nbt.tag.*;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -75,21 +72,52 @@ import static io.github.ensgijs.nbt.util.ArgValidator.*;
  *   }
  * </pre>
  */
-public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneable {
-//    public static boolean DEBUG = false;
-    private final int cordBitMask;
-    private final int zShift;
-    private final int yShift;
-    private final int cubeEdgeLength;
+public class PalettizedCuboid<E extends Tag<?>> implements TagWrapper<CompoundTag>, Iterable<E>, Cloneable {
+    //    public static boolean DEBUG = false;
+    record CubeInfo(int edgeLength, int cordBitMask , int zShift , int yShift) {
+        public int entryCount() {
+            return edgeLength * edgeLength * edgeLength;
+        }
+    }
 
     /**
-     * May be a sparse array and contain nulls, however, there should be no value which references a null palette index.
-     * This is to simplify mutations and differ compaction / remapping to a convenient time.
+     * Flyweight instances - reuse these instead of having an instance for every PalettizedCuboid instance. 
+     * @see #nilSentinelFor(Class)
      */
-    protected final List<E> palette = new ArrayList<>();
+    private static final Map<Class<?>, Tag<?>> EMPTY_VALUE_SENTINEL_CACHE = new HashMap<>();
+    /**
+     * Flyweight instances - reuse these instead of having an instance for every PalettizedCuboid instance.
+     * @see #cubeInfoFor(int) 
+     */
+    private static final Map<Integer, CubeInfo> CUBE_INFO_CACHE = new HashMap<>();
+
+    protected final CubeInfo cubeInfo;
     protected final Class<E> paletteEntryClass;
     protected transient int paletteModCount = 0;
-    protected final int[] data;
+    protected final CompoundTag paletteContainerTag;
+    protected final ListTag<E> palette;
+    protected final LongArrayTagPackedIntegers packedData;
+
+    @SuppressWarnings("unchecked")
+    protected static <T extends Tag<?>> T nilSentinelFor(Class<T> clazz) {
+        T val = (T) EMPTY_VALUE_SENTINEL_CACHE.get(clazz);
+        if (val == null) {
+            try {
+                val = clazz.getDeclaredConstructor().newInstance();
+                EMPTY_VALUE_SENTINEL_CACHE.put(clazz, val);
+            } catch (ReflectiveOperationException ex) {
+                throw new IllegalArgumentException("Failed to create a default instance of " + clazz.getName(), ex);
+            }
+        }
+        return val;
+    }
+
+    protected static CubeInfo cubeInfoFor(final int edgeLength) {
+        return CUBE_INFO_CACHE.computeIfAbsent(edgeLength, (k) -> {
+            final int bits = calculatePowerOfTwoExponent(edgeLength, true);
+            return new CubeInfo(edgeLength, calculateBitMask(bits), bits, bits * 2);
+        });
+    }
 
     /**
      * @param cubeEdgeLength The size of this {@link PalettizedCuboid} will be {@code cubeEdgeLength^3}.
@@ -99,25 +127,62 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      *                       The given value is cloned for each entry in the cuboid.
      */
     @SuppressWarnings("unchecked")
-    public PalettizedCuboid(int cubeEdgeLength, E fillWith) {
-        this(cubeEdgeLength, fillWith, (Class<E>) fillWith.getClass(), false);
+    public PalettizedCuboid(final int cubeEdgeLength, E fillWith) {
+        this(cubeEdgeLength, (Class<E>) fillWith.getClass(), fillWith, false);
     }
 
     @SuppressWarnings("unchecked")
-    protected PalettizedCuboid(int cubeEdgeLength, E fillWith, Class<E> paletteEntryClass, boolean allowNullFill) {
+    public PalettizedCuboid(PalettizedCuboid<E> other) {
+        this.cubeInfo = other.cubeInfo;
+        this.paletteEntryClass = other.paletteEntryClass;
+        paletteContainerTag = new CompoundTag();
+        palette = new ListTag<>(paletteEntryClass, other.size());
+        paletteContainerTag.put("palette", palette);
+        for (E e : other.palette) {
+            this.palette.add((E) e.clone());
+        }
+        this.packedData = other.packedData.clone();
+    }
+
+    @SuppressWarnings("unchecked")
+    protected PalettizedCuboid(final int cubeEdgeLength, Class<E> paletteEntryClass, E fillWith, boolean allowNullFill) {
         if (!allowNullFill) {
             requireValue(fillWith, "fillWith");
         }
-        this.cubeEdgeLength = cubeEdgeLength;
+        cubeInfo = cubeInfoFor(cubeEdgeLength);
         this.paletteEntryClass = paletteEntryClass;
-        int bits = calculatePowerOfTwoExponent(cubeEdgeLength, true);
-        this.cordBitMask = calculateBitMask(bits);
-        this.zShift = bits;
-        this.yShift = bits * 2;
-        this.data = new int[cubeEdgeLength * cubeEdgeLength * cubeEdgeLength];
-        Arrays.fill(this.data, 0);
+        paletteContainerTag = new CompoundTag();
+        palette = new ListTag<>(paletteEntryClass);
+        paletteContainerTag.put("palette", palette);
+        this.packedData = LongArrayTagPackedIntegers.builder()
+                .length(cubeInfo.entryCount())
+                .minBitsPerValue(cubeEdgeLength == 16 ? 4 /*blocks*/: 1 /*biomes*/)
+                .build();
         if (fillWith != null) {
             this.palette.add((E) fillWith.clone());
+        }
+    }
+
+    /**
+     * Protected access because of the annoyance of needing to know the paletteEntryClass apriori to the call.
+     * @see #fromCompoundTag
+     */
+    protected PalettizedCuboid(final int cubeEdgeLength, Class<E> paletteEntryClass, CompoundTag paletteContainerTag, int dataVersion) {
+        requireValue(paletteContainerTag, "paletteContainerTag");
+        check(paletteContainerTag.containsKey("palette"), "paletteContainerTag must contain a 'palette' ListTag");
+        cubeInfo = cubeInfoFor(cubeEdgeLength);
+        this.paletteContainerTag = paletteContainerTag;
+        this.paletteEntryClass = paletteEntryClass;
+        palette = this.paletteContainerTag.getListTag("palette").asTypedList(paletteEntryClass);
+        var builder = LongArrayTagPackedIntegers.builder()
+                .length(cubeInfo.entryCount())
+                .dataVersion(dataVersion)
+                .minBitsPerValue(cubeEdgeLength == 16 ? 4 /*blocks*/: 1 /*biomes*/)
+                .initializeForStoring(palette.size());
+        if (paletteContainerTag.containsKey("data")) {
+            this.packedData = builder.build(paletteContainerTag.getLongArrayTag("data"));
+        } else {
+            this.packedData = builder.build();
         }
     }
 
@@ -129,15 +194,15 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     @SuppressWarnings("unchecked")
     public PalettizedCuboid(E[] values) {
-        this(cubeRoot(values.length), null, (Class<E>) values.getClass().getComponentType(), true);
+        this(cubeRoot(values.length), (Class<E>) values.getClass().getComponentType(), null, true);
         Map<E, Integer> indexLookup = new HashMap<>();
-        for (int i = 0; i < data.length; i++) {
+        for (int i = 0; i < packedData.length; i++) {
             check(values[i] != null, "values must not contain nulls!");
             int paletteIndex = indexLookup.computeIfAbsent(values[i], k -> {
                 palette.add((E) k.clone());
                 return palette.size() - 1;
             });
-            this.data[i] = paletteIndex;
+            this.packedData.set(i, paletteIndex);
         }
     }
 
@@ -180,14 +245,14 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     /** size of data array (ex. 64 for a 4x4x4 cuboid) */
     public int size() {
-        return data.length;
+        return packedData.length;
     }
 
     /**
      * Length of one edge of the cuboid (ex. 4 for a 4x4x4 cuboid).
      */
     public int cubeEdgeLength() {
-        return cubeEdgeLength;
+        return cubeInfo.edgeLength;
     }
 
     /** The current palette size. Note for an exact accurate palette count call {@link #optimizePalette()} first. */
@@ -232,19 +297,19 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         } else if (counting.size() < 5) {
             counting = new ArrayList<>(counting);
         }
-        return (int) Arrays.stream(data).filter(counting::contains).count();
+        return packedData.count(counting::contains);
     }
 
     /**
      * Returns a copy of the palette values for every position in this cuboid.
      * <p>Modifying the returned value can be done safely, it will have no effect on this cuboid.</p>
-     * <p>To avoid the overhead of making a copy use {@link #getByRef(int)} instead.</p>
+     * <p>To avoid the overhead of making N copies of palette tags use {@link #toArrayByRef()} instead.</p>
      */
     @SuppressWarnings("unchecked")
     public E[] toArray() {
-        E[] a = (E[]) java.lang.reflect.Array.newInstance(paletteEntryClass, data.length);
-        for (int i = 0; i < data.length; i++) {
-            a[i] = (E) palette.get(data[i]).clone();
+        E[] a = (E[]) java.lang.reflect.Array.newInstance(paletteEntryClass, packedData.length);
+        for (int i = 0; i < packedData.length; i++) {
+            a[i] = (E) palette.get(packedData.get(i)).clone();
         }
         return a;
     }
@@ -256,9 +321,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     @SuppressWarnings("unchecked")
     public E[] toArrayByRef() {
-        E[] a = (E[]) java.lang.reflect.Array.newInstance(paletteEntryClass, data.length);
-        for (int i = 0; i < data.length; i++) {
-            a[i] = palette.get(data[i]);
+        E[] a = (E[]) java.lang.reflect.Array.newInstance(paletteEntryClass, packedData.length);
+        for (int i = 0; i < packedData.length; i++) {
+            a[i] = palette.get(packedData.get(i));
         }
         return a;
     }
@@ -267,7 +332,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     private boolean replace(Collection<Integer> replacing, E replacement) {
         requireValue(replacement, "replacement");
         paletteModCount ++;
-        replacing.remove(-1);
+        replacing.remove(-1);  // TODO: document semantics
         if (replacing.isEmpty()) {
             return false;
         }
@@ -296,15 +361,16 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         }
 
         boolean modified = false;
-        for (int i = 0; i < data.length; i++) {
-            if (replacing.contains(data[i])) {
+        for (int i = 0; i < packedData.length; i++) {
+            if (replacing.contains(packedData.get(i))) {
                 modified = true;
-                data[i] = replacementPaletteIndex;
+                packedData.set(i, replacementPaletteIndex);
             }
         }
         if (modified) {
+            final var nilValue = nilSentinelFor(paletteEntryClass);
             for (int i : replacing) {
-                palette.set(i, null);  // paletteModCount incremented at top of method
+                palette.set(i, nilValue);  // paletteModCount incremented at top of method
             }
             if (addReplacementToPaletteIfDataModified)
                 palette.add((E) replacement.clone());  // paletteModCount incremented at top of method
@@ -348,9 +414,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         requireValue(replacement, "replacement");
         final int expectPaletteModCount = paletteModCount;
         Set<Integer> replacing = new HashSet<>();
+        final var nilValue = nilSentinelFor(paletteEntryClass);
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
-            if (paletteValue == null) {
+            if (paletteValue == nilValue) {
                 continue;
             }
             final int hash = paletteValue.hashCode();
@@ -360,9 +427,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             if (paletteValue.hashCode() != hash) {
                 throw new PaletteCorruptedException("Palette element passed to filter modified unexpectedly!");
             }
-        }
-        if (expectPaletteModCount != paletteModCount) {
-            throw new ConcurrentModificationException();
+            if (expectPaletteModCount != paletteModCount) {
+                throw new ConcurrentModificationException();
+            }
         }
         return replace(replacing, replacement);
     }
@@ -374,9 +441,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     public boolean retainAll(Collection<E> c, E replacement) {
         requireValue(replacement, "replacement");
         Set<Integer> replacing = new HashSet<>();
+        final var nilValue = nilSentinelFor(paletteEntryClass);
         for (int i = 0; i < palette.size(); i++) {
             E paletteValue = palette.get(i);
-            if (paletteValue != null && !c.contains(paletteValue)) {
+            if (paletteValue != nilValue && !c.contains(paletteValue)) {
                 replacing.add(i);
             }
         }
@@ -393,7 +461,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         paletteModCount ++;
         palette.clear();
         palette.add((E) fillWith.clone());
-        Arrays.fill(data, 0);
+        packedData.clear(true);
     }
 
     /**
@@ -405,7 +473,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @return wrapped element index
      */
     public int indexOf(int x, int y, int z) {
-        return ((y & cordBitMask) << yShift) | ((z & cordBitMask) << zShift) | (x & cordBitMask);
+        return ((y & cubeInfo.cordBitMask) << cubeInfo.yShift) |
+                ((z & cubeInfo.cordBitMask) << cubeInfo.zShift) |
+                (x & cubeInfo.cordBitMask);
     }
 
     public int indexOf(IntPointXYZ xyz) {
@@ -417,9 +487,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     public IntPointXYZ xyzOf(int index) {
         return new IntPointXYZ(
-                index & cordBitMask,
-                (index >> yShift) & cordBitMask,
-                (index >> zShift) & cordBitMask
+                index & cubeInfo.cordBitMask,
+                (index >> cubeInfo.yShift) & cubeInfo.cordBitMask,
+                (index >> cubeInfo.zShift) & cubeInfo.cordBitMask
         );
     }
 
@@ -429,9 +499,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     public IntPointXYZ xyzOf(int x, int y, int z) {
         int index = indexOf(x, y, z);
         return new IntPointXYZ(
-                index & cordBitMask,
-                (index >> yShift) & cordBitMask,
-                (index >> zShift) & cordBitMask
+                index & cubeInfo.cordBitMask,
+                (index >> cubeInfo.yShift) & cubeInfo.cordBitMask,
+                (index >> cubeInfo.zShift) & cubeInfo.cordBitMask
         );
     }
 
@@ -447,7 +517,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      */
     @SuppressWarnings("unchecked")
     public E get(int index) {
-        return (E) palette.get(data[index]).clone();
+        return (E) palette.get(packedData.get(index)).clone();
     }
     /**
      * Returns a copy of the palette value at the specified position in this cuboid.
@@ -476,7 +546,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      *         (index &lt; 0 || index &gt;= size())
      */
     public E getByRef(int index) {
-        return palette.get(data[index]);
+        return palette.get(packedData.get(index));
     }
 
     /**
@@ -505,7 +575,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     @SuppressWarnings("unchecked")
     public void set(int index, E element) {
         requireValue(element, "element");
-        if (index < 0 || index >= data.length) {
+        if (index < 0 || index >= packedData.length) {
             throw new IndexOutOfBoundsException();
         }
         paletteModCount ++;
@@ -514,7 +584,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             paletteIndex = palette.size();
             palette.add((E) element.clone());  // paletteModCount incremented at top of method
         }
-        data[index] = paletteIndex;
+        packedData.set(index, paletteIndex);
     }
 
     /**
@@ -546,6 +616,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
      * @param y2 inclusive bound
      * @param z2 inclusive bound
      */
+    @SuppressWarnings("unchecked")
     public void set(int x1, int y1, int z1, E element, int x2, int y2, int z2 ) {
         requireValue(element, "element");
         checkBounds(x1, y1, z1);
@@ -558,11 +629,18 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             return;
         }
 
+        int paletteIndex = palette.indexOf(element);
+        if (paletteIndex < 0) {
+            paletteModCount ++;
+            paletteIndex = palette.size();
+            palette.add((E) element.clone());
+        }
+
         // detect and optimize XZ plain fills
-        if (x1 == 0 && z1 == 0 && x2 == cubeEdgeLength && z2 == cubeEdgeLength) {
+        if (x1 == 0 && z1 == 0 && x2 == cubeInfo.edgeLength && z2 == cubeInfo.edgeLength) {
             final int endIndex = indexOf(x2 - 1, y2 - 1, z2 - 1);
             for (int i = indexOf(x1, y1, z1); i <= endIndex; i++) {
-                set(i, element);
+                packedData.set(i, paletteIndex);
             }
             return;
         }
@@ -571,7 +649,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         for (int y = y1; y < y2; y++) {
             for (int z = z1; z < z2; z++) {
                 for (int x = x1; x < x2; x++) {
-                    set(x, y, z, element);
+                    packedData.set(indexOf(x, y , z), paletteIndex);
                 }
             }
         }
@@ -589,20 +667,20 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     }
 
     protected void checkBounds(int x, int y, int z) {
-        if (x < 0 || y < 0 || z < 0 || x >= cubeEdgeLength || y >= cubeEdgeLength || z >= cubeEdgeLength) {
+        if (x < 0 || y < 0 || z < 0 || x >= cubeInfo.edgeLength || y >= cubeInfo.edgeLength || z >= cubeInfo.edgeLength) {
             throw new IndexOutOfBoundsException();
         }
     }
 
     /**
-     * Removes nulls from the palette and remaps value references as-needed.
+     * Removes empty value sentinels from the palette and remaps value references as-needed.
      * @return true if any modifications were made
      */
     protected boolean optimizePalette() {
         paletteModCount ++;
         // 1. identify unused palette id's & remove them from palette
         Set<Integer> seenIds = new HashSet<>();
-        for (int id : data) {
+        for (int id : packedData) {
             seenIds.add(id);
         }
         int maxId = seenIds.stream().mapToInt(v -> v).max().getAsInt();
@@ -612,9 +690,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 //                    .collect(Collectors.joining(", "));
             throw new IllegalStateException("data[" + /*dataStr +*/ "] contained an out of bounds palette id " + maxId + " palette size " + palette.size());
         }
+        final E nilValue = nilSentinelFor(paletteEntryClass);
         for (int i = 0; i < palette.size(); i++) {
             if (!seenIds.contains(i)) {
-                palette.set(i, null);  // paletteModCount at top of function
+                palette.set(i, nilValue);  // paletteModCount at top of function
             }
         }
 
@@ -622,7 +701,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         int cursor = 0;
         Map<Integer, Integer> remapping = new HashMap<>();
         for (int i = 0; i < palette.size(); i++) {
-            if (palette.get(i) != null) {
+            if (palette.get(i) != nilValue) {
                 if (i != cursor) {
                     remapping.put(i, cursor);
                 }
@@ -630,38 +709,30 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             }
         }
 
-        // 3. remove nulls from palette
-        palette.removeAll(Collections.singletonList(null));  // paletteModCount at top of function
+        // 3. remove nilValue's from palette
+        palette.removeAll(Collections.singletonList(nilValue));  // paletteModCount at top of function
 
         // 4. perform id remapping
         if (remapping.isEmpty()) {
+            packedData.compact();
             return false;
+        } else {
+            packedData.remap(remapping);
+            packedData.compact();
+            return true;
         }
-        for (int i = 0; i < data.length; i++) {
-            int remappedPaletteIndex = remapping.getOrDefault(data[i], -1);
-            if (remappedPaletteIndex >= 0) {
-                data[i] = remappedPaletteIndex;
-            }
-        }
-        return true;
     }
-
 
     @Override
     @SuppressWarnings("unchecked")
     public PalettizedCuboid<E> clone() {
         optimizePalette();
-        PalettizedCuboid<E> clone = new PalettizedCuboid<>(cubeEdgeLength(), null, paletteEntryClass, true);
-        for (E e : this.palette) {
-            clone.palette.add((E) e.clone());
-        }
-        System.arraycopy(this.data, 0, clone.data, 0, data.length);
-        return clone;
+        return new PalettizedCuboid<>(this);
     }
 
     /** Serializes this cuboid to a {@link CompoundTag} assuming the latest data version (fine if only working with &gt;= JAVA_1_16_20W17A). */
     public CompoundTag toCompoundTag() {
-        return toCompoundTag(DataVersion.latest().id());
+        return toCompoundTag(0);
     }
 
     public CompoundTag toCompoundTag(int dataVersion) {
@@ -671,78 +742,54 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
     /**
      * Serializes this cuboid to a {@link CompoundTag}.
      *
-     * @param dataVersion Optional - data version for formatting / packing. If given value is 0 then latest version is assumed.
+     * @param dataVersion Optional - data version for formatting / packing.
+     *                    If GT 0 then packing strategy is updated to match the given versions behavior.
      * @param minimumBitsPerIndex Optional - Minimum bits per index to use for packing.
-     *                            For biome data this should be 1.
-     *                            For block_states data this should be 4.
-     *                            If LE 0 is given then a best guess is made at what the minimum bits per index should
-     *                            be. This guess is based on the {@link #size()}, if size is GE 4096 then min bits per
-     *                            index is assumed to be 4, otherwise it is 1.
-     *                            This value has no effect on monotonic (single palette entry) data - when all entries
-     *                            are the same the longs array is omitted entirely.
+     *                            If GT 0, the long[] packing is updated to respect this value.
      */
     public CompoundTag toCompoundTag(int dataVersion, int minimumBitsPerIndex) {
         optimizePalette();
-        if (dataVersion == 0) {
-            dataVersion = DataVersion.latest().id();
-        }
-        CompoundTag rootTag = new CompoundTag(2);
-        ListTag<E> paletteListTag = new ListTag<>(paletteEntryClass, palette.size());
-        paletteListTag.addAll(palette);
-        rootTag.put("palette", paletteListTag);
-
         if (palette.size() > 1) {
-            final long[] longs;
-            if (dataVersion >= DataVersion.JAVA_1_16_20W17A.id()) {
-                if (minimumBitsPerIndex <= 0) {
-                    if (size() >= 4096) {
-                        // assume we're dealing with block_states (it's a safe assumption for all versions up to time of writing - 1.20.4)
-                        minimumBitsPerIndex = 4;
-                    } else {
-                        minimumBitsPerIndex = 1;
-                    }
+            if (minimumBitsPerIndex > 0 || dataVersion > 0) {
+                if (minimumBitsPerIndex > 0) {
+                    packedData.setMinBitsPerValue(minimumBitsPerIndex);
                 }
-                final int bitsPerValue = Math.max(minimumBitsPerIndex, calculatePowerOfTwoExponent(palette.size(), false));
-                // This bit packing is less than 100% efficient as there may be "unused" bits in every long.
-                // For example, if bitsPerValue = 5 then there will be 12 indices per long using only 60 of 64 bits.
-                final int indicesPerLong = (int) (64D / bitsPerValue);
-                longs = new long[(int) Math.ceil((double) data.length / indicesPerLong)];
-                for (int ll = 0, i = 0; ll < longs.length; ll++) {
-                    long currentLong = 0;
-                    for (int j = 0; j < indicesPerLong && i < data.length; j++, i++) {
-                        currentLong |= (long) data[i] << (j * bitsPerValue);
-                    }
-                    longs[ll] = currentLong;
+                if (dataVersion > 0) {
+                    packedData.setPackingStrategy(LongArrayTagPackedIntegers.MOJANG_PACKING_STRATEGY.get(dataVersion));
                 }
-            } else {
-                // TODO - it's a hot tight packing mess! see TerrainSectionBase#setPaletteIndex
-                throw new UnsupportedOperationException("currently only support dataVersion >= JAVA_1_16_20W17A");
-//                static long updateBits(long n, long m, int i, int j) {
-//                    // updateBits(blockStates[blockStatesIndex], paletteIndex, startBit, startBit + bits)
-//                    //replace i to j in n with j - i bits of m
-//                    long mShifted = i > 0 ? (m & ((1L << j - i) - 1)) << i : (m & ((1L << j - i) - 1)) >>> -i;
-//                    return ((n & ((j > 63 ? 0 : (~0L << j)) | (i < 0 ? 0 : ((1L << i) - 1L)))) | mShifted);
-//                }
-//                double blockStatesIndex = blockIndex / (4096D / blockStates.length);
-//                int longIndex = (int) blockStatesIndex;
-//                int startBit = (int) ((blockStatesIndex - Math.floor(longIndex)) * 64D);
-//                if (startBit + bits > 64) {
-//                    blockStates[longIndex] = updateBits(blockStates[longIndex], paletteIndex, startBit, 64);
-//                    blockStates[longIndex + 1] = updateBits(blockStates[longIndex + 1], paletteIndex, startBit - 64, startBit + bits - 64);
-//                } else {
-//                    blockStates[longIndex] = updateBits(blockStates[longIndex], paletteIndex, startBit, startBit + bits);
-//                }
+                packedData.compact();
             }
-
-            rootTag.put("data", new LongArrayTag(longs));
+            // don't need to call packedData.updateHandle() because we already compacted in optimizePalette() - or above
+            paletteContainerTag.put("data", packedData.getHandle());
+        } else {
+            paletteContainerTag.remove("data");
         }
-        return rootTag;
+        return paletteContainerTag;
     }
 
+    /**
+     * @param tag Must contain a 'palette' entry of type ListTag (usually then of type ListTag&lt;StringTag&gt; or
+     *            &lt;CompoundTag&gt;) and MAY contain a 'data' tag of type {@link LongArrayTag}. The palette
+     *            must contain at least one record to be considered valid.
+     * @param expectedCubeEdgeLength The length of one edge of the cuboid, usually a power of two, typically 16 or 4.
+     * @param <T> The type of the palette list entries. Usually {@link CompoundTag} or {@link StringTag}
+     * @return New PalettizedCuboid wrapping the supplied tag.
+     */
     public static <T extends Tag<?>> PalettizedCuboid<T> fromCompoundTag(CompoundTag tag, int expectedCubeEdgeLength) {
-        return fromCompoundTag(tag, expectedCubeEdgeLength, DataVersion.latest().id());
+        return fromCompoundTag(tag, expectedCubeEdgeLength, 0);
     }
 
+    /**
+     * @param tag Must contain a 'palette' entry of type ListTag (usually then of type ListTag&lt;StringTag&gt; or
+     *            &lt;CompoundTag&gt;) and MAY contain a 'data' tag of type {@link LongArrayTag}. The palette
+     *            must contain at least one record to be considered valid.
+     * @param expectedCubeEdgeLength The length of one edge of the cuboid, usually a power of two, typically 16 or 4.
+     * @param dataVersion if GT 0, this dataversion is used to determine the long[] packing strategy,
+     *                    see {@link LongArrayTagPackedIntegers#MOJANG_PACKING_STRATEGY}. If EQ 0 then the latest
+     *                    packing standard is used, {@link LongArrayTagPackedIntegers.Builder#dataVersion(int)}.
+     * @param <T> The type of the palette list entries. Usually {@link CompoundTag} or {@link StringTag}
+     * @return New PalettizedCuboid wrapping the supplied tag.
+     */
     @SuppressWarnings("unchecked")
     public static <T extends Tag<?>> PalettizedCuboid<T> fromCompoundTag(CompoundTag tag, int expectedCubeEdgeLength, int dataVersion) {
         if (tag == null) {
@@ -755,79 +802,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         if ((dataTag == null || dataTag.getValue().length == 0) && paletteListTag.size() > 1) {
             throw new IllegalArgumentException("Did not find 'data' LongArrayTag when expected");
         }
-        if (dataVersion >= DataVersion.JAVA_1_16_20W17A.id()) {
-            if (dataTag == null) {
-                return new PalettizedCuboid<>(expectedCubeEdgeLength, paletteListTag.get(0));
-            }
-            final long[] longs = dataTag.getValue();
-            final int size = expectedCubeEdgeLength * expectedCubeEdgeLength * expectedCubeEdgeLength;
-
-            // I don't love this - but Mojang seems to optimize the packing of biomes but not block_states,
-            // or more likely sets a minimum of 4 bits per entry for block_states.
-            // This kludge soft detects biomes vs blocks and treaties them differently - this is probably going to
-            // be version sensitive over time.
-            final int bitsPerValue;
-            if (size >= 4096) {
-                bitsPerValue = longs.length >> calculatePowerOfTwoExponent(size / 64, true);
-            } else {
-                bitsPerValue = calculatePowerOfTwoExponent(paletteListTag.size(), false);
-            }
-
-            final int indicesPerLong = (int) (64D / bitsPerValue);
-            final int bitMask = calculateBitMask(bitsPerValue);
-//            if (DEBUG) {
-//                System.out.printf("longs: %d; size %d; bits %d; bitmask 0x%x; indices per long %d; calculatePowerOfTwoExponent(size / 64, true) -> %d%n",
-//                        longs.length, size, bitsPerValue, bitMask, indicesPerLong, calculatePowerOfTwoExponent(size / 64, true));
-//            }
-            PalettizedCuboid<T> palettizedCuboid = new PalettizedCuboid<>(expectedCubeEdgeLength, null, (Class<T>) paletteListTag.getTypeClass(), true);
-            for (T t : paletteListTag) {
-                palettizedCuboid.palette.add(t);
-            }
-            if (longs.length != Math.ceil((double) size / indicesPerLong)) {
-                throw new IllegalArgumentException("Incorrect data size! Expected " + (size / indicesPerLong) + " but was " + longs.length);
-            }
-            for (int ll = 0, i = 0; ll < longs.length; ll++) {
-                long currentLong = longs[ll];
-                for (int j = 0; j < indicesPerLong && i < size; j++, i++) {
-                    palettizedCuboid.data[i] = (int) (currentLong & bitMask);
-                    currentLong >>>= bitsPerValue;
-                }
-            }
-            return palettizedCuboid;
-        } else {
-            // TODO - it's a hot tight packing mess! see TerrainSectionBase#setPaletteIndex
-            throw new UnsupportedOperationException("currently only support dataVersion >= JAVA_1_16_20W17A");
-//            private void upgradeFromBefore20W17A(final int targetVersion) {
-//                if (dataVersion <= JAVA_1_12_2.id())
-//                    throw new UnsupportedOperationException("Non block palette MC versions are unsupported!");
-//                int newBits = 32 - Integer.numberOfLeadingZeros(blockPalette.size() - 1);
-//                newBits = Math.max(newBits, 4);
-//                long[] newBlockStates;
-//
-//                int newLength = (int) Math.ceil(4096D / (Math.floor(64D / newBits)));
-//                newBlockStates = newBits == blockStates.length / 64 ? blockStates : new long[newLength];
-//
-//                for (int i = 0; i < 4096; i++) {
-//                    setPaletteIndex(i, getBlockPaletteIndex(i), newBlockStates);
-//                }
-//                this.blockStates = newBlockStates;
-//            }
-//            static long bitRange(long value, int from, int to) {
-//                // bitRange(blockStates[blockStatesIndex], startBit, startBit + bits)
-//                int waste = 64 - to;
-//                return (value << waste) >>> (waste + from);
-//            }
-//            double blockStatesIndex = blockStateIndex / (4096D / blockStates.length);
-//            int longIndex = (int) blockStatesIndex;
-//            int startBit = (int) ((blockStatesIndex - Math.floor(blockStatesIndex)) * 64D);
-//            if (startBit + bits > 64) {
-//                long prev = bitRange(blockStates[longIndex], startBit, 64);
-//                long next = bitRange(blockStates[longIndex + 1], 0, startBit + bits - 64);
-//                return (int) ((next << 64 - startBit) + prev);
-//            } else {
-//                return (int) bitRange(blockStates[longIndex], startBit, startBit + bits);
-//            }
-        }
+        return new PalettizedCuboid<>(expectedCubeEdgeLength, (Class<T>) paletteListTag.get(0).getClass(), tag, dataVersion);
     }
 
     /**
@@ -854,6 +829,16 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
 
     public Stream<E> stream() {
         return StreamSupport.stream(spliterator(), false);
+    }
+
+    @Override
+    public CompoundTag getHandle() {
+        return paletteContainerTag;
+    }
+
+    @Override
+    public CompoundTag updateHandle() {
+        return toCompoundTag();
     }
 
     /**
@@ -902,7 +887,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
             if (currentIndex >= 0 && currentPaletteHash != get(currentIndex).hashCode()) {
                 throw new PaletteCorruptedException(
                         "Palette modified during iteration! Be sure to .clone() on the yielded element before " +
-                        "modifying it and use .set() to update the data value at the current position.");
+                                "modifying it and use .set() to update the data value at the current position.");
             }
         }
 
@@ -916,9 +901,9 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         public boolean hasNext() {
             checkNotModified();
             if (filter == null) {
-                return currentIndex < data.length - 1;
+                return currentIndex < packedData.length - 1;
             }
-            while (nextIndex < data.length) {
+            while (nextIndex < packedData.length) {
                 if (filter.test(get(nextIndex))) {
                     return true;
                 }
@@ -976,19 +961,19 @@ public class PalettizedCuboid<E extends Tag<?>> implements Iterable<E>, Cloneabl
         /** Gets the cuboid x position of the last entry returned by {@link #next()}. */
         public int currentX() {
             checkCurrentIndex();
-            return currentIndex & cordBitMask;
+            return currentIndex & cubeInfo.cordBitMask;
         }
 
         /** Gets the cuboid y position of the last entry returned by {@link #next()}. */
         public int currentY() {
             checkCurrentIndex();
-            return (currentIndex >> yShift) & cordBitMask;
+            return (currentIndex >> cubeInfo.yShift) & cubeInfo.cordBitMask;
         }
 
         /** Gets the cuboid z position of the last entry returned by {@link #next()}. */
         public int currentZ() {
             checkCurrentIndex();
-            return (currentIndex >> zShift) & cordBitMask;
+            return (currentIndex >> cubeInfo.zShift) & cubeInfo.cordBitMask;
         }
 
         /** Gets the cuboid xyz position of the last entry returned by {@link #next()}. */

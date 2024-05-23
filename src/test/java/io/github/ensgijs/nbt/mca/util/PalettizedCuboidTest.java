@@ -68,14 +68,14 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertEquals(4 * 4 * 4, cuboid.size());
         assertEquals(4, cuboid.cubeEdgeLength());
         assertEquals(1, cuboid.paletteSize());
-        assertTrue(Arrays.stream(cuboid.data).allMatch(d -> d == 0));
+        assertTrue(cuboid.packedData.allMatch(0));
         assertNotSame(fillTag, cuboid.palette.get(0));
         assertEquals(fillTag, cuboid.palette.get(0));
     }
 
     public void testCtr_throwsAppropriatelyWhenGivenNullFill() {
         assertThrowsException(() -> new PalettizedCuboid<>(4, null), NullPointerException.class);
-        assertThrowsNoException(() -> new PalettizedCuboid<>(4, null, StringTag.class, true));
+        assertThrowsNoException(() -> new PalettizedCuboid<>(4, StringTag.class, null, true));
     }
 
     public void testCtor_initFromValueArray_happyCase() {
@@ -98,9 +98,9 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertNotSame(airTag, cuboid.palette.get(1));
         assertEquals(stoneTag, cuboid.palette.get(2));
         assertNotSame(stoneTag, cuboid.palette.get(2));
-        assertEquals(1, Arrays.stream(cuboid.data).filter(d -> d == 0).count()); // bedrock
-        assertEquals(5, Arrays.stream(cuboid.data).filter(d -> d == 1).count()); // air
-        assertEquals(2, Arrays.stream(cuboid.data).filter(d -> d == 2).count()); // stone
+        assertEquals(1, cuboid.packedData.count(0)); // bedrock
+        assertEquals(5, cuboid.packedData.count(1)); // air
+        assertEquals(2, cuboid.packedData.count(2)); // stone
     }
 
     public void testCtor_initFromValueArray_notACubicLengthThrows() {
@@ -234,7 +234,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         tags[7] = stoneTag;
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(tags);
         assertEquals(3, cuboid.palette.size());
-        assertEquals(2, cuboid.data[7]);  // validate test assumption
+        assertEquals(2, cuboid.packedData.get(7));  // validate test assumption
 
         assertTrue(cuboid.replace(stoneTag, bedrockTag));
         assertNotSame(bedrockTag, cuboid.getByRef(7));
@@ -246,7 +246,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertTrue(cuboid.palette.contains(bedrockTag));
         assertTrue(cuboid.palette.contains(airTag));
         assertFalse(cuboid.palette.contains(stoneTag));
-        assertEquals(0, cuboid.data[7]);  // validate data remapped to exiting palette index
+        assertEquals(0, cuboid.packedData.get(7));  // validate data remapped to exiting palette index
 
         assertFalse(cuboid.replace(stoneTag, bedrockTag));  // check not found case
         assertFalse(cuboid.replace(airTag, airTag));  // check old == new case reports no changes
@@ -263,7 +263,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         tags[6] = stoneTag;
         tags[7] = stoneTag;
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(tags);
-        assertEquals(2, cuboid.data[7]);  // validate test assumption
+        assertEquals(2, cuboid.packedData.get(7));  // validate test assumption
 
         assertTrue(cuboid.replaceAll(new StringTag[] {stoneTag, bedrockTag}, lavaTag));
         assertNotSame(lavaTag, cuboid.getByRef(7));
@@ -275,7 +275,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertTrue(cuboid.palette.contains(airTag));
         assertFalse(cuboid.palette.contains(stoneTag));
         assertTrue(cuboid.palette.contains(lavaTag));
-        assertEquals(3, cuboid.data[7]);  // validate data remapped to exiting palette index
+        assertEquals(3, cuboid.packedData.get(7));  // validate data remapped to exiting palette index
 
         assertFalse(cuboid.replaceAll(Collections.emptyList(), bedrockTag));  // check empty case
         assertFalse(cuboid.replaceAll(Collections.singleton(stoneTag), bedrockTag));  // check not found case
@@ -293,7 +293,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         tags[6] = stoneTag;
         tags[7] = stoneTag;
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(tags);
-        assertEquals(2, cuboid.data[7]);  // validate test assumption
+        assertEquals(2, cuboid.packedData.get(7));  // validate test assumption
 
         assertTrue(cuboid.replaceIf(e -> e.getValue().contains("o"), lavaTag));
         assertNotSame(lavaTag, cuboid.getByRef(7));
@@ -305,7 +305,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertTrue(cuboid.palette.contains(airTag));
         assertFalse(cuboid.palette.contains(stoneTag));
         assertTrue(cuboid.palette.contains(lavaTag));
-        assertEquals(3, cuboid.data[7]);  // validate data remapped to exiting palette index
+        assertEquals(3, cuboid.packedData.get(7));  // validate data remapped to exiting palette index
 
         assertFalse(cuboid.replace(stoneTag, bedrockTag));  // check not found case
         assertFalse(cuboid.replaceAll(new StringTag[] {airTag}, airTag));  // check old == new case reports no changes
@@ -328,7 +328,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         tags[6] = stoneTag;
         tags[7] = stoneTag;
         PalettizedCuboid<StringTag> cuboid = new PalettizedCuboid<>(tags);
-        assertEquals(2, cuboid.data[7]);  // validate test assumption
+        assertEquals(2, cuboid.packedData.get(7));  // validate test assumption
 
         assertTrue(cuboid.retainAll(new StringTag[] {airTag}, lavaTag));
         assertNotSame(lavaTag, cuboid.getByRef(7));
@@ -340,7 +340,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertTrue(cuboid.palette.contains(airTag));
         assertFalse(cuboid.palette.contains(stoneTag));
         assertTrue(cuboid.palette.contains(lavaTag));
-        assertEquals(3, cuboid.data[7]);  // validate data remapped to exiting palette index
+        assertEquals(3, cuboid.packedData.get(7));  // validate data remapped to exiting palette index
 
         assertFalse(cuboid.replace(stoneTag, bedrockTag));  // check not found case
         assertFalse(cuboid.replaceAll(new StringTag[] {airTag}, airTag));  // check old == new case reports no changes
@@ -541,17 +541,16 @@ public class PalettizedCuboidTest extends NbtTestCase {
         cuboid.set(1, 1, 1, lavaTag);
         cuboid.set(0, 0, 0, bedrockTag);
 
-        assertArrayEquals(new int[] {3, 1, 0, 0, 0, 1, 0, 2}, cuboid.data);
+        assertArrayEquals(new int[] {3, 1, 0, 0, 0, 1, 0, 2}, cuboid.packedData.toArray());
 
         // test what should be a no-op
-        int[] originalData = new int[cuboid.size()];
-        System.arraycopy(cuboid.data, 0, originalData, 0, cuboid.size());
+        int[] originalData = cuboid.packedData.toArray();
         StringTag[] originalPalette = new StringTag[cuboid.palette.size()];
         for (int i = 0; i < originalPalette.length; i++) {
             originalPalette[i] = cuboid.palette.get(i).clone();
         }
         cuboid.optimizePalette();
-        assertArrayEquals(originalData, cuboid.data);
+        assertArrayEquals(originalData, cuboid.packedData.toArray());
         assertArrayEquals(originalPalette, cuboid.palette.toArray());
         assertEquals(bedrockTag, cuboid.get(0));
 
@@ -564,14 +563,14 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertEquals(2, cuboid.paletteSize());
         assertEquals(airTag, cuboid.palette.get(0));
         assertEquals(bedrockTag, cuboid.palette.get(1));
-        assertArrayEquals(new int[] {1, 0, 0, 0, 0, 0, 0, 0}, cuboid.data);
+        assertArrayEquals(new int[] {1, 0, 0, 0, 0, 0, 0, 0}, cuboid.packedData.toArray());
 
         // test trailing null in palette
         cuboid.set(0, 0, 0, airTag);
         cuboid.optimizePalette();  // id, null
         assertEquals(1, cuboid.paletteSize());
         assertEquals(airTag, cuboid.palette.get(0));
-        assertArrayEquals(new int[] {0, 0, 0, 0, 0, 0, 0, 0}, cuboid.data);
+        assertArrayEquals(new int[] {0, 0, 0, 0, 0, 0, 0, 0}, cuboid.packedData.toArray());
     }
 
     public void testClone() {
@@ -593,7 +592,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertEquals(cuboid.cubeEdgeLength(), cuboid2.cubeEdgeLength());
         assertEquals(cuboid.paletteSize(), cuboid2.paletteSize());
 
-        assertArrayEquals(cuboid.data, cuboid2.data);
+        assertArrayEquals(cuboid.packedData.toArray(), cuboid2.packedData.toArray());
         assertEquals(bedrockTag, cuboid.get(0));
         assertEquals(bedrockTag, cuboid2.get(0));
 
@@ -624,7 +623,7 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertNotNull(cuboid2);
         assertEquals(cuboid.size(), cuboid2.size());
         assertEquals(cuboid.cubeEdgeLength(), cuboid2.cubeEdgeLength());
-        assertArrayEquals(cuboid.data, cuboid2.data);
+        assertArrayEquals(cuboid.packedData.toArray(), cuboid2.packedData.toArray());
         assertEquals(cuboid.paletteSize(), cuboid2.paletteSize());
         for (int i = 0; i < cuboid.palette.size(); i++) {
             assertEquals(cuboid.palette.get(i), cuboid2.palette.get(i));
