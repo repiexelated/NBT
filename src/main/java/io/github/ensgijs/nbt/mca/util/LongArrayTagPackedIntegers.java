@@ -7,6 +7,7 @@ import io.github.ensgijs.nbt.util.ArgValidator;
 
 import java.util.Arrays;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.IntPredicate;
 
@@ -558,6 +559,24 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
     }
 
     /**
+     * Returns whether all elements of this packed array match the provided value.
+     * May not evaluate the predicate on all elements if not necessary for
+     * determining the result.
+     */
+    public boolean allMatch(int value) {
+        return length == count(value);
+    }
+
+    /**
+     * Returns whether all elements of this packed array match the provided predicate.
+     * May not evaluate the predicate on all elements if not necessary for
+     * determining the result.
+     */
+    public boolean allMatch(IntPredicate tester) {
+        return length == count(tester);
+    }
+
+    /**
      * Replaces all occurrences of oldValue with newValue.
      */
     public void replaceAll(int oldValue, int newValue) {
@@ -592,6 +611,16 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
                 set(i, newOffsetValue);
             }
         }
+    }
+
+    /**
+     * Remaps all indicated values.
+     * @param remapping remapping map.
+     */
+    public void remap(Map<Integer, Integer> remapping) {
+        if (remapping.isEmpty())
+            return;
+        remap(v -> remapping.getOrDefault(v, v));
     }
 
     /**
