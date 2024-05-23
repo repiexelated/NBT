@@ -408,7 +408,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * @return The generation station of this chunk.
 	 */
 	public String getStatus() {
-		return status;
+		return status != null ? status : getTagValue(STATUS_PATH, StringTag::getValue);
 	}
 
 	/**
