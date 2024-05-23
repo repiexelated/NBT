@@ -349,6 +349,7 @@ public enum DataVersion {
     JAVA_1_14_4_PRE5(1973, 14, 4, "PRE5"),
     JAVA_1_14_4_PRE6(1974, 14, 4, "PRE6"),
     JAVA_1_14_4_PRE7(1975, 14, 4, "PRE7"),
+    /** First version where Mojang published jar deobfuscation mappings. */
     JAVA_1_14_4(1976, 14, 4),
 //    JAVA_1_14_3_CT1(2067, 14, 3, "CT1"),
 //    JAVA_1_15_CT2(2068, 15, 0, "CT2"),
@@ -761,7 +762,9 @@ public enum DataVersion {
     JAVA_1_20_7_24W18A(3940, 20, 7, "24w18a"),
     JAVA_1_20_7_24W19A(3941, 20, 7, "24w19a"),
     JAVA_1_20_7_24W19B(3942, 20, 7, "24w19b"),
-    JAVA_1_20_7_24W20A(3944, 20, 7, "24w20a");
+    JAVA_1_20_7_24W20A(3944, 20, 7, "24w20a"),
+    JAVA_1_20_7_24W21A(3946, 20, 7, "24w21a"),
+    JAVA_1_20_7_24W21B(3947, 20, 7, "24w21b");
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
