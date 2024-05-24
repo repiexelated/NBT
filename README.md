@@ -32,7 +32,7 @@ iteration.
 
 #### Powerful Utilities
 * [LongArrayTagPackedIntegers](src/main/java/io/github/ensgijs/nbt/mca/util/LongArrayTagPackedIntegers.java) a comprehensive solution to working with all long[] packed values (block palettes, biome palettes, Heightmaps) across all DataVersions.
-* [PalettizedCuboid](src/main/java/io/github/ensgijs/nbt/mca/util/PalettizedCuboid.java) powerful class for working with block and biome palettes. This class currently only supports MC 1.17 and above palettes; I plan to add block and biome child classes to improve usability.
+* [PalettizedCuboid](src/main/java/io/github/ensgijs/nbt/mca/util/PalettizedCuboid.java) powerful class for working with block and biome palettes. This class supports all MC versions that use data palettes; I may add block and biome child classes to improve usability in the future.
 
 #### How to get started with 0.1-SNAPSHOT
 This package is not yet published to a public repository - but using it from a local build is easy!
