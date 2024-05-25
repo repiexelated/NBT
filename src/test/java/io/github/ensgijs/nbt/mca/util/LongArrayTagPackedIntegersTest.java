@@ -1060,4 +1060,70 @@ public class LongArrayTagPackedIntegersTest extends NbtTestCase {
         assertArrayEquals(new int[] {5, -1, 42, -1}, packed.toArray());
         assertThrows(IllegalArgumentException.class, () -> iter.set(-2));
     }
+
+    public void testGetSet2d() {
+        LongArrayTagPackedIntegers packed = LongArrayTagPackedIntegers.builder()
+                .packingStrategy(SPLIT_VALUES_ACROSS_LONGS)
+                .length(256)
+                .minBitsPerValue(9)
+                .build(new LongArrayTag(getSplitValuesAcrossLongsTestData()));
+        assertEquals(16, packed.squareEdgeLength());
+        assertEquals(-1, packed.cubeEdgeLength());
+        assertEquals(79, packed.get2d(4, 6));
+        packed.set2d(4, 6, 99);
+        assertEquals(99, packed.get2d(4, 6));
+        assertEquals(""" 
+            70 69 69 69 71 73 73 73 71 71 71 70 64 64 63 63
+            70 70 70 69 71 71 73 71 71 73 71 71 64 64 64 63
+            77 71 70 70 71 71 71 71 73 73 73 71 65 64 64 64
+            77 72 71 71 71 70 70 71 72 73 71 71 71 71 71 71
+            77 72 72 72 71 71 70 70 71 71 71 71 71 73 71 71
+            76 78 78 78 78 77 71 71 70 70 69 71 73 73 73 71
+            74 78 79 80 99 78 72 78 78 78 78 77 71 73 72 71
+            74 78 80 80 80 78 73 78 78 80 78 78 75 75 71 71
+            75 78 79 80 79 78 73 78 80 80 80 78 77 76 75 68
+            76 78 78 78 78 77 74 78 79 80 78 78 77 77 75 69
+            76 76 76 75 75 75 74 78 78 78 78 78 77 75 75 70
+            77 76 76 76 78 79 79 79 79 74 74 75 75 75 75 71
+            77 77 77 76 79 80 81 80 79 75 74 74 74 73 72 71
+            78 78 77 77 79 81 81 81 79 75 75 74 74 73 73 72
+            78 78 78 77 79 79 81 80 79 75 79 79 79 79 79 72
+            79 79 78 78 78 79 79 79 79 76 79 80 81 79 79 73""", packed.toString2dGrid());
+    }
+
+    public void testGetSet3d() {
+        LongArrayTagPackedIntegers packed = LongArrayTagPackedIntegers.builder()
+                .packingStrategy(NO_SPLIT_VALUES_ACROSS_LONGS)
+                .length(64)
+                .minBitsPerValue(1)
+                .initializeForStoring(5)
+                .build(new LongArrayTag(3785436329631921288L, 3932602464921073299L, 2797418351439529682L, 4L));
+
+        assertEquals(8, packed.squareEdgeLength());
+        assertEquals(4, packed.cubeEdgeLength());
+        assertEquals(4, packed.get3d(2, 1, 3));
+        packed.set3d(2, 1, 3, 6);
+        assertEquals(6, packed.get3d(2, 1, 3));
+        assertEquals("""
+            Y=0
+            0 1 2 2
+            3 3 4 4
+            3 4 4 4
+            4 4 4 4
+            Y=1
+            0 1 2 2
+            3 3 2 2
+            3 3 4 4
+            3 4 6 4
+            Y=2
+            5 1 2 2
+            3 3 2 2
+            3 3 2 2
+            3 3 4 4
+            Y=3
+            5 5 5 2
+            5 5 2 2
+            3 3 2 2
+            3 3 2 4""", packed.toString3dGrid());
+    }
 }

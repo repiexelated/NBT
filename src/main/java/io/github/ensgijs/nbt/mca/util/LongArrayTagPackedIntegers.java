@@ -254,6 +254,16 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
 
     /** Number of values stored - <em>not the length of the long array.</em> */
     public final int length;
+    /**
+     * DO NOT ACCESS DIRECTLY
+     * @see #cubeEdgeLength()
+     */
+    private int cubeEdgeLength;
+    /**
+     * DO NOT ACCESS DIRECTLY
+     * @see #squareEdgeLength()
+     */
+    private int squareEdgeLength;
     private final LongArrayTag packedBitsTag;
     private int valueOffset;
 
@@ -265,6 +275,24 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
     private int currentMaxPackableValue;
     private int noSplitIndicesPerLong;
     private double splitIndicesPerLong;
+
+    /** set to -1 if length does not have an integer cube root */
+    public int cubeEdgeLength() {
+        if (cubeEdgeLength > 0) {
+            return cubeEdgeLength;
+        }
+        int tmp = (int) Math.round(Math.pow(length, 1/3d));
+        return this.cubeEdgeLength = tmp * tmp * tmp == length ? tmp : -1;
+    }
+
+    /** set to -1 if length does not have an integer square root */
+    public int squareEdgeLength() {
+        if (squareEdgeLength > 0) {
+            return squareEdgeLength;
+        }
+        int tmp = (int) Math.round(Math.sqrt(length));
+        return this.squareEdgeLength = tmp * tmp == length ? tmp : -1;
+    }
 
     /**
      * @param tag Tag with existing longs. If this tag's {@link LongArrayTag#getValue()#length} is 0 it is initialized
@@ -444,6 +472,32 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
         return getRaw(index) + valueOffset;
     }
 
+    private int indexOf(int x, int z) {
+        int xzSize = squareEdgeLength();
+        if (xzSize <= 0)
+            throw new IllegalStateException();
+        if (x < 0 || z < 0 || x >= xzSize || z >= xzSize)
+            throw new IndexOutOfBoundsException();
+        return z * xzSize + x;
+    }
+
+    private int indexOf(int x, int y, int z) {
+        int xyzSize = cubeEdgeLength();
+        if (xyzSize <= 0)
+            throw new IllegalStateException();
+        if (x < 0 || y < 0 ||z < 0 || x >= xyzSize || y >= xyzSize || z >= xyzSize)
+            throw new IndexOutOfBoundsException();
+        return y * xyzSize * xyzSize + z * xyzSize + x;
+    }
+
+    public int get2d(int x, int z) {
+        return get(indexOf(x, z));
+    }
+
+    public int get3d(int x, int y, int z) {
+        return get(indexOf(x, y, z));
+    }
+
     /** Does not apply valueOffset */
     private int getRaw(int index) {
         if (index < 0 || index >= length)
@@ -471,6 +525,14 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
         if (index < 0 || index >= length)
             throw new IndexOutOfBoundsException();
         setRaw(index, value - valueOffset);
+    }
+
+    public void set2d(int x, int z, int value) {
+        set(indexOf(x, z), value);
+    }
+
+    public void set3d(int x, int y, int z, int value) {
+        set(indexOf(x, y, z), value);
     }
 
     /** valueOffset should already be removed from the supplied value */
@@ -718,14 +780,36 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
         }
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("length=").append(length).append("; ");
+        sb.append("packing-strategy=").append(packingStrategy.name()).append("; ");
+        sb.append("min-bits-per-value=").append(minBitsPerValue).append("; ");
+        sb.append("bits-per-value=").append(bitsPerValue).append("; ");
+        sb.append("value-offset=").append(valueOffset).append("; ");
+        sb.append("values=[");
+        boolean notFirst = false;
+        for (int v : this) {
+            if (notFirst) {
+                sb.append(", ");
+            } else {
+                notFirst = true;
+            }
+            sb.append(v);
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     /**
      * Renders the values as a 2D grid where 0,0 is in the top left.
      * @throws UnsupportedOperationException if {@link #length} doesn't have an integer square root
      * (isn't the product of n^2)
      */
     public String toString2dGrid() {
-        final int rectangleEdgeLength = (int) Math.round(Math.sqrt(length));
-        if (rectangleEdgeLength * rectangleEdgeLength != length)
+        final int rectangleEdgeLength = squareEdgeLength();
+        if (rectangleEdgeLength < 0)
             throw new UnsupportedOperationException(
                     "Attempted to format as a 2D grid, but sqrt(count of values) is not an integer!");
         int maxStrLen = 0;
@@ -752,8 +836,8 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
      * (isn't the product of n^3)
      */
     public String toString3dGrid() {
-        final int cubeEdgeLength = (int) Math.round(Math.pow(length, 1/3d));
-        if (cubeEdgeLength * cubeEdgeLength * cubeEdgeLength != length)
+        final int cubeEdgeLength = cubeEdgeLength();
+        if (cubeEdgeLength < 0)
             throw new UnsupportedOperationException(
                     "Attempted to format as a 3D grid, but cube-root(count of values) is not an integer!");
         int maxStrLen = 0;
