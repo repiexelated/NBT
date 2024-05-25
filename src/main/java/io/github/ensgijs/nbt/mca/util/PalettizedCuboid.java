@@ -243,6 +243,10 @@ public class PalettizedCuboid<E extends Tag<?>> implements TagWrapper<CompoundTa
         return ~(-1 << numberOfBits);
     }
 
+    public void setDataVersion(int newDataVersion) {
+        packedData.setPackingStrategy(LongArrayTagPackedIntegers.MOJANG_PACKING_STRATEGY.get(newDataVersion));
+    }
+
     /** size of data array (ex. 64 for a 4x4x4 cuboid) */
     public int size() {
         return packedData.length;
