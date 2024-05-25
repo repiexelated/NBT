@@ -213,7 +213,7 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
          * <p>Note: while {@link #initializeForStoring(int)} and {@link #length(int)} will be set for you,
          * it's still important to properly set {@link #minBitsPerValue(int)} and {@link #valueOffset(int)}.</p>
          */
-        LongArrayTagPackedIntegers build(int[] values) {
+        public LongArrayTagPackedIntegers build(int[] values) {
             capacity = values.length;
             LongArrayTagPackedIntegers packed = build(new LongArrayTag());
             packed.setFromArray(values);
@@ -221,7 +221,7 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
         }
 
         /** Builds using a new {@link LongArrayTag} as the long[] buffer. */
-        LongArrayTagPackedIntegers build() {
+        public LongArrayTagPackedIntegers build() {
             return build(new LongArrayTag());
         }
 
@@ -231,7 +231,7 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
          * You must specify at least {@link #dataVersion} and ({@link #initializeForStoring(int)} or
          * {@link #minBitsPerValue(int)}).</p>
          */
-        LongArrayTagPackedIntegers build(LongArrayTag tag) {
+        public LongArrayTagPackedIntegers build(LongArrayTag tag) {
             ArgValidator.requireValue(tag);
             if (capacity == 0)
                 throw new IllegalArgumentException("capacity is required");
