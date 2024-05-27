@@ -61,6 +61,19 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return getValue().containsKey(key);
 	}
 
+	/**
+	 * Tests if the given key is present and if so if it is of the specified type.
+	 * @param key name to require
+	 * @param tagType expected value type, note this can be a super type of the actual value.
+	 *                Ex. if the actual type is {@link ByteTag} and the passed tagType is {@link NumberTag},
+	 *                this function will return true.
+	 * @return true if the given key is found and the value is of the expected type.
+	 */
+	public boolean containsKey(String key, Class<?> tagType) {
+		var v = getValue().get(key);
+		return v != null && tagType.isAssignableFrom(v.getClass());
+	}
+
 	public boolean containsValue(Tag<?> value) {
 		return getValue().containsValue(value);
 	}

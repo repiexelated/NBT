@@ -309,8 +309,14 @@ public class CompoundTagTest extends NbtTestCase {
 		CompoundTag ct = createCompoundTag();
 		assertEquals(3, ct.size());
 		assertTrue(ct.containsKey("b"));
+		assertTrue(ct.containsKey("b", ByteTag.class));
+		assertTrue(ct.containsKey("b", NumberTag.class));
 		assertTrue(ct.containsKey("str"));
+		assertTrue(ct.containsKey("str", StringTag.class));
+		assertFalse(ct.containsKey("str", ByteTag.class));
 		assertTrue(ct.containsKey("list"));
+		assertTrue(ct.containsKey("list", ListTag.class));
+		assertFalse(ct.containsKey("list", ByteTag.class));
 		assertFalse(ct.containsKey("invalid"));
 		assertTrue(ct.containsValue(new StringTag("foo")));
 		ListTag<ByteTag> l = new ListTag<>(ByteTag.class);
