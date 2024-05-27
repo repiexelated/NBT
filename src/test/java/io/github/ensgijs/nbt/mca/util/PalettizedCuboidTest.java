@@ -916,4 +916,18 @@ public class PalettizedCuboidTest extends NbtTestCase {
         assertEquals(IntPointXYZ.XYZ(1, 3, 1), iter.nextXYZ());
         assertFalse(iter.hasNext());
     }
+
+    public void testFromCompoundTag_biomes_1_20_4__2entries() throws IOException {
+        // interesting because entry count is exactly a power of 2
+        CompoundTag tag = (CompoundTag) deserializeFromFile("mca_palettes/biomes-1.20.4-r.-3.-3_X-91Y-2Z-87_2entries.snbt").getTag();
+//        System.out.println(JsonPrettyPrinter.prettyPrintJson(tag.toString()));
+        PalettizedCuboid<StringTag> cuboid = PalettizedCuboid.fromCompoundTag(tag, 4, DataVersion.JAVA_1_20_4.id());
+//        System.out.println(cuboid);
+
+        assertNotNull(cuboid);
+        assertEquals(64, cuboid.size());
+        assertEquals(2, cuboid.paletteSize());
+        assertEquals(24, cuboid.countIf(e -> e.getValue().equals("minecraft:dripstone_caves")));
+        assertEquals(64 - 24, cuboid.countIf(e -> e.getValue().equals("minecraft:savanna")));
+    }
 }

@@ -1,6 +1,6 @@
 package io.github.ensgijs.nbt.mca.util;
 
-import io.github.ensgijs.nbt.mca.DataVersion;
+import io.github.ensgijs.nbt.io.TextNbtHelpers;
 import io.github.ensgijs.nbt.tag.*;
 
 import java.util.*;
@@ -178,7 +178,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements TagWrapper<CompoundTa
                 .length(cubeInfo.entryCount())
                 .dataVersion(dataVersion)
                 .minBitsPerValue(cubeEdgeLength == 16 ? 4 /*blocks*/: 1 /*biomes*/)
-                .initializeForStoring(palette.size());
+                .initializeForStoring(palette.size() - 1);
         if (paletteContainerTag.containsKey("data")) {
             this.packedData = builder.build(paletteContainerTag.getLongArrayTag("data"));
         } else {
@@ -204,6 +204,16 @@ public class PalettizedCuboid<E extends Tag<?>> implements TagWrapper<CompoundTa
             });
             this.packedData.set(i, paletteIndex);
         }
+    }
+
+    /** This is a very verbose, multi-line, string that includes the full palette and full data cube. */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("<PALETTE>\n");
+        for (int i = 0; i < palette.size(); i++) {
+            sb.append(i).append(":= ").append(TextNbtHelpers.toTextNbt(palette.get(i), true)).append('\n');
+        }
+        return sb.append("<DATA>\n").append(packedData.toString3dGrid()).toString();
     }
 
     static int cubeRoot(int num) {
