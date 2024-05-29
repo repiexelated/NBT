@@ -334,7 +334,7 @@ public abstract class ChunkBase implements VersionedDataContainer, TagWrapper<Co
 	 */
 	protected void checkRaw() {
 		if (raw) {
-			throw new UnsupportedOperationException("Cannot update field when working with raw data");
+			throw new UnsupportedOperationException("Cannot use helpers for this field when working with raw data");
 		}
 	}
 

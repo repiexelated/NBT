@@ -58,11 +58,11 @@ public class McaRegionFile extends McaFileBase<TerrainChunk> implements Iterable
 	 */
 	@Deprecated
 	public void setBiomeAt(int blockX, int blockZ, int biomeID) {
-		createChunkIfMissing(blockX, blockZ).setBiomeAt(blockX, blockZ, biomeID);
+		createChunkIfMissing(blockX, blockZ).setLegacyBiomeAt(blockX, blockZ, biomeID);
 	}
 
 	public void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
-		createChunkIfMissing(blockX, blockZ).setBiomeAt(blockX, blockY, blockZ, biomeID);
+		createChunkIfMissing(blockX, blockZ).setLegacyBiomeAt(blockX, blockY, blockZ, biomeID);
 	}
 
 	/**
@@ -75,7 +75,7 @@ public class McaRegionFile extends McaFileBase<TerrainChunk> implements Iterable
 		if (chunk == null) {
 			return -1;
 		}
-		return chunk.getBiomeAt(blockX, blockZ);
+		return chunk.getLegacyBiomeAt(blockX, blockZ);
 	}
 
 	/**
@@ -92,7 +92,7 @@ public class McaRegionFile extends McaFileBase<TerrainChunk> implements Iterable
 		if (chunk == null) {
 			return -1;
 		}
-		return chunk.getBiomeAt(blockX,blockY, blockZ);
+		return chunk.getLegacyBiomeAt(blockX,blockY, blockZ);
 	}
 
 //	/**

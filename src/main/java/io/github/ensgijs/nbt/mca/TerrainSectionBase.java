@@ -1,12 +1,9 @@
 package io.github.ensgijs.nbt.mca;
 
 import io.github.ensgijs.nbt.io.TextNbtParser;
-import io.github.ensgijs.nbt.mca.util.VersionAware;
-import io.github.ensgijs.nbt.query.NbtPath;
 import io.github.ensgijs.nbt.tag.*;
 import io.github.ensgijs.nbt.mca.util.PalettizedCuboid;
 
-// TODO: Unsure when exactly in 1.13 development "Blocks" and "Data" were replaced with block palette.
 import static io.github.ensgijs.nbt.mca.DataVersion.*;
 import static io.github.ensgijs.nbt.mca.io.LoadFlags.*;
 
@@ -30,13 +27,13 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
      * @see PalettizedCuboid
      * @since {@link DataVersion#JAVA_1_13_17W47A}
      */
-    protected CompoundTag blockStatesTag;
+    protected PalettizedCuboid<CompoundTag> blockStates;
     /**
      * Only populated for MC version &gt;= JAVA_1_18_21W37A (~ 1.18 pre1)
      * @see PalettizedCuboid
      * @since {@link DataVersion#JAVA_1_18_21W37A}
      */
-    protected CompoundTag biomesTag;
+    protected PalettizedCuboid<StringTag> biomes;
 
     protected byte[] blockLight;
     protected byte[] skyLight;
@@ -59,12 +56,11 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 
     protected void initReferences(final long loadFlags) {
         sectionY = data.getNumber("Y").byteValue();
-
         if ((loadFlags & BIOMES) != 0) {
             // Prior to JAVA_1_18_21W37A biomes were stored at the chunk level in a ByteArrayTag and used fixed ID's
             // Currently they are stored in a palette object at the section level
             if (dataVersion >= JAVA_1_18_21W37A.id()) {
-                biomesTag = data.getCompoundTag("biomes");
+                biomes = PalettizedCuboid.fromCompoundTag(data.getCompoundTag("biomes"), 4, dataVersion);
             }
         }
         if ((loadFlags & BLOCK_LIGHTS) != 0) {
@@ -83,14 +79,16 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
             } else if (dataVersion <= JAVA_1_18_21W37A.id()) {
                 if (data.containsKey("Palette")) {
                     ListTag<CompoundTag> palette = data.getListTag("Palette").asCompoundTagList();
-                    LongArrayTag blockStates = data.getLongArrayTag("BlockStates");  // may be null
+                    LongArrayTag blockStatesTag = data.getLongArrayTag("BlockStates");  // may be null
                     // up-convert to the modern block_states structure to simplify handling
-                    blockStatesTag = new CompoundTag(2);
-                    blockStatesTag.put("palette", palette);
-                    if (blockStates != null && blockStates.length() > 0) blockStatesTag.put("data", blockStates);
+                    CompoundTag paletteContainerTag = new CompoundTag(2);
+                    paletteContainerTag.put("palette", palette);
+                    if (blockStatesTag != null && blockStatesTag.length() > 0)
+                        paletteContainerTag.put("data", blockStatesTag);
+                    this.blockStates = PalettizedCuboid.fromCompoundTag(paletteContainerTag, 16, dataVersion);
                 }
             } else {
-                blockStatesTag = data.getCompoundTag("block_states");
+                blockStates = PalettizedCuboid.fromCompoundTag(data.getCompoundTag("block_states"), 16, dataVersion);
             }
         }
         if ((loadFlags & SKY_LIGHT) != 0) {
@@ -106,19 +104,22 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
 
         if (dataVersion >= JAVA_1_13_17W47A.id()) {
             // blockStatesTag normalized to 1.18+
-            blockStatesTag = DEFAULT_BLOCK_SATES_TAG.clone();
+            blockStates = PalettizedCuboid.fromCompoundTag(DEFAULT_BLOCK_SATES_TAG.clone(), 16, dataVersion);
         } else {
             legacyBlockIds = new byte[2048];
             legacyBlockDataValues = new byte[2048];
         }
         if (dataVersion >= JAVA_1_18_21W37A.id()) {
-            biomesTag = DEFAULT_BIOMES_TAG.clone();
+            biomes = PalettizedCuboid.fromCompoundTag(DEFAULT_BIOMES_TAG.clone(), 4, dataVersion);
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     protected void syncDataVersion(int newDataVersion) {
         super.syncDataVersion(newDataVersion);
+        if (blockStates != null) blockStates.setDataVersion(newDataVersion);
+        if (biomes != null) biomes.setDataVersion(newDataVersion);
     }
 
     /**
@@ -175,27 +176,36 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
     /**
      * @since {@link DataVersion#JAVA_1_13_17W47A}
      */
-    public CompoundTag getBlockStatesTag() {
-        return blockStatesTag;
+    public PalettizedCuboid<CompoundTag> getBlockStates() {
+        return blockStates;
     }
 
     /**
      * @since {@link DataVersion#JAVA_1_13_17W47A}
      */
-    public TerrainSectionBase setBlockStatesTag(CompoundTag blockStatesTag) {
+    public TerrainSectionBase setBlockStates(PalettizedCuboid<CompoundTag> blockStates) {
         if (dataVersion < JAVA_1_13_17W47A.id()) {
-            throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "blockStatesTag");
+            throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "palettized blockStates");
         }
-        this.blockStatesTag = blockStatesTag;
+        this.blockStates = blockStates.clone();
         return this;
     }
 
-    public CompoundTag getBiomesTag() {
-        return biomesTag;
+    /**
+     * @since {@link DataVersion#JAVA_1_18_21W37A}
+     */
+    public PalettizedCuboid<StringTag> getBiomes() {
+        return biomes;
     }
 
-    public TerrainSectionBase setBiomesTag(CompoundTag biomesTag) {
-        this.biomesTag = biomesTag;
+    /**
+     * @since {@link DataVersion#JAVA_1_18_21W37A}
+     */
+    public TerrainSectionBase setBiomes(PalettizedCuboid<StringTag> biomes) {
+        if (dataVersion < JAVA_1_18_21W37A.id()) {
+            throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "palettized biomes");
+        }
+        this.biomes = biomes.clone();
         return this;
     }
 
@@ -232,6 +242,7 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
         this.legacyBlockDataValues = legacyBlockDataValues;
         return this;
     }
+
     /**
      * Updates the raw CompoundTag that this Section is based on.
      * @return A reference to the raw CompoundTag this Section is based on
@@ -249,21 +260,22 @@ public abstract class TerrainSectionBase extends SectionBase<TerrainSectionBase>
                 data.putByteArray("Data", legacyBlockDataValues);
             }
         } else if (dataVersion < JAVA_1_18_21W37A.id()) {
-            if (blockStatesTag != null) {
-                if (blockStatesTag.containsKey("palette")) {
-                    data.put("Palette", blockStatesTag.getListTag("palette"));
-                }
+            if (blockStates != null) {
+                CompoundTag blockStatesTag = blockStates.updateHandle();
+                data.put("Palette", blockStatesTag.getListTag("palette"));
                 if (blockStatesTag.containsKey("data")) {
                     data.putLongArray("BlockStates", blockStatesTag.getLongArray("data"));
+                } else {
+                    data.remove("BlockStates");
                 }
             }
         } else {
-            if (blockStatesTag != null) {
-                data.put("block_states", blockStatesTag);
+            if (blockStates != null) {
+                data.put("block_states", blockStates.updateHandle());
             }
         }
-        if (biomesTag != null && dataVersion >= JAVA_1_18_21W37A.id()) {
-            data.put("biomes", biomesTag);
+        if (biomes != null && dataVersion >= JAVA_1_18_21W37A.id()) {
+            data.put("biomes", biomes.updateHandle());
         }
         if (blockLight != null) {
             data.putByteArray("BlockLight", blockLight);

@@ -345,7 +345,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         assertNotNull(chunk);
         assertEquals(new IntPointXZ(5 - 3 * 32, 9 - 3 * 32), chunk.getChunkXZ());
         for (var sector: chunk) {
-            sector.getBlockStatesTag().clear();
+            sector.getBlockStates().fill(TextNbtParser.parseInline("{Name: \"minecraft:air\"}"));
         }
         terrainMca.write(chunk);
         assertEquals(0x0201, terrainMca.chunkSectors[index]);
@@ -366,7 +366,7 @@ public class RandomAccessMcaFileTest extends McaTestCase {
         for (int i = 0; i < 16 * 16 * 16; i++) {
             bigSection.set(i, TextNbtParser.parseInline("{Name: \"minecraft:random_garbage_" + String.format("%d%X", i, -i) + "\"}"));
         }
-        chunk.getSection(8).setBlockStatesTag(bigSection.toCompoundTag(chunk.getDataVersion()));
+        chunk.getSection(8).setBlockStates(bigSection);
         terrainMca.write(chunk);
         assertEquals(0x0C0A, terrainMca.chunkSectors[index]);
         assertEquals(SectorBlock.unpack(0x0202), terrainMca.sectorManager.freeSectors.getFirst());

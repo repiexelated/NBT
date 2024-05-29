@@ -5,6 +5,7 @@ import io.github.ensgijs.nbt.mca.util.*;
 import io.github.ensgijs.nbt.tag.*;
 import io.github.ensgijs.nbt.mca.io.MoveChunkFlags;
 import io.github.ensgijs.nbt.query.NbtPath;
+import io.github.ensgijs.nbt.util.ArgValidator;
 
 import java.util.*;
 
@@ -35,7 +36,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	protected int[] legacyBiomes;
 	/**
 	 * Only populated for data versions &lt; JAVA_1_18_21W39A. For later data versions use
-	 * {@link PalettizedCuboid} and load biomes from
+	 * {@link PalettizedCuboid} and load biomes from {@link TerrainSectionBase#getBiomes()}.
 	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/IDs_before_1.13>minecraft.fandom.com/wiki/Biome/IDs_before_1.13</a>
 	 * @see <a href=https://minecraft.fandom.com/wiki/Biome/ID>minecraft.fandom.com/wiki/Biome/ID</a>
 	 */
@@ -50,6 +51,22 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			.register(JAVA_1_13_18W06A.id(), null);
 
 	protected CompoundTag heightMaps;
+	/**
+	 * {@link CompoundTag} mapping various heightmap names to 256 (16x16) values, long[] packed,
+	 * min bits per value of 9. Heightmap values are "number of blocks above bottom of world", this is not
+	 * the same as block Y position. To compute the block Y value use {@code highestBlockY =
+	 * (chunk.yPos * 16) - 1 + heightmap_entry_value}.
+	 * <ul>
+	 *      <li>MOTION_BLOCKING</li>
+	 *  	<li>MOTION_BLOCKING_NO_LEAVES</li>
+	 *  	<li>OCEAN_FLOOR</li>
+	 *  	<li>OCEAN_FLOOR_WG</li>
+	 *  	<li>WORLD_SURFACE</li>
+	 *  	<li>WORLD_SURFACE_WG</li>
+	 * </ul>
+	 * @since {@link DataVersion#JAVA_1_13_18W06A}
+	 * @see LongArrayTagPackedIntegers
+	 */
 	public static final VersionAware<NbtPath> HEIGHT_MAPS_PATH = new VersionAware<NbtPath>()
 			.register(JAVA_1_13_18W06A.id(), NbtPath.of("Level.Heightmaps"))
 			.register(JAVA_1_18_21W43A.id(), NbtPath.of("Heightmaps"));
@@ -218,10 +235,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 				}
 			}
 			if (legacyBiomes != null && legacyBiomes.length == 0) legacyBiomes = null;
-		} else {
-			// palette biomes
+		} // palette biomes are stored at the section, not chunk, level.
 
-		}
 		if ((loadFlags & HEIGHTMAPS) != 0) {
 			legacyHeightMap = getTag(LEGACY_HEIGHT_MAP_PATH);
 			heightMaps = getTag(HEIGHT_MAPS_PATH);
@@ -279,12 +294,16 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		boolean loadSections = ((loadFlags & (BLOCK_LIGHTS|BLOCK_STATES|SKY_LIGHT)) != 0)
 				|| (dataVersion >= JAVA_1_18_21W37A.id() && ((loadFlags & BIOMES) != 0));
 		if (loadSections) {
-			ListTag<CompoundTag> sections = getTag(SECTIONS_PATH);
-			if (sections != null) {
-				for (CompoundTag section : sections) {
-					T newSection = createSection(section, dataVersion, loadFlags);
-					putSection(newSection.getSectionY(), newSection, false);
+			try {
+				ListTag<CompoundTag> sections = getTag(SECTIONS_PATH);
+				if (sections != null) {
+					for (CompoundTag section : sections) {
+						T newSection = createSection(section, dataVersion, loadFlags);
+						putSection(newSection.getSectionY(), newSection, false);
+					}
 				}
+			} catch (Exception ex) {
+				throw new RuntimeException("Chunk " + getChunkX() + " " + getChunkZ() + "\n" + ex.getMessage(), ex);
 			}
 		}
 		if ((loadFlags & WORLD_UPGRADE_HINTS) != 0) {
@@ -303,29 +322,31 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	/**
 	 * May only be used for data versions LT 2203 which includes all of 1.14
 	 * and up until 19w36a (a 1.15 weekly snapshot).
-	 * @deprecated unsupported after JAVA_1_15_19W35A use {@link #getBiomeAt(int, int, int)} instead for 1.15 and beyond
+	 * <p>Note: 2D biomes have a resolution of 1x256x1 blocks.</p>
+	 * @deprecated unsupported after {@link DataVersion#JAVA_1_15_19W35A} use {@link #getLegacyBiomeAt(int, int, int)} instead for 1.15 and beyond
 	 */
 	@Deprecated
-	public int getBiomeAt(int blockX, int blockZ) {
+	public int getLegacyBiomeAt(int blockX, int blockZ) {
 		if (dataVersion > JAVA_1_15_19W35A.id())
 			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_15_19W35A,
 					"cannot get biome using Chunk#getBiomeAt(int,int) from biome data with DataVersion of 2203 or higher (1.15+), use Chunk#getBiomeAt(int,int,int) instead");
 		if (legacyBiomes == null || legacyBiomes.length != 256) {
 			return -1;
 		}
-		return legacyBiomes[getBlockIndex(blockX, blockZ)];
+		return legacyBiomes[getLegacy2dBiomeIndex(blockX, blockZ)];
 	}
 
 	/**
 	 * Fetches a biome id at a specific block in this chunk.
 	 * The coordinates can be absolute coordinates or relative to the region or chunk.
+	 * <p>Note: 3D biomes have a resolution of 4x4x4 blocks.</p>
 	 * @param blockX The x-coordinate of the block.
 	 * @param blockY The y-coordinate of the block.
 	 * @param blockZ The z-coordinate of the block.
 	 * @return The biome id or -1 if the biomes are not correctly initialized.
-	 * @deprecated unsupported after JAVA_1_18_21W38A
+	 * @deprecated unsupported after {@link DataVersion#JAVA_1_17_1}
 	 */
-	public int getBiomeAt(int blockX, int blockY, int blockZ) {
+	public int getLegacyBiomeAt(int blockX, int blockY, int blockZ) {
 		if (dataVersion > JAVA_1_17_1.id())
 			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_17_1, "legacy biomes");
 		if (dataVersion >= JAVA_1_15_19W36A.id()) {  // 3D biomes
@@ -336,28 +357,30 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			int biomeY = (blockY & 0xF) >> 2;
 			int biomeZ = (blockZ & 0xF) >> 2;
 
-			return legacyBiomes[getBiomeIndex(biomeX, biomeY, biomeZ)];
+			return legacyBiomes[getLegacy3dBiomeIndex(biomeX, biomeY, biomeZ)];
 		} else {  // 2D biomes
-			return getBiomeAt(blockX, blockZ);
+			return getLegacyBiomeAt(blockX, blockZ);
 		}
 	}
 
 	/**
 	 * Should only be used for data versions LT 2203 which includes all of 1.14
-	 * and up until 19w36a (a 1.15 weekly snapshot).
-	 * @deprecated unsupported after JAVA_1_18_21W38A
+	 * and up until 19w35a (a 1.15 weekly snapshot).
+	 * <p>Note: 2D biomes have a resolution of 1x256x1 blocks.</p>
+	 * @deprecated unsupported after {@link DataVersion#JAVA_1_17_1}
+	 * @see #setLegacyBiomeAt(int, int, int, int)
 	 */
 	@Deprecated
-	public void setBiomeAt(int blockX, int blockZ, int biomeID) {
+	public void setLegacyBiomeAt(int blockX, int blockZ, int biomeID) {
 		checkRaw();
-		if (dataVersion >= JAVA_1_17_1.id())
+		if (dataVersion > JAVA_1_17_1.id())
 			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_17_1, "2D legacy biomes");
 		if (dataVersion < JAVA_1_15_19W36A.id()) {  // 2D biomes
 			if (legacyBiomes == null || legacyBiomes.length != 256) {
 				legacyBiomes = new int[256];
 				Arrays.fill(legacyBiomes, -1);
 			}
-			legacyBiomes[getBlockIndex(blockX, blockZ)] = biomeID;
+			legacyBiomes[getLegacy2dBiomeIndex(blockX, blockZ)] = biomeID;
 		} else {  // 3D biomes
 			if (legacyBiomes == null || legacyBiomes.length != 1024) {
 				legacyBiomes = new int[1024];
@@ -368,13 +391,20 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			int biomeZ = (blockZ & 0xF) >> 2;
 
 			for (int y = 0; y < 64; y++) {
-				legacyBiomes[getBiomeIndex(biomeX, y, biomeZ)] = biomeID;
+				legacyBiomes[getLegacy3dBiomeIndex(biomeX, y, biomeZ)] = biomeID;
 			}
 		}
 	}
 
-	public void setBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
-		if (dataVersion < JAVA_1_15_19W36A.id() || dataVersion >= JAVA_1_17_1.id())
+	/**
+	 * <p>Note: 3D biomes have a resolution of 4x4x4 blocks.</p>
+	 * @since {@link DataVersion#JAVA_1_15_19W36A}
+	 * @deprecated unsupported after {@link DataVersion#JAVA_1_17_1}
+	 * @see #setLegacyBiomeAt(int, int, int, int)
+	 */
+	@Deprecated
+	public void setLegacyBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
+		if (dataVersion < JAVA_1_15_19W36A.id() || dataVersion > JAVA_1_17_1.id())
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_15_19W36A, JAVA_1_17_1, "3D legacy biomes");
 		if (legacyBiomes == null || legacyBiomes.length != 1024) {
 			legacyBiomes = new int[1024];
@@ -384,10 +414,13 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		int biomeX = (blockX & 0x0F) >> 2;
 		int biomeY = blockY >> 2;
 		int biomeZ = (blockZ & 0x0F) >> 2;
-		legacyBiomes[getBiomeIndex(biomeX, biomeY, biomeZ)] = biomeID;
+		legacyBiomes[getLegacy3dBiomeIndex(biomeX, biomeY, biomeZ)] = biomeID;
 	}
 
-	protected int getBiomeIndex(int biomeX, int biomeY, int biomeZ) {
+	protected int getLegacy2dBiomeIndex(int blockX, int blockZ) {
+		return (blockZ & 0xF) * 16 + (blockX & 0xF);
+	}
+	protected int getLegacy3dBiomeIndex(int biomeX, int biomeY, int biomeZ) {
 		return biomeY * 16 + biomeZ * 4 + biomeX;
 	}
 
@@ -498,6 +531,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 
 	/**
 	 * Sets the biome IDs for this chunk.
+	 * <p>Note: 2D biomes have a resolution of 1x256x1 blocks.</p>
+	 * <p>Note: 3D biomes have a resolution of 4x4x4 blocks.</p>
 	 * @param legacyBiomes The biome ID matrix of this chunk. Must have a length of {@code 1024} for 1.15+ or {@code 256}
 	 *                  for prior versions.
 	 * @throws IllegalArgumentException When the biome matrix is {@code null} or does not have a version appropriate length.
@@ -507,12 +542,18 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		if (dataVersion >= JAVA_1_17_1.id())
 			throw new VersionLacksSupportException(dataVersion, null, JAVA_1_17_1, "2D/3D legacy biomes");
 		if (legacyBiomes != null) {
-			final int requiredSize = dataVersion <= 0 || dataVersion >= JAVA_1_15_19W36A.id() ? 1024 : 256;
+			final int requiredSize = dataVersion >= JAVA_1_15_19W36A.id() ? 1024 : 256;
 			if (legacyBiomes.length != requiredSize) {
 				throw new IllegalArgumentException("biomes array must have a length of " + requiredSize);
 			}
 		}
 		this.legacyBiomes = legacyBiomes;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public int getWorldMinBlockY() {
+		return getChunkY() * 16;
 	}
 
 	/**
@@ -531,12 +572,144 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		this.heightMaps = heightMaps;
 	}
 
+	/**
+	 * 256 (16x16) values. Values are shifted to read as block-y value. A value of {@link #getWorldMinBlockY()} - 1
+	 * indicates no block present (void).
+	 * @param name typically one of
+	 * <ul>
+	 *      <li>MOTION_BLOCKING</li>
+	 *  	<li>MOTION_BLOCKING_NO_LEAVES</li>
+	 *  	<li>OCEAN_FLOOR</li>
+	 *  	<li>OCEAN_FLOOR_WG</li>
+	 *  	<li>WORLD_SURFACE</li>
+	 *  	<li>WORLD_SURFACE_WG</li>
+	 * </ul>
+	 * @return {@link LongArrayTagPackedIntegers} configured to yield block Y values.
+	 * @since {@link DataVersion#JAVA_1_13_18W06A}
+	 */
+	public LongArrayTagPackedIntegers getHeightMap(String name) {
+		final int minY = getWorldMinBlockY() - 1;
+		final int maxY = getWorldMaxBlockY();
+		return LongArrayTagPackedIntegers.builder()
+				.dataVersion(dataVersion)
+				.minBitsPerValue(Math.max(9, LongArrayTagPackedIntegers.calculateBitsRequired(maxY - minY)))
+				.valueOffset(minY)
+				.length(256)
+				.build(getHeightMaps().getLongArrayTag(name));
+	}
+
 	public IntArrayTag getLegacyHeightMap() {
 		return legacyHeightMap;
 	}
 
 	public void setLegacyHeightMap(IntArrayTag legacyHeightMap) {
 		this.legacyHeightMap = legacyHeightMap;
+	}
+
+	/**
+	 * Returns a copy of the palette value at the specified position in this chunk.
+	 * <p>Modifying the returned value can be done safely, it will have no effect on this chunk.</p>
+	 * <p>To avoid the overhead of making a copy use {@link #getBiomeAtByRef(int, int, int)} instead.</p>
+	 *
+	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @return the element at the specified position in this chunk or NULL if Y is above/below build height.
+	 * @since {@link DataVersion#JAVA_1_18_21W37A}
+	 */
+	public StringTag getBiomeAt(int x, int y, int z) {
+		checkRaw();
+		if (dataVersion < JAVA_1_18_21W37A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "3D palette biomes");
+		var section = getSection(y / 16);
+		if (section == null) return null;
+		return section.getBiomes().get(x & 0xF, y & 0xF, z & 0xF);
+	}
+
+	/**
+	 * Returns the palette value at the specified position in this chunk.
+	 * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette
+	 * entry within the same chunk section!</b></p>
+	 *
+	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @return the element at the specified position in this chunk or NULL if Y is above/below build height.
+	 * @since {@link DataVersion#JAVA_1_18_21W37A}
+	 */
+	public StringTag getBiomeAtByRef(int x, int y, int z) {
+		checkRaw();
+		if (dataVersion < JAVA_1_18_21W37A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "3D palette biomes");
+		var section = getSection(y / 16);
+		if (section == null) return null;
+		return section.getBiomes().getByRef(x & 0xF, y & 0xF, z & 0xF);
+	}
+
+	/**
+	 * Replaces the element at the specified position in this chunk with
+	 * the specified element.
+	 *
+	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @since {@link DataVersion#JAVA_1_18_21W37A}
+	 */
+	public void setBiomeAt(int x, int y, int z, StringTag tag) {
+		checkRaw();
+		if (dataVersion < JAVA_1_18_21W37A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "3D palette biomes");
+		var section = getSection(y / 16);
+		if (section != null) {
+			section.getBiomes().set(x & 0xF, y & 0xF, z & 0xF, tag);
+		}
+	}
+
+	/**
+	 * Returns a copy of the block palette value at the specified position in this chunk.
+	 * <p>Modifying the returned value can be done safely, it will have no effect on this chunk.</p>
+	 * <p>To avoid the overhead of making a copy use {@link #getBlockAtByRef(int, int, int)} instead.</p>
+	 *
+	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @return the element at the specified position in this chunk or NULL if Y is above/below build height.
+	 * @since {@link DataVersion#JAVA_1_13_17W47A}
+	 */
+	public CompoundTag getBlockAt(int x, int y, int z) {
+		checkRaw();
+		if (dataVersion < JAVA_1_13_17W47A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "block palettes");
+		var section = getSection(y / 16);
+		if (section == null) return null;
+		return section.getBlockStates().get(x & 0xF, y & 0xF, z & 0xF);
+	}
+
+	/**
+	 * Returns the block palette value at the specified position in this chunk.
+	 * <p><b>WARNING if the returned value is modified it modifies every value which references the same palette
+	 * entry within the same chunk section!</b></p>
+	 *
+	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @return the element at the specified position in this chunk or NULL if Y is above/below build height.
+	 * @since {@link DataVersion#JAVA_1_13_17W47A}
+	 */
+	public CompoundTag getBlockAtByRef(int x, int y, int z) {
+		checkRaw();
+		if (dataVersion < JAVA_1_13_17W47A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "block palettes");
+		var section = getSection(y / 16);
+		if (section == null) return null;
+		return section.getBlockStates().getByRef(x & 0xF, y & 0xF, z & 0xF);
+	}
+
+	/**
+	 * Sets the block at the specified location to be defined by tag.
+	 *
+	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @since {@link DataVersion#JAVA_1_13_17W47A}
+	 */
+	public void setBlockAt(int x, int y, int z, CompoundTag tag) {
+		checkRaw();
+		if (dataVersion < JAVA_1_13_17W47A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "block palettes");
+		ArgValidator.check(tag.containsKey("Name", StringTag.class), "block palette tag must contain a 'Name' StringTag");
+		var section = getSection(y / 16);
+		if (section != null) {
+			section.getBlockStates().set(x & 0xF, y & 0xF, z & 0xF, tag);
+		}
 	}
 
 	/**
@@ -697,10 +870,6 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	public void setStructures(CompoundTag structures) {
 		checkRaw();
 		this.structures = structures;
-	}
-
-	protected int getBlockIndex(int blockX, int blockZ) {
-		return (blockZ & 0xF) * 16 + (blockX & 0xF);
 	}
 
 	/**

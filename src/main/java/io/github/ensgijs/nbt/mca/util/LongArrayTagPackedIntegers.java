@@ -951,7 +951,7 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
      *
      * If num is 0 then 0 is returned.
      */
-    static int calculateBitsRequired(int num) {
+    public static int calculateBitsRequired(int num) {
         if (num < 0) throw new IllegalArgumentException();
         return 32 - Integer.numberOfLeadingZeros(num);
     }

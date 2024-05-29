@@ -176,6 +176,16 @@ public abstract class SectionedChunkBase<T extends SectionBase<?>> extends Chunk
 		return SectionBase.NO_SECTION_Y_SENTINEL;
 	}
 
+	/** min block Y, inclusive */
+	public int getWorldMinBlockY() {
+		return getMinSectionY() * 16;
+	}
+
+	/** max block Y, inclusive */
+	public int getWorldMaxBlockY() {
+		return getMaxSectionY() * 16 + 15;
+	}
+
 	/***
 	 * Creates a new section and places it in this chunk at the specified section-y UNLESS
 	 * the given sectionY is {@link SectionBase#NO_SECTION_Y_SENTINEL} in which case the new
