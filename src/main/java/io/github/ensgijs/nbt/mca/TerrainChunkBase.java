@@ -588,6 +588,11 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * @since {@link DataVersion#JAVA_1_13_18W06A}
 	 */
 	public LongArrayTagPackedIntegers getHeightMap(String name) {
+		if (getHeightMaps() == null)
+			return null;
+		var hm = getHeightMaps().getLongArrayTag(name);
+		if (hm == null)
+			return null;
 		final int minY = getWorldMinBlockY() - 1;
 		final int maxY = getWorldMaxBlockY();
 		return LongArrayTagPackedIntegers.builder()
@@ -595,7 +600,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 				.minBitsPerValue(Math.max(9, LongArrayTagPackedIntegers.calculateBitsRequired(maxY - minY)))
 				.valueOffset(minY)
 				.length(256)
-				.build(getHeightMaps().getLongArrayTag(name));
+				.build(hm);
 	}
 
 	public IntArrayTag getLegacyHeightMap() {
@@ -621,7 +626,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "3D palette biomes");
 		var section = getSection(y / 16);
 		if (section == null) return null;
-		return section.getBiomes().get(x & 0xF, y & 0xF, z & 0xF);
+		return section.getBiomes().get((x & 0xF) / 4, (y & 0xF) / 4, (z & 0xF) / 4);
 	}
 
 	/**
@@ -639,7 +644,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "3D palette biomes");
 		var section = getSection(y / 16);
 		if (section == null) return null;
-		return section.getBiomes().getByRef(x & 0xF, y & 0xF, z & 0xF);
+		return section.getBiomes().getByRef((x & 0xF) / 4, (y & 0xF) / 4, (z & 0xF) / 4);
 	}
 
 	/**
@@ -647,16 +652,19 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * the specified element.
 	 *
 	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @return true if the section existed and the biome was set (true even if the value was unchanged)
 	 * @since {@link DataVersion#JAVA_1_18_21W37A}
 	 */
-	public void setBiomeAt(int x, int y, int z, StringTag tag) {
+	public boolean setBiomeAt(int x, int y, int z, StringTag tag) {
 		checkRaw();
 		if (dataVersion < JAVA_1_18_21W37A.id())
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_18_21W37A, null, "3D palette biomes");
 		var section = getSection(y / 16);
 		if (section != null) {
-			section.getBiomes().set(x & 0xF, y & 0xF, z & 0xF, tag);
+			section.getBiomes().set((x & 0xF) / 4, (y & 0xF) / 4, (z & 0xF) / 4, tag);
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -699,9 +707,11 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * Sets the block at the specified location to be defined by tag.
 	 *
 	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
+	 * @param tag block palette tag, must contain a 'Name' StringTag
+	 * @return true if the section existed and the block was set (true even if the value was unchanged)
 	 * @since {@link DataVersion#JAVA_1_13_17W47A}
 	 */
-	public void setBlockAt(int x, int y, int z, CompoundTag tag) {
+	public boolean setBlockAt(int x, int y, int z, CompoundTag tag) {
 		checkRaw();
 		if (dataVersion < JAVA_1_13_17W47A.id())
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "block palettes");
@@ -709,7 +719,9 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		var section = getSection(y / 16);
 		if (section != null) {
 			section.getBlockStates().set(x & 0xF, y & 0xF, z & 0xF, tag);
+			return true;
 		}
+		return false;
 	}
 
 	/**
