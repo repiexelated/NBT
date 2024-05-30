@@ -323,7 +323,7 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
                     raf.read(buffer);
                     bb.position(0);
                     bb.asIntBuffer().get(chunkTimestamps);
-                } else {  // new file
+                } else if (!isReadOnly) {  // new file, or it existed but was empty - MC seems to do that
                     // zero out the chunk sector and timestamp tables
                     raf.setLength(0);
                     raf.write(buffer);
