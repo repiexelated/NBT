@@ -759,12 +759,14 @@ public enum DataVersion {
     JAVA_1_20_5(3837, 20, 5),
     JAVA_1_20_6_RC1(3838, 20, 6, "RC1"),
     JAVA_1_20_6(3839, 20, 6),
-    JAVA_1_20_7_24W18A(3940, 20, 7, "24w18a"),
-    JAVA_1_20_7_24W19A(3941, 20, 7, "24w19a"),
-    JAVA_1_20_7_24W19B(3942, 20, 7, "24w19b"),
-    JAVA_1_20_7_24W20A(3944, 20, 7, "24w20a"),
-    JAVA_1_20_7_24W21A(3946, 20, 7, "24w21a"),
-    JAVA_1_20_7_24W21B(3947, 20, 7, "24w21b");
+    JAVA_1_21_0_24W18A(3940, 21, 0, "24w18a"),
+    JAVA_1_21_0_24W19A(3941, 21, 0, "24w19a"),
+    JAVA_1_21_0_24W19B(3942, 21, 0, "24w19b"),
+    JAVA_1_21_0_24W20A(3944, 21, 0, "24w20a"),
+    JAVA_1_21_0_24W21A(3946, 21, 0, "24w21a"),
+    JAVA_1_21_0_24W21B(3947, 21, 0, "24w21b"),
+    JAVA_1_21_0_PRE1(3948, 21, 0, "PRE1"),
+    JAVA_1_21_0_PRE2(3949, 21, 0, "PRE2"),;
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
