@@ -2,6 +2,7 @@ package io.github.ensgijs.nbt.mca;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Locale;
 
 // source: version.json file, found in the root directory of the client and server jars
 // table of versions can also be found on https://minecraft.fandom.com/wiki/Data_version#List_of_data_versions
@@ -14,14 +15,12 @@ import java.util.Comparator;
 
 /**
  * List of MC versions and MCA data versions back to 1.9.0
- * The set of non-full release versions does not need to be the complete set of all versions - only those
- * which introduce changes to the MCA data structure are useful. BUT - we humans do love completeness
- * and completeness would be useful for map viewers / editors.
  * <p>
  *     TODO: weekly builds don't really fit with having a version but it's annoying to not have a version too - what to do?
  * </p>
  */
 public enum DataVersion {
+    // TODO: document change history by digging through net.minecraft.util.datafix.DataConverterRegistry
     // Kept in ASC order (unit test enforced)
     UNKNOWN(0, 0, 0),
     JAVA_1_9_15W32A(100, 9, 0, "15w32a"),
@@ -211,6 +210,7 @@ public enum DataVersion {
      */
     JAVA_1_13_PRE3(1503, 13, 0, "PRE3"),
     JAVA_1_13_PRE4(1504, 13, 0, "PRE4"),
+    // 1506 -- legacy biome id mapping changed
     JAVA_1_13_PRE5(1511, 13, 0, "PRE5"),
     JAVA_1_13_PRE6(1512, 13, 0, "PRE6"),
     JAVA_1_13_PRE7(1513, 13, 0, "PRE7"),
@@ -561,6 +561,7 @@ public enum DataVersion {
      * <ul><li>Consists of 64 entries, representing 4×4×4 biome regions in the chunk section.</li>
      * <li>When `palette` contains a single entry `data` will be omitted and the full chunk section is composed of a single biome.</li></ul>
      */
+    // 2832 -- exact point of above noted changes
     JAVA_1_18_21W37A(2834, 18, 0, "21w37a"),
     JAVA_1_18_21W38A(2835, 18, 0, "21w38a"),
     JAVA_1_18_21W39A(2836, 18, 0, "21w39a"),
@@ -766,7 +767,11 @@ public enum DataVersion {
     JAVA_1_21_0_24W21A(3946, 21, 0, "24w21a"),
     JAVA_1_21_0_24W21B(3947, 21, 0, "24w21b"),
     JAVA_1_21_0_PRE1(3948, 21, 0, "PRE1"),
-    JAVA_1_21_0_PRE2(3949, 21, 0, "PRE2"),;
+    JAVA_1_21_0_PRE2(3949, 21, 0, "PRE2"),
+    JAVA_1_21_0_PRE3(3950, 21, 0, "PRE3"),
+    JAVA_1_21_0_PRE4(3951, 21, 0, "PRE4"),
+    JAVA_1_21_0_RC1(3952, 21, 0, "RC1"),
+    JAVA_1_21_0(3953, 21, 0),;
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
@@ -832,7 +837,7 @@ public enum DataVersion {
                 simpleStrBuilder.append('.').append(patch);
             }
             if (buildDescription != null) {
-                simpleStrBuilder.append('-').append(buildDescription.toLowerCase());
+                simpleStrBuilder.append('-').append(buildDescription.toLowerCase(Locale.ENGLISH));
             }
         }
         simpleStr = simpleStrBuilder.toString();
@@ -923,7 +928,7 @@ public enum DataVersion {
      * @return exact match or null
      */
     public static DataVersion find(String simpleVersionStr) {
-        final String seeking = simpleVersionStr.toLowerCase();
+        final String seeking = simpleVersionStr.toLowerCase(Locale.ENGLISH);
         return Arrays.stream(values()).filter(v -> v.simpleStr.equals(seeking)).findFirst().orElse(null);
     }
 
