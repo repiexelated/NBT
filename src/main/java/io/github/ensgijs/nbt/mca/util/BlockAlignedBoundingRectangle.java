@@ -1,5 +1,8 @@
 package io.github.ensgijs.nbt.mca.util;
 
+import java.util.Collection;
+import java.util.function.ToIntFunction;
+
 /**
  * An XZ aligned bounding box that conceptually represents block coordinates.
  * @see ChunkBoundingRectangle
@@ -39,6 +42,14 @@ public class BlockAlignedBoundingRectangle {
 
     public int getWidthBlockXZ() {
         return widthBlockXZ;
+    }
+
+    public int getCenterBlockX() {
+        return minBlockX + widthBlockXZ / 2;
+    }
+
+    public int getCenterBlockZ() {
+        return minBlockZ + widthBlockXZ / 2;
     }
 
     public BlockAlignedBoundingRectangle(int minBlockX, int minBlockZ, int widthBlockXZ) {
@@ -100,5 +111,42 @@ public class BlockAlignedBoundingRectangle {
     public String toString() {
         return String.format("blocks[%d..%d, %d..%d]",
                 minBlockX, maxBlockX - 1, minBlockZ, maxBlockZ - 1);
+    }
+
+    @Override
+    public int hashCode() {
+        return  31 * (31 * minBlockX + minBlockZ) + widthBlockXZ;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof BlockAlignedBoundingRectangle other) {
+            return this.minBlockX == other.minBlockX &&
+                    this.minBlockZ == other.minBlockZ &&
+                    this.widthBlockXZ == other.widthBlockXZ;
+        }
+        return false;
+    }
+
+    public static BlockAlignedBoundingRectangle of(Collection<IntPointXZ> blocks) {
+        return of(blocks, IntPointXZ::getX, IntPointXZ::getZ);
+    }
+
+    public static <T> BlockAlignedBoundingRectangle of(Collection<T> blocks, ToIntFunction<T> xGetter, ToIntFunction<T> zGetter) {
+        if (blocks == null || blocks.isEmpty())
+            return null;
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (T xz : blocks) {
+            int x = xGetter.applyAsInt(xz);
+            int z = zGetter.applyAsInt(xz);
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (z < minZ) minZ = z;
+            if (z > maxZ) maxZ = z;
+        }
+        return new BlockAlignedBoundingRectangle(minX, minZ, Math.max(maxX - minX, maxZ - minZ) + 1);
     }
 }

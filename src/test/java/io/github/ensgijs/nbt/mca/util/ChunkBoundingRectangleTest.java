@@ -3,6 +3,10 @@ package io.github.ensgijs.nbt.mca.util;
 
 import junit.framework.TestCase;
 
+import java.util.List;
+
+import static io.github.ensgijs.nbt.mca.util.IntPointXZ.XZ;
+
 public class ChunkBoundingRectangleTest extends TestCase {
 
     public void testRelocate_int() {
@@ -70,5 +74,18 @@ public class ChunkBoundingRectangleTest extends TestCase {
         assertEquals(6639 * 16, bbr.getMinBlockZ());
         assertEquals(4888 * 16, bbr.getMaxBlockX());
         assertEquals(6640 * 16, bbr.getMaxBlockZ());
+    }
+
+    public void testOf() {
+        ChunkBoundingRectangle br = ChunkBoundingRectangle.of(List.of(
+                XZ(-5, 4)
+        ));
+        assertEquals(new ChunkBoundingRectangle(-5, 4, 1), br);
+
+        br = ChunkBoundingRectangle.of(List.of(
+                XZ(-5, 4),
+                XZ(-4, -1)
+        ));
+        assertEquals(new ChunkBoundingRectangle(-5, -1, 6), br);
     }
 }

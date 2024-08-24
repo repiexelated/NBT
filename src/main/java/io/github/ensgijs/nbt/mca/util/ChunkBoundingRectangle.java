@@ -1,5 +1,8 @@
 package io.github.ensgijs.nbt.mca.util;
 
+import java.util.Collection;
+import java.util.function.ToIntFunction;
+
 public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
     /**
      * Maximum size of the world boarder.
@@ -110,5 +113,27 @@ public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
     public String toString() {
         return String.format("chunks[%d..%d, %d..%d]",
                 getMinChunkX(), getMaxChunkX() - 1, getMinChunkZ(), getMaxChunkZ() - 1);
+    }
+
+    public static ChunkBoundingRectangle of(Collection<IntPointXZ> chunks) {
+        return of(chunks, IntPointXZ::getX, IntPointXZ::getZ);
+    }
+
+    public static <T> ChunkBoundingRectangle of(Collection<T> chunks, ToIntFunction<T> xGetter, ToIntFunction<T> zGetter) {
+        if (chunks == null || chunks.isEmpty())
+            return null;
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (T xz : chunks) {
+            int x = xGetter.applyAsInt(xz);
+            int z = zGetter.applyAsInt(xz);
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (z < minZ) minZ = z;
+            if (z > maxZ) maxZ = z;
+        }
+        return new ChunkBoundingRectangle(minX, minZ, Math.max(maxX - minX, maxZ - minZ) + 1);
     }
 }

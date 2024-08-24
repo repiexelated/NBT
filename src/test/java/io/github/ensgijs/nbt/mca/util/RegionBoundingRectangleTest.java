@@ -2,6 +2,10 @@ package io.github.ensgijs.nbt.mca.util;
 
 import junit.framework.TestCase;
 
+import java.util.List;
+
+import static io.github.ensgijs.nbt.mca.util.IntPointXZ.XZ;
+
 public class RegionBoundingRectangleTest extends TestCase {
 
     public void testContainsBlock() {
@@ -104,5 +108,18 @@ public class RegionBoundingRectangleTest extends TestCase {
         assertEquals(6639 * 32 * 16, bbr.getMinBlockZ());
         assertEquals(4888 * 32 * 16, bbr.getMaxBlockX());
         assertEquals(6640 * 32 * 16, bbr.getMaxBlockZ());
+    }
+
+    public void testOf() {
+        RegionBoundingRectangle br = RegionBoundingRectangle.of(List.of(
+                XZ(-5, 4)
+        ));
+        assertEquals(new RegionBoundingRectangle(-5, 4, 1), br);
+
+        br = RegionBoundingRectangle.of(List.of(
+                XZ(-5, 4),
+                XZ(-4, -1)
+        ));
+        assertEquals(new RegionBoundingRectangle(-5, -1, 6), br);
     }
 }

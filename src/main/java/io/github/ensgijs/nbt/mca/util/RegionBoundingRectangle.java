@@ -1,5 +1,8 @@
 package io.github.ensgijs.nbt.mca.util;
 
+import java.util.Collection;
+import java.util.function.ToIntFunction;
+
 public class RegionBoundingRectangle extends ChunkBoundingRectangle {
     /**
      * Bounds of the maximum size of a minecraft world.
@@ -64,5 +67,27 @@ public class RegionBoundingRectangle extends ChunkBoundingRectangle {
     public String toString() {
         return String.format("regions[%d..%d, %d..%d]",
                 getMinRegionX(), getMaxRegionX() - 1, getMinRegionZ(), getMaxRegionZ() - 1);
+    }
+
+    public static RegionBoundingRectangle of(Collection<IntPointXZ> regions) {
+        return of(regions, IntPointXZ::getX, IntPointXZ::getZ);
+    }
+
+    public static <T> RegionBoundingRectangle of(Collection<T> regions, ToIntFunction<T> xGetter, ToIntFunction<T> zGetter) {
+        if (regions == null || regions.isEmpty())
+            return null;
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        for (T xz : regions) {
+            int x = xGetter.applyAsInt(xz);
+            int z = zGetter.applyAsInt(xz);
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (z < minZ) minZ = z;
+            if (z > maxZ) maxZ = z;
+        }
+        return new RegionBoundingRectangle(minX, minZ, Math.max(maxX - minX, maxZ - minZ) + 1);
     }
 }

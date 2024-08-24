@@ -2,6 +2,9 @@ package io.github.ensgijs.nbt.mca.util;
 
 import junit.framework.TestCase;
 
+import java.util.List;
+
+import static io.github.ensgijs.nbt.mca.util.IntPointXZ.XZ;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -120,5 +123,18 @@ public class BlockAlignedBoundingRectangleTest extends TestCase {
         assertTrue(ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(-1874999, -1874999));
         assertTrue(ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(1874998, 1874998));
         assertFalse(ChunkBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(1874999, 1874999));
+    }
+
+    public void testOf() {
+        BlockAlignedBoundingRectangle bbr = BlockAlignedBoundingRectangle.of(List.of(
+                XZ(-5, 4)
+        ));
+        assertEquals(new BlockAlignedBoundingRectangle(-5, 4, 1), bbr);
+
+        bbr = BlockAlignedBoundingRectangle.of(List.of(
+                XZ(-5, 4),
+                XZ(-4, -1)
+        ));
+        assertEquals(new BlockAlignedBoundingRectangle(-5, -1, 6), bbr);
     }
 }
