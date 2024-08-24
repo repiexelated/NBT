@@ -404,8 +404,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 */
 	@Deprecated
 	public void setLegacyBiomeAt(int blockX, int blockY, int blockZ, int biomeID) {
-		if (dataVersion < JAVA_1_15_19W36A.id() || dataVersion > JAVA_1_17_1.id())
-			throw new VersionLacksSupportException(dataVersion, JAVA_1_15_19W36A, JAVA_1_17_1, "3D legacy biomes");
+		if (dataVersion < JAVA_1_15_19W36A.id() || dataVersion >= JAVA_1_18_21W37A.id())
+			throw new VersionLacksSupportException(dataVersion, JAVA_1_15_19W36A, JAVA_1_18_21W37A.previous(), "3D legacy biomes");
 		if (legacyBiomes == null || legacyBiomes.length != 1024) {
 			legacyBiomes = new int[1024];
 			Arrays.fill(legacyBiomes, -1);
