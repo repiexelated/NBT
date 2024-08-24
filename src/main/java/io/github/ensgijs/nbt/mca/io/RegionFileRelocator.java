@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+// TODO: add class docs including basic usage
 public class RegionFileRelocator implements Closeable {
     private McaStreamSupplier mcaStreamSupplier;
     private String destinationRoot;
