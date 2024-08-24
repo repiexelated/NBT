@@ -16,6 +16,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,7 +30,8 @@ public final class McaFileHelpers {
 
 	private McaFileHelpers() {}
 
-	private static final Pattern mcaFilePattern = Pattern.compile("^.*\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
+	private static final Pattern MCA_FILE_PATTERN = Pattern.compile("^.*\\.(?<regionX>-?\\d+)\\.(?<regionZ>-?\\d+)\\.mca$");
+	private static final Predicate<String> IS_VALID_MCA_FILE_NAME_TESTER = MCA_FILE_PATTERN.asPredicate();
 
 	/**
 	 * This map controls the factory creation behavior of the various "auto" functions. When an auto function is
@@ -465,7 +467,7 @@ public final class McaFileHelpers {
 	 * Ex. "r.1.-4.mca" returns XZ(1, -4)
 	 */
 	public static IntPointXZ regionXZFromFileName(String name) {
-		final Matcher m = mcaFilePattern.matcher(name);
+		final Matcher m = MCA_FILE_PATTERN.matcher(name);
 		if (!m.find()) {
 			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): "
 					+ name);
@@ -549,7 +551,7 @@ public final class McaFileHelpers {
 		} catch (Exception ex) {
 			throwCannotDetermineMcaType(ex);
 		}
-		final Matcher m = mcaFilePattern.matcher(path.getFileName().toString());
+		final Matcher m = MCA_FILE_PATTERN.matcher(path.getFileName().toString());
 		if (!m.find()) {
 			throw new IllegalArgumentException("invalid mca file name (expect name match '*.<X>.<Z>.mca'): " + path);
 		}
@@ -560,5 +562,13 @@ public final class McaFileHelpers {
 			throw new NullPointerException("Creator for " + useCreatorName + " did not produce a result for " + path);
 		}
 		return mcaFile;
+	}
+
+	public static boolean isValidMcaFileName(String fileName) {
+		return IS_VALID_MCA_FILE_NAME_TESTER.test(fileName);
+	}
+
+	public static boolean isValidMcaFileName(File file) {
+		return IS_VALID_MCA_FILE_NAME_TESTER.test(file.getName());
 	}
 }
