@@ -5,6 +5,8 @@ import io.github.ensgijs.nbt.mca.TerrainChunk;
 import io.github.ensgijs.nbt.tag.LongArrayTag;
 import io.github.ensgijs.nbt.util.ArgValidator;
 
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.ListIterator;
 import java.util.Map;
@@ -860,6 +862,22 @@ public class LongArrayTagPackedIntegers implements TagWrapper<LongArrayTag>, Ite
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Calls {@link MessageDigest#update} on the given digest with the current long[] data to accumulate a checksum
+     * across one or more {@link LongArrayTagPackedIntegers}/.
+     * @param digest to be modified with current long[] data.
+     * @return given digest.
+     */
+    public MessageDigest accumulateChecksum(MessageDigest digest) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES * longs().length);
+        for (long l : longs()) {
+            buffer.putLong(l);
+        }
+        buffer.position(0);
+        digest.update(buffer);
+        return digest;
     }
 
     static void setNoSplitIndices(int index, int value, int noSplitIndicesPerLong, int bitsPerValue, long[] packedBits) {
