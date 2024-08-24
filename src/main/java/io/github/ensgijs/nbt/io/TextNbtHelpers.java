@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -91,7 +92,7 @@ public final class TextNbtHelpers {
 		} else {
 			data = toTextNbt((Tag<?>) tag, prettyPrint, sortCompoundTagEntries).getBytes(StandardCharsets.UTF_8);
 		}
-		if (!filePath.getFileName().toString().toLowerCase().endsWith(".gz")) {
+		if (!filePath.getFileName().toString().toLowerCase(Locale.ENGLISH).endsWith(".gz")) {
 			Files.write(filePath, data);
 		} else {
 			try (GZIPOutputStream gzOut = new GZIPOutputStream(new FileOutputStream(filePath.toFile()))) {

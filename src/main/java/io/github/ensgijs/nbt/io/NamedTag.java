@@ -3,6 +3,7 @@ package io.github.ensgijs.nbt.io;
 import io.github.ensgijs.nbt.tag.Tag;
 import io.github.ensgijs.nbt.util.ArgValidator;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -108,8 +109,8 @@ public class NamedTag implements Cloneable, Comparable<NamedTag> {
 		if (o1 == o2) return 0;
 		if (o1 == null) return -1;
 		if (o2 == null) return 1;
-		String n1Lower = o1.getName().toLowerCase();
-		String n2Lower = o2.getName().toLowerCase();
+		String n1Lower = o1.getName().toLowerCase(Locale.ENGLISH);
+		String n2Lower = o2.getName().toLowerCase(Locale.ENGLISH);
 		if (IS_INTEGER_STRING.test(n1Lower) && IS_INTEGER_STRING.test(n2Lower)) {
 			return Long.compare(Long.parseLong(n1Lower), Long.parseLong(n2Lower));
 		} else {
