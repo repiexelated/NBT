@@ -3,7 +3,9 @@ package io.github.ensgijs.nbt.mca.io;
 import io.github.ensgijs.nbt.io.BinaryNbtSerializer;
 import io.github.ensgijs.nbt.io.CompressionType;
 import io.github.ensgijs.nbt.io.NamedTag;
+import io.github.ensgijs.nbt.io.SilentIOException;
 import io.github.ensgijs.nbt.mca.*;
+import io.github.ensgijs.nbt.mca.util.ChunkIterator;
 import io.github.ensgijs.nbt.mca.util.IntPointXZ;
 import io.github.ensgijs.nbt.mca.util.RegionBoundingRectangle;
 import io.github.ensgijs.nbt.util.ArgValidator;
@@ -41,7 +43,7 @@ import java.util.*;
  * @param <T> In truth, this class doesn't care what type of chunk it reads and writes - but being strict about
  *           which type of chunk is stored keeps users from shooting themselves in the foot.
  */
-public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
+public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable, Iterable<T> {
     private static final byte[] ZERO_FILL_BUFFER = new byte[4096];
     private final Class<T> chunkClass;
     protected final int[] chunkSectors = new int[1024];
@@ -531,6 +533,14 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
      * @return The chunk if it exists, else null.
      */
     public T read(int chunkIndex) throws IOException {
+        return read(chunkIndex, loadFlags);
+    }
+
+    /**
+     * Reads the specified chunk if it exists.
+     * @return The chunk if it exists, else null.
+     */
+    public T read(int chunkIndex, long loadFlags) throws IOException {
         if (chunkIndex < 0 || chunkIndex >= 1024)
             throw new IndexOutOfBoundsException();
         ensureFileInitialized();
@@ -682,6 +692,29 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             if (raf.getFilePointer() % 4096 != 0)
                 throw new IllegalStateException();
         }
+    }
+
+    /**
+     * @return the chunk XZ coords of the minimum chunk (north-west corner) in this region.
+     */
+    public IntPointXZ getRegionChunkOffsetXZ() {
+        return regionChunkOffsetXZ;
+    }
+
+    // TODO: find a common code location for these helpers
+    public IntPointXZ indexToRelativeXZ(int index) {
+        if (index < 0 || index >= 1024)
+            throw new IndexOutOfBoundsException();
+        return new IntPointXZ(index & 0x1F, (index >> 5) & 0x1F);
+    }
+
+    public IntPointXZ indexToAbsoluteXZ(int index) {
+        return regionChunkOffsetXZ.add(indexToRelativeXZ(index));
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return chunkIterator();
     }
 
     // This class assumes known usage patterns and does not defend against doing stupid things.
@@ -929,6 +962,70 @@ public class RandomAccessMcaFile<T extends ChunkBase> implements Closeable {
             }
             sb.append("]");
             return sb.toString();
+        }
+    }
+
+    public ChunkIterator<T> chunkIterator() {
+        return new ChunkIter<>(this, loadFlags);
+    }
+
+    public ChunkIterator<T> chunkIterator(long loadFlags) {
+        return new ChunkIter<>(this, loadFlags);
+    }
+
+    protected static class ChunkIter<T extends ChunkBase> implements ChunkIterator<T> {
+        private final RandomAccessMcaFile<T> ramf;
+        private final long loadFlags;
+        private int nextIndex = 0;
+
+        public ChunkIter(RandomAccessMcaFile<T> ramf, long loadFlags) {
+            this.ramf = ramf;
+            this.loadFlags = loadFlags;
+        }
+
+        @Override
+        public void set(T chunk) {
+            try {
+                ramf.write(chunk);
+            } catch (IOException ex) {
+                throw new SilentIOException(ex);
+            }
+        }
+
+        @Override
+        public int currentIndex() {
+            if (nextIndex == 0) throw new NoSuchElementException();
+            return nextIndex - 1;
+        }
+
+        @Override
+        public IntPointXZ currentAbsoluteXZ() {
+            return ramf.indexToAbsoluteXZ(nextIndex - 1);
+        }
+
+        @Override
+        public int currentAbsoluteX() {
+            return currentAbsoluteXZ().getX();
+        }
+
+        @Override
+        public int currentAbsoluteZ() {
+            return currentAbsoluteXZ().getZ();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return nextIndex < 1024;
+        }
+
+        @Override
+        public T next() {
+            if (!hasNext()) throw new NoSuchElementException();
+            try {
+                return ramf.read(nextIndex++, loadFlags);
+            } catch (IOException ex) {
+                throw new SilentIOException(ex);
+            }
         }
     }
 }
