@@ -53,7 +53,7 @@ import static io.github.ensgijs.nbt.mca.DataVersion.UNKNOWN;
  *
  * <h2>About Heightmaps</h2>
  * In the case of heightmap data {@link Builder#initializeForStoring(int)} should be set
- * to the world build height {@code chunk.&lt;determine max section Y&gt; * 16 + 15} and also set
+ * to the world build height {@code chunk.<determine max sectionY> * 16 + 15} and also set
  * {@link Builder#valueOffset(int)} to {@code chunk.getChunkY() * 16 - 1}
  * 
  * <p>In some cases it is sufficient to only specify {@link Builder#minBitsPerValue(int)}, really there is
