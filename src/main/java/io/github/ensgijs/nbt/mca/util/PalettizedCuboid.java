@@ -188,7 +188,7 @@ public class PalettizedCuboid<E extends Tag<?>> implements TagWrapper<CompoundTa
 
     /**
      * @param values Must be of a length that has a cube root and that root must itself be a power of 2.
-     *               Ex. 4096 is 16^3 and 16 is 2^4; Ex. 64 is 4^3 and 4 is 2^2. The given values are cloned,
+     *               Ex. 4096 is 16^3 and 16 is 4^2; Ex. 64 is 4^3 and 4 is 2^2. The given values are cloned,
      *               neither the given values array nor its elements are taken by reference. However, any value
      *               which is repeated is only entered into the palette once.
      */
