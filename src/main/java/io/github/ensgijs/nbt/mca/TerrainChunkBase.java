@@ -703,6 +703,12 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 		return section.getBlockStates().getByRef(x & 0xF, y & 0xF, z & 0xF);
 	}
 
+	/** nullable */
+	public String getBlockNameAt(int x, int y, int z) {
+		CompoundTag blockTag = getBlockAtByRef(x, y, z);
+		return blockTag != null ? blockTag.getString("Name") : null;
+	}
+
 	/**
 	 * Sets the block at the specified location to be defined by tag.
 	 *
