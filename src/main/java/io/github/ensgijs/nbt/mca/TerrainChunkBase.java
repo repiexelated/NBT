@@ -682,7 +682,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "block palettes");
 		var section = getSection(y / 16);
 		if (section == null) return null;
-		return section.getBlockStates().get(x & 0xF, y & 0xF, z & 0xF);
+		var bs = section.getBlockStates();
+		return bs != null ? bs.get(x & 0xF, y & 0xF, z & 0xF) : null;
 	}
 
 	/**
@@ -700,7 +701,8 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 			throw new VersionLacksSupportException(dataVersion, JAVA_1_13_17W47A, null, "block palettes");
 		var section = getSection(y / 16);
 		if (section == null) return null;
-		return section.getBlockStates().getByRef(x & 0xF, y & 0xF, z & 0xF);
+		var bs = section.getBlockStates();
+		return bs != null ? bs.getByRef(x & 0xF, y & 0xF, z & 0xF) : null;
 	}
 
 	/** nullable */
