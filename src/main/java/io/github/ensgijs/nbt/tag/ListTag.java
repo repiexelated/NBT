@@ -441,6 +441,62 @@ public class ListTag<E extends Tag<?>> extends Tag<List<E>> implements List<E>, 
 		return asTypedList(CompoundTag.class);
 	}
 
+	public static ListTag<ByteTag> ofBytes(List<Byte> values) {
+		var tag = new ListTag<>(ByteTag.class);
+		for (var v : values) {
+			tag.add(new ByteTag(v));
+		}
+		return tag;
+	}
+
+	public static ListTag<ShortTag> ofShorts(List<Short> values) {
+		var tag = new ListTag<>(ShortTag.class);
+		for (var v : values) {
+			tag.add(new ShortTag(v));
+		}
+		return tag;
+	}
+
+	public static ListTag<IntTag> ofInts(List<Integer> values) {
+		var tag = new ListTag<>(IntTag.class);
+		for (var v : values) {
+			tag.add(new IntTag(v));
+		}
+		return tag;
+	}
+
+	public static ListTag<LongTag> ofLongs(List<Long> values) {
+		var tag = new ListTag<>(LongTag.class);
+		for (var v : values) {
+			tag.add(new LongTag(v));
+		}
+		return tag;
+	}
+
+	public static ListTag<FloatTag> ofFloats(List<Float> values) {
+		var tag = new ListTag<>(FloatTag.class);
+		for (var v : values) {
+			tag.add(new FloatTag(v));
+		}
+		return tag;
+	}
+
+	public static ListTag<DoubleTag> ofDoubles(List<Double> values) {
+		var tag = new ListTag<>(DoubleTag.class);
+		for (var v : values) {
+			tag.add(new DoubleTag(v));
+		}
+		return tag;
+	}
+
+	public static ListTag<StringTag> ofStrings(List<String> values) {
+		var tag = new ListTag<>(StringTag.class);
+		for (var v : values) {
+			tag.add(new StringTag(v));
+		}
+		return tag;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public String valueToString(int maxDepth) {
