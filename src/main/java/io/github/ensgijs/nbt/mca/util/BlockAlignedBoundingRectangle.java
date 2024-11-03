@@ -52,6 +52,14 @@ public class BlockAlignedBoundingRectangle {
         return minBlockZ + widthBlockXZ / 2;
     }
 
+    public double getCenterX() {
+        return minBlockX + widthBlockXZ / 2d;
+    }
+
+    public double getCenterZ() {
+        return minBlockZ + widthBlockXZ / 2d;
+    }
+
     public BlockAlignedBoundingRectangle(int minBlockX, int minBlockZ, int widthBlockXZ) {
         this.minXd = this.minBlockX = minBlockX;
         this.minZd = this.minBlockZ = minBlockZ;
