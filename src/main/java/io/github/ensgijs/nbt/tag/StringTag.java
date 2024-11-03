@@ -13,13 +13,12 @@ public class StringTag extends Tag<String> implements Comparable<StringTag> {
 
 	private static final Map<String, String> ESCAPE_CHARACTERS;
 	static {
-		final Map<String, String> temp = new HashMap<>();
-		temp.put("\\", "\\\\\\\\");
-		temp.put("\n", "\\\\n");
-		temp.put("\t", "\\\\t");
-		temp.put("\r", "\\\\r");
-		temp.put("\"", "\\\\\"");
-		ESCAPE_CHARACTERS = Collections.unmodifiableMap(temp);
+        ESCAPE_CHARACTERS = Map.of(
+				"\\", "\\\\\\\\",
+				"\n", "\\\\n",
+				"\t", "\\\\t",
+				"\r", "\\\\r",
+				"\"", "\\\\\"");
 	}
 
 	public static final byte ID = 8;
