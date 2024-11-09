@@ -21,6 +21,14 @@ public class RegionBoundingRectangle extends ChunkBoundingRectangle {
         super(regionX << 5, regionZ << 5, widthXZ << 5);
     }
 
+    public RegionBoundingRectangle translateRegions(int x, int z) {
+        return new RegionBoundingRectangle(
+                getMinRegionX() + x,
+                getMinRegionZ() + z,
+                getWidthRegionXZ()
+        );
+    }
+
     public boolean containsRegion(int regionX, int regionZ) {
         return containsBlock(regionX << 9, regionZ << 9);
     }

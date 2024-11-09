@@ -21,6 +21,14 @@ public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
         super(chunkX << 4, chunkZ << 4, chunkWidthXZ << 4);
     }
 
+    public ChunkBoundingRectangle translateChunks(int x, int z) {
+        return new ChunkBoundingRectangle(
+                getMinChunkX() + x,
+                getMinChunkZ() + z,
+                getWidthChunkXZ()
+        );
+    }
+
     public int getMinChunkX() {
         return minBlockX >> 4;
     }

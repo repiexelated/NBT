@@ -22,6 +22,14 @@ public class BlockAlignedBoundingRectangle {
     protected final double maxXd;  // exclusive
     protected final double maxZd;  // exclusive
 
+    public BlockAlignedBoundingRectangle translate(int x, int z) {
+        return new BlockAlignedBoundingRectangle(
+                minBlockX + x,
+                minBlockZ + z,
+                widthBlockXZ
+        );
+    }
+
     public int getMinBlockX() {
         return minBlockX;
     }
