@@ -5,6 +5,7 @@ import junit.framework.TestCase;
 import java.util.List;
 
 import static io.github.ensgijs.nbt.mca.util.IntPointXZ.XZ;
+import static org.junit.Assert.assertThrows;
 
 public class RegionBoundingRectangleTest extends TestCase {
 
@@ -121,5 +122,26 @@ public class RegionBoundingRectangleTest extends TestCase {
                 XZ(-4, -1)
         ));
         assertEquals(new RegionBoundingRectangle(-5, -1, 6), br);
+    }
+
+    public void testGrow() {
+        RegionBoundingRectangle cbr = new RegionBoundingRectangle(3, 4, 5);
+        RegionBoundingRectangle cbr2 = cbr.growRegions(2);
+        assertEquals(new RegionBoundingRectangle(3 - 2, 4 - 2, 5 + 2 * 2), cbr2);
+        assertEquals(cbr.getCenterX(), cbr2.getCenterX(), 1e-6);
+        assertEquals(cbr.getCenterZ(), cbr2.getCenterZ(), 1e-6);
+
+        assertThrows(IllegalArgumentException.class, () -> cbr2.growRegions(-1));
+    }
+
+    public void testShrink() {
+        RegionBoundingRectangle cbr = new RegionBoundingRectangle(3, 4, 5);
+        RegionBoundingRectangle cbr2 = cbr.shrinkRegions(2);
+        assertEquals(new RegionBoundingRectangle(3 + 2, 4 + 2, 5 - 2 * 2), cbr2);
+        assertEquals(cbr.getCenterX(), cbr2.getCenterX(), 1e-6);
+        assertEquals(cbr.getCenterZ(), cbr2.getCenterZ(), 1e-6);
+
+        assertThrows(IllegalArgumentException.class, () -> cbr2.shrinkRegions(-1));
+        assertNull(cbr2.shrinkRegions(1));
     }
 }

@@ -6,6 +6,7 @@ import junit.framework.TestCase;
 import java.util.List;
 
 import static io.github.ensgijs.nbt.mca.util.IntPointXZ.XZ;
+import static org.junit.Assert.assertThrows;
 
 public class ChunkBoundingRectangleTest extends TestCase {
 
@@ -87,5 +88,26 @@ public class ChunkBoundingRectangleTest extends TestCase {
                 XZ(-4, -1)
         ));
         assertEquals(new ChunkBoundingRectangle(-5, -1, 6), br);
+    }
+
+    public void testGrow() {
+        ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(3, 4, 5);
+        ChunkBoundingRectangle cbr2 = cbr.growChunks(2);
+        assertEquals(new ChunkBoundingRectangle(3 - 2, 4 - 2, 5 + 2 * 2), cbr2);
+        assertEquals(cbr.getCenterX(), cbr2.getCenterX(), 1e-6);
+        assertEquals(cbr.getCenterZ(), cbr2.getCenterZ(), 1e-6);
+
+        assertThrows(IllegalArgumentException.class, () -> cbr2.growChunks(-1));
+    }
+
+    public void testShrink() {
+        ChunkBoundingRectangle cbr = new ChunkBoundingRectangle(3, 4, 5);
+        ChunkBoundingRectangle cbr2 = cbr.shrinkChunks(2);
+        assertEquals(new ChunkBoundingRectangle(3 + 2, 4 + 2, 5 - 2 * 2), cbr2);
+        assertEquals(cbr.getCenterX(), cbr2.getCenterX(), 1e-6);
+        assertEquals(cbr.getCenterZ(), cbr2.getCenterZ(), 1e-6);
+
+        assertThrows(IllegalArgumentException.class, () -> cbr2.shrinkChunks(-1));
+        assertNull(cbr2.shrinkChunks(1));
     }
 }

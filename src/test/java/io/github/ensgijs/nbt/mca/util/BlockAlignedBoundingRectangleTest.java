@@ -137,4 +137,25 @@ public class BlockAlignedBoundingRectangleTest extends TestCase {
         ));
         assertEquals(new BlockAlignedBoundingRectangle(-5, -1, 6), bbr);
     }
+
+    public void testGrow() {
+        BlockAlignedBoundingRectangle cbr = new BlockAlignedBoundingRectangle(3, 4, 5);
+        BlockAlignedBoundingRectangle cbr2 = cbr.grow(2);
+        assertEquals(new BlockAlignedBoundingRectangle(3 - 2, 4 - 2, 5 + 2 * 2), cbr2);
+        assertEquals(cbr.getCenterX(), cbr2.getCenterX(), 1e-6);
+        assertEquals(cbr.getCenterZ(), cbr2.getCenterZ(), 1e-6);
+
+        assertThrows(IllegalArgumentException.class, () -> cbr2.grow(-1));
+    }
+
+    public void testShrink() {
+        BlockAlignedBoundingRectangle cbr = new BlockAlignedBoundingRectangle(3, 4, 5);
+        BlockAlignedBoundingRectangle cbr2 = cbr.shrink(2);
+        assertEquals(new BlockAlignedBoundingRectangle(3 + 2, 4 + 2, 5 - 2 * 2), cbr2);
+        assertEquals(cbr.getCenterX(), cbr2.getCenterX(), 1e-6);
+        assertEquals(cbr.getCenterZ(), cbr2.getCenterZ(), 1e-6);
+
+        assertThrows(IllegalArgumentException.class, () -> cbr2.shrink(-1));
+        assertNull(cbr2.shrink(1));
+    }
 }

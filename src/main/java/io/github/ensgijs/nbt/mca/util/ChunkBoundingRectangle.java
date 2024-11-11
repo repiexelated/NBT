@@ -29,6 +29,32 @@ public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
         );
     }
 
+    /**
+     * Computes a new region which shares the same center but is {@code size} larger in each direction.
+     * Total width/height grows by 2x this value.
+     * @param size amount to shrink by, must be GE0.
+     * @return new larger rectangle
+     */
+    public ChunkBoundingRectangle growChunks(int size) {
+        if (size == 0) return this;
+        if (size < 0) throw new IllegalArgumentException();
+        return new ChunkBoundingRectangle(getMinChunkX() - size, getMinChunkZ() - size, getWidthChunkXZ() + 2 * size);
+    }
+
+    /**
+     * Computes a new region which shares the same center but is {@code size} smaller in each direction.
+     * Total width/height reduces by 2x this value.
+     * @param size amount to shrink by, must be GE0.
+     * @return new rectangle if resulting width/height > 1, else null.
+     */
+    public ChunkBoundingRectangle shrinkChunks(int size) {
+        if (size == 0) return this;
+        if (size < 0) throw new IllegalArgumentException("size must be GE 0");
+        int newSize = getWidthChunkXZ() - 2 * size;
+        if (newSize <= 0) return null;
+        return new ChunkBoundingRectangle(getMinChunkX() + size, getMinChunkZ() + size, newSize);
+    }
+
     public int getMinChunkX() {
         return minBlockX >> 4;
     }

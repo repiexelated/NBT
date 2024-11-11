@@ -29,6 +29,32 @@ public class RegionBoundingRectangle extends ChunkBoundingRectangle {
         );
     }
 
+    /**
+     * Computes a new region which shares the same center but is {@code size} larger in each direction.
+     * Total width/height grows by 2x this value.
+     * @param size amount to shrink by, must be GE0.
+     * @return new larger rectangle
+     */
+    public RegionBoundingRectangle growRegions(int size) {
+        if (size == 0) return this;
+        if (size < 0) throw new IllegalArgumentException();
+        return new RegionBoundingRectangle(getMinRegionX() - size, getMinRegionZ() - size, getWidthRegionXZ() + 2 * size);
+    }
+
+    /**
+     * Computes a new region which shares the same center but is {@code size} smaller in each direction.
+     * Total width/height reduces by 2x this value.
+     * @param size amount to shrink by, must be GE0.
+     * @return new rectangle if resulting width/height > 1, else null.
+     */
+    public RegionBoundingRectangle shrinkRegions(int size) {
+        if (size == 0) return this;
+        if (size < 0) throw new IllegalArgumentException("size must be GE 0");
+        int newSize = getWidthRegionXZ() - 2 * size;
+        if (newSize <= 0) return null;
+        return new RegionBoundingRectangle(getMinRegionX() + size, getMinRegionZ() + size, newSize);
+    }
+
     public boolean containsRegion(int regionX, int regionZ) {
         return containsBlock(regionX << 9, regionZ << 9);
     }
