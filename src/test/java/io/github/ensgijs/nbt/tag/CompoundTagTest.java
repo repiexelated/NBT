@@ -475,4 +475,80 @@ public class CompoundTagTest extends NbtTestCase {
 		tag.putStringsAsTagList("name", values);
 		assertFalse(tag.containsKey("name"));
 	}
+
+	public void testPutValue() {
+		CompoundTag t = new CompoundTag();
+
+		t.putInt("nuke-me", 42);
+		t.putValue("nuke-me", null);
+		assertFalse(t.containsKey("nuke-me"));
+
+		CompoundTag t2 = new CompoundTag();
+		t.putValue("key_tag", t2);
+		assertSame(t2, t.get("key_tag"));
+
+		NamedTag t3 = new NamedTag("frank", new StringTag("smith"));
+		t.putValue("key_tag3", t3);
+		assertSame(t3.getTag(), t.get("key_tag3"));
+
+		t.putValue("key_string", "it's magic");
+		assertEquals(new StringTag("it's magic"), t.get("key_string"));
+
+		t.putValue("key_bool0", false);
+		assertFalse(t.getBoolean("key_bool0"));
+		t.putValue("key_bool1", true);
+		assertTrue(t.getBoolean("key_bool1"));
+
+
+		t.putValue("key_byte", (byte) 2);
+		assertEquals(new ByteTag((byte) 2), t.get("key_byte"));
+
+		t.putValue("key_short", (short) 4);
+		assertEquals(new ShortTag((short) 4), t.get("key_short"));
+
+		t.putValue("key_int", 5);
+		assertEquals(new IntTag(5), t.get("key_int"));
+
+		t.putValue("key_long", 6L);
+		assertEquals(new LongTag(6L), t.get("key_long"));
+
+		t.putValue("key_float", 7.8f);
+		assertEquals(new FloatTag(7.8f), t.get("key_float"));
+
+		t.putValue("key_double", 8.9);
+		assertEquals(new DoubleTag(8.9), t.get("key_double"));
+
+
+		byte[] ab = new byte[]{(byte) 3, (byte) 7};
+		t.putValue("key_byte_array", ab);
+		assertArrayEquals(ab, t.getByteArray("key_byte_array"));
+
+		int[] ai = new int[]{11, 13};
+		t.putValue("key_int_array", ai);
+		assertArrayEquals(ai, t.getIntArray("key_int_array"));
+
+		long[] al = new long[]{17, 19};
+		t.putValue("key_long_array", al);
+		assertArrayEquals(al, t.getLongArray("key_long_array"));
+
+		float[] af = new float[]{21.5f, 23.5f};
+		t.putValue("key_float_array", af);
+		float[] af2 = t.getFloatTagListAsArray("key_float_array");
+		assertEquals(af.length, af2.length);
+		assertEquals(af[0], af2[0], 0.001);
+		assertEquals(af[1], af2[1], 0.001);
+
+		double[] ad = new double[]{27.4f, 29.8f};
+		t.putValue("key_double_array", ad);
+		double[] ad2 = t.getDoubleTagListAsArray("key_double_array");
+		assertEquals(ad.length, ad2.length);
+		assertEquals(ad[0], ad2[0], 0.001);
+		assertEquals(ad[1], ad2[1], 0.001);
+
+		String[] as = new String[]{"bill", "bob", "jeb", "val"};
+		t.putValue("key_string_array", as);
+		assertEquals(List.of(as), t.getStringTagListValues("key_string_array"));
+
+		assertThrowsException(() -> t.putValue("boom", new Object()), IllegalArgumentException.class);
+	}
 }
