@@ -87,6 +87,10 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return getValue().keySet();
 	}
 
+	public Set<Map.Entry<String, Tag<?>>> entrySet() {
+		return getValue().entrySet();
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public Iterator<NamedTag> iterator() {
@@ -393,57 +397,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		if (value == null) {
 			return remove(key);
 		}
-		if (value instanceof Tag<?> v) {
-			return put(key, v);
-		}
-		if (value instanceof NamedTag v) {
-			return put(key, v.getTag());
-		}
-		if (value instanceof String v) {
-			return put(key, new StringTag(v));
-		}
-		if (value instanceof Boolean v) {
-			return put(key, new ByteTag(v));
-		}
-		if (value instanceof Number) {
-			if (value instanceof Byte v) {
-				return put(key, new ByteTag(v));
-			}
-			if (value instanceof Short v) {
-				return put(key, new ShortTag(v));
-			}
-			if (value instanceof Integer v) {
-				return put(key, new IntTag(v));
-			}
-			if (value instanceof Long v) {
-				return put(key, new LongTag(v));
-			}
-			if (value instanceof Float v) {
-				return put(key, new FloatTag(v));
-			}
-			if (value instanceof Double v) {
-				return put(key, new DoubleTag(v));
-			}
-		}
-		if (value instanceof byte[] v) {
-			return put(key, new ByteArrayTag(v));
-		}
-		if (value instanceof int[] v) {
-			return put(key, new IntArrayTag(v));
-		}
-		if (value instanceof long[] v) {
-			return put(key, new LongArrayTag(v));
-		}
-		if (value instanceof float[] v) {
-			return putFloatArrayAsTagList(key, v);
-		}
-		if (value instanceof double[] v) {
-			return putDoubleArrayAsTagList(key, v);
-		}
-		if (value instanceof String[] v) {
-			return putStringsAsTagList(key, List.of(v));
-		}
-		throw new IllegalArgumentException("Could not determine Tag type of " + value.getClass().getSimpleName());
+		return put(key, Tag.asTag(value));
 	}
 
 	/**

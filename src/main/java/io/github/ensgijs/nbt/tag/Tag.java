@@ -1,6 +1,11 @@
 package io.github.ensgijs.nbt.tag;
 
 import io.github.ensgijs.nbt.io.MaxDepthReachedException;
+import io.github.ensgijs.nbt.io.NamedTag;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -102,7 +107,7 @@ public abstract class Tag<T> implements Cloneable {
 	 * @return The string representation of the value of this Tag.
 	 * @throws MaxDepthReachedException If the maximum nesting depth is exceeded.
 	 */
-	public String valueToString() {
+	public final String valueToString() {
 		return valueToString(DEFAULT_MAX_DEPTH);
 	}
 
@@ -166,5 +171,89 @@ public abstract class Tag<T> implements Cloneable {
 			case LongArrayTag.ID -> ((LongArrayTag) tag1).compareTo((LongArrayTag) tag2);
 			default -> throw new UnsupportedOperationException("New tag type? ID: " + tag1.getID());
 		};
+	}
+
+	public static Tag<?> asTag(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Tag<?> v) {
+			return v;
+		}
+		if (value instanceof NamedTag v) {
+			return v.getTag();
+		}
+		if (value instanceof String v) {
+			return new StringTag(v);
+		}
+		if (value instanceof Boolean v) {
+			return new ByteTag(v);
+		}
+		if (value instanceof Number) {
+			if (value instanceof Byte v) {
+				return new ByteTag(v);
+			}
+			if (value instanceof Short v) {
+				return new ShortTag(v);
+			}
+			if (value instanceof Integer v) {
+				return new IntTag(v);
+			}
+			if (value instanceof Long v) {
+				return new LongTag(v);
+			}
+			if (value instanceof Float v) {
+				return new FloatTag(v);
+			}
+			if (value instanceof Double v) {
+				return new DoubleTag(v);
+			}
+		}
+		if (value instanceof byte[] v) {
+			return new ByteArrayTag(v);
+		}
+		if (value instanceof int[] v) {
+			return new IntArrayTag(v);
+		}
+		if (value instanceof long[] v) {
+			return new LongArrayTag(v);
+		}
+		if (value instanceof float[] values) {
+			ListTag<FloatTag> listTag = new ListTag<>(FloatTag.class, values.length);
+			for (float v : values) {
+				listTag.addFloat(v);
+			}
+			return listTag;
+		}
+		if (value instanceof double[] values) {
+			ListTag<DoubleTag> listTag = new ListTag<>(DoubleTag.class, values.length);
+			for (double v : values) {
+				listTag.addDouble(v);
+			}
+			return listTag;
+		}
+		if (value instanceof String[] values) {
+			ListTag<StringTag> listTag = new ListTag<>(StringTag.class, values.length);
+			for (String v : values) {
+				listTag.addString(v);
+			}
+			return listTag;
+		}
+		if (value instanceof Map<?, ?> m) {
+			CompoundTag tag = new CompoundTag(m.size());
+			for (var entry : m.entrySet()) {
+				tag.putValue((String) entry.getKey(), entry.getValue());
+			}
+			return tag;
+		}
+		if (value instanceof Collection<?> c) {
+			ListTag listTag = ListTag.createUnchecked(EndTag.class);
+			for (Object v : c) {
+				var t = asTag(v);
+				listTag.add(t);
+			}
+			return listTag;
+		}
+		throw new IllegalArgumentException("Could not determine Tag type of " + value.getClass().getSimpleName());
 	}
 }
