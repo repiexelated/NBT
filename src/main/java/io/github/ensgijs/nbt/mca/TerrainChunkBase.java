@@ -675,6 +675,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
 	 * @return the element at the specified position in this chunk or NULL if Y is above/below build height.
 	 * @since {@link DataVersion#JAVA_1_13_17W47A}
+	 * @see BlockStateTag
 	 */
 	public CompoundTag getBlockAt(int x, int y, int z) {
 		checkRaw();
@@ -694,6 +695,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * <p>Never throws IndexOutOfBoundsException. XYZ are always wrapped into bounds.</p>
 	 * @return the element at the specified position in this chunk or NULL if Y is above/below build height.
 	 * @since {@link DataVersion#JAVA_1_13_17W47A}
+	 * @see BlockStateTag
 	 */
 	public CompoundTag getBlockAtByRef(int x, int y, int z) {
 		checkRaw();
@@ -718,6 +720,7 @@ public abstract class TerrainChunkBase<T extends TerrainSectionBase> extends Sec
 	 * @param tag block palette tag, must contain a 'Name' StringTag
 	 * @return true if the section existed and the block was set (true even if the value was unchanged)
 	 * @since {@link DataVersion#JAVA_1_13_17W47A}
+	 * @see BlockStateTag
 	 */
 	public boolean setBlockAt(int x, int y, int z, CompoundTag tag) {
 		checkRaw();

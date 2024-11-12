@@ -257,22 +257,33 @@ public class McaWorld implements Closeable {
         }
     }
 
-
+    /**
+     * @see BlockStateTag
+     */
     public CompoundTag getBlockAt(IntPointXYZ xyz) throws IOException {
         var chunk = getChunk(xyz.transformBlockToChunk());
         return chunk != null ? chunk.getBlockAt(xyz.x, xyz.y, xyz.z) : null;
     }
 
+    /**
+     * @see BlockStateTag
+     */
     public CompoundTag getBlockAt(int x, int y, int z) throws IOException {
         var chunk = getChunk(x >> 4, z >> 4);
         return chunk != null ? chunk.getBlockAt(x, y, z) : null;
     }
 
+    /**
+     * @see BlockStateTag
+     */
     public CompoundTag getBlockAtByRef(IntPointXYZ xyz) throws IOException {
         var chunk = getChunk(xyz.transformBlockToChunk());
         return chunk != null ? chunk.getBlockAtByRef(xyz.x, xyz.y, xyz.z) : null;
     }
 
+    /**
+     * @see BlockStateTag
+     */
     public CompoundTag getBlockAtByRef(int x, int y, int z) throws IOException {
         var chunk = getChunk(x >> 4, z >> 4);
         return chunk != null ? chunk.getBlockAtByRef(x, y, z) : null;
@@ -297,6 +308,7 @@ public class McaWorld implements Closeable {
      * @param xyz block XYZ location
      * @param tag block palette tag, must contain a 'Name' StringTag
      * @return true if the chunk and section existed and the block was set (true even if the value was unchanged)
+     * @see BlockStateTag
      */
     public boolean setBlockAt(IntPointXYZ xyz, CompoundTag tag) throws IOException {
         if (isReadonly) throw new IOException("opened in readonly mode");
@@ -310,6 +322,7 @@ public class McaWorld implements Closeable {
      * @param z block Z location
      * @param tag block palette tag, must contain a 'Name' StringTag
      * @return true if the chunk and section existed and the block was set (true even if the value was unchanged)
+     * @see BlockStateTag
      */
     public boolean setBlockAt(int x, int y, int z, CompoundTag tag) throws IOException {
         if (isReadonly) throw new IOException("opened in readonly mode");

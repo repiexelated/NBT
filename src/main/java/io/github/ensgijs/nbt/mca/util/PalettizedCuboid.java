@@ -71,6 +71,8 @@ import static io.github.ensgijs.nbt.util.ArgValidator.*;
  *     }
  *   }
  * </pre>
+ *
+ * @see BlockStateTag
  */
 public class PalettizedCuboid<E extends Tag<?>> implements TagWrapper<CompoundTag>, Iterable<E>, Cloneable {
     //    public static boolean DEBUG = false;
