@@ -5,12 +5,12 @@ import java.util.function.ToIntFunction;
 
 public class ChunkBoundingRectangle extends BlockAlignedBoundingRectangle {
     /**
-     * Maximum size of the world boarder.
-     * Note that there are 368 XZ blocks (23 XZ chunks) outside the world boarder that can possibly be generated.
+     * Maximum size of the world border.
+     * Note that there are 368 XZ blocks (23 XZ chunks) outside the world border that can possibly be generated.
      * <p>Remember that the max bound is exclusive (don't treat getMaxChunkXZ as in bounds).</p>
      * @see RegionBoundingRectangle#MAX_WORLD_REGION_BOUNDS
      */
-    public static final ChunkBoundingRectangle MAX_WORLD_BOARDER_BOUNDS =
+    public static final ChunkBoundingRectangle MAX_WORLD_BORDER_BOUNDS =
             new ChunkBoundingRectangle(-1874999, -1874999, 1874999 * 2);
 
     public ChunkBoundingRectangle(int chunkX, int chunkZ) {

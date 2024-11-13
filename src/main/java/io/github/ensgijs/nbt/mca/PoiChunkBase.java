@@ -94,7 +94,7 @@ public abstract class PoiChunkBase<T extends PoiRecord> extends ChunkBase implem
     public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
-        if (!RegionBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(chunkX, chunkZ)) {
+        if (!RegionBoundingRectangle.MAX_WORLD_BORDER_BOUNDS.containsChunk(chunkX, chunkZ)) {
             throw new IllegalArgumentException("Chunk XZ must be within the maximum world bounds.");
         }
         // remember poi chunk nbt doesn't contain XZ location

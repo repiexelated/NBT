@@ -225,7 +225,7 @@ public abstract class EntitiesChunkBase<ET extends Entity> extends ChunkBase imp
     public boolean moveChunk(int newChunkX, int newChunkZ, long moveChunkFlags, boolean force) {
         if (!moveChunkImplemented())
             throw new UnsupportedOperationException("Missing the data required to move this chunk!");
-        if (!RegionBoundingRectangle.MAX_WORLD_BOARDER_BOUNDS.containsChunk(newChunkX, newChunkZ)) {
+        if (!RegionBoundingRectangle.MAX_WORLD_BORDER_BOUNDS.containsChunk(newChunkX, newChunkZ)) {
             throw new IllegalArgumentException("Chunk XZ must be within the maximum world bounds.");
         }
         if (this.chunkX == newChunkX && this.chunkZ == newChunkZ) return false;
@@ -328,7 +328,7 @@ public abstract class EntitiesChunkBase<ET extends Entity> extends ChunkBase imp
                 }
             }
 
-            // This is correct even for boats visually straddling a chunk boarder, the passengers share the boat
+            // This is correct even for boats visually straddling a chunk border, the passengers share the boat
             // location and the order of the passengers apparently controls their visual offset in game.
             // Example (trimmed down) F3+I capture of such a boat:
             // /summon minecraft:boat -1002.50 63.00 -672.01 {Type:"acacia",
