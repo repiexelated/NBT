@@ -69,6 +69,10 @@ public class McaWorld implements Closeable {
         this(worldRootDir, mode, DEFAULT_CHUNK_CACHE_CAPACITY);
     }
 
+    public Set<IntPointXZ> touchedRegions() {
+        return Collections.unmodifiableSet(regionCache.keySet());
+    }
+
     /** LoadFlags which are passed to the chunk deserialization method. */
     public void setLoadFlags(long loadFlags) {
         // TODO: detect if bits have been added and if so clear the chunk cache
