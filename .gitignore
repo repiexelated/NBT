@@ -89,3 +89,4 @@ out/
 *.patch
 TESTDBG/
 ScratchpadTest.java
+/.run/publishToMavenLocal.run.xml

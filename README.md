@@ -16,7 +16,7 @@ iteration.
 * [BinaryNbtHelpers](src/main/java/io/github/ensgijs/nbt/io/BinaryNbtHelpers.java) Utilities for working with binary nbt files, compressed or uncompressed.
 
 #### Highlights of the MCA library
-* Version support from Minecraft Java 1.9.0 to 1.20.5 (no Bedrock support currently or planed at this time).
+* Version support from Minecraft Java 1.9.0 to 1.21.3 and beyond (no Bedrock support currently or planed at this time).
   * [DataVersion](src/main/java/io/github/ensgijs/nbt/mca/DataVersion.java) nearly complete data version to minecraft version mapping and detection back to 1.9.0.
 * Rich javadocs on most classes and methods.
 * Excellent code coverage and extensive unit testing as well as integration testing for multiple Minecraft versions see [test resources](src/test/resources)
