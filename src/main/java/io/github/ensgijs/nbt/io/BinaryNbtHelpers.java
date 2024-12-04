@@ -50,6 +50,37 @@ public final class BinaryNbtHelpers {
 	public static NamedTag read(Path path, CompressionType compression) throws IOException {
 		return read(path.toFile(), compression);
 	}
+
+	/**
+	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
+	 */
+	public static NamedTag deserializeBytes(byte[] bytes, CompressionType compression) throws IOException {
+		return new BinaryNbtDeserializer(compression).fromStream(new ByteArrayInputStream(bytes));
+	}
+
+	/**
+	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
+	 */
+	public static byte[] serializeAsBytes(Tag<?> tag, CompressionType compression) throws IOException {
+		return serializeAsBytes(new NamedTag(null, tag), compression);
+	}
+
+	/**
+	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
+	 */
+	public static byte[] serializeAsBytes(NamedTag tag, CompressionType compression) throws IOException {
+		try (ByteArrayOutputStream fos = new ByteArrayOutputStream(1024)) {
+			new BinaryNbtSerializer(compression).toStream(tag, fos);
+			return fos.toByteArray();
+		}
+	}
+
+	/**
+	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
+	 */
+	public static NamedTag serializeAsBytes(byte[] bytes, CompressionType compression) throws IOException {
+		return new BinaryNbtDeserializer(compression).fromStream(new ByteArrayInputStream(bytes));
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Little Endian read/write (MC Bedrock)">
