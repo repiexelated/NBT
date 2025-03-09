@@ -198,7 +198,6 @@ public class DataVersionTest extends McaTestCase {
 
                     if (m.group(1) != null) {  // weekly
                         DataVersion nearest = DataVersion.bestFor(dataVersion);
-                        if (nearest != null) nearest = nearest.next();
                         if (nearest != null) {
                             sb.append(nearest.minor()).append('_').append(nearest.patch());
                             sbArgs.append(", ").append(nearest.minor()).append(", ").append(nearest.patch());
