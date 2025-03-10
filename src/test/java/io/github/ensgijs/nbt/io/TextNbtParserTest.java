@@ -252,4 +252,16 @@ public class TextNbtParserTest extends NbtTestCase {
 		// no value after name
 		assertThrowsException(() -> new TextNbtParser("oof: \n").readTag(99), ParseException.class);
 	}
+
+	public void testTrueFalseStrings_shouldRemainStrings() {
+		NamedTag namedTag = assertThrowsNoException(() -> new TextNbtParser("\"not-a-bool\":\"true\"").readTag(99));
+		assertEquals("not-a-bool", namedTag.getName());
+		assertEquals(StringTag.ID, namedTag.getTag().getID());
+		assertEquals("true", ((StringTag) namedTag.getTag()).getValue());
+
+		namedTag = assertThrowsNoException(() -> new TextNbtParser("\"not-a-bool\":\"false\"").readTag(99));
+		assertEquals("not-a-bool", namedTag.getName());
+		assertEquals(StringTag.ID, namedTag.getTag().getID());
+		assertEquals("false", ((StringTag) namedTag.getTag()).getValue());
+	}
 }

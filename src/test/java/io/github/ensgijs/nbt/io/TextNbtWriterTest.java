@@ -277,4 +277,11 @@ public class TextNbtWriterTest extends NbtTestCase {
 		assertEquals(ctExpectedUnsorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbtUnsorted(new NamedTag("my-name-is", ct))));
 		assertEquals(ctExpectedSorted, assertThrowsNoException(() -> TextNbtHelpers.toTextNbt(new NamedTag("my-name-is", ct))));
 	}
+
+	public void testTrueFalseStrings_shouldRemainStrings() {
+		CompoundTag ct = new CompoundTag();
+		ct.putString("not-a-bool-T", "true");
+		ct.putString("not-a-bool-F", "false");
+		assertEquals("{not-a-bool-F:\"false\",not-a-bool-T:\"true\"}", TextNbtHelpers.toTextNbt(ct, false));
+	}
 }

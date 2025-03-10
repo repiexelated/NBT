@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 public class StringTag extends Tag<String> implements Comparable<StringTag> {
 
 	private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\\\\\n\t\r\"]");
-	private static final Pattern LENIENT_NON_QUOTE_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_\\-]*");
+	private static final Pattern LENIENT_NON_QUOTE_PATTERN = Pattern.compile("(?!true|false)[a-z_][a-z0-9_\\-]*", Pattern.CASE_INSENSITIVE);
 
 	private static final Map<String, String> ESCAPE_CHARACTERS;
 	static {
