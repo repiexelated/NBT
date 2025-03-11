@@ -810,7 +810,8 @@ public enum DataVersion {
     JAVA_1_21_5_25W08A(4316, 21, 5, "25w08a"),
     JAVA_1_21_5_25W09A(4317, 21, 5, "25w09a"),
     JAVA_1_21_5_25W09B(4318, 21, 5, "25w09b"),
-    JAVA_1_21_5_25W10A(4319, 21, 5, "25w10a"),;
+    JAVA_1_21_5_25W10A(4319, 21, 5, "25w10a"),
+    JAVA_1_21_5_PRE1(4320, 21, 5, "PRE1"),;
 
     private static final int[] ids;
     private static final DataVersion latestFullReleaseVersion;
