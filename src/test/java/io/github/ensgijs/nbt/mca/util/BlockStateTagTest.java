@@ -24,7 +24,7 @@ public class BlockStateTagTest extends NbtTestCase {
         BlockStateTag bs = new BlockStateTag(
                 "minecraft:pointed_dripstone",
                 Map.of("waterlogged", false, "vertical_direction", "down"));
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vertical_direction:down,waterlogged:false}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vertical_direction:down,waterlogged:\"false\"}}", bs.toString());
 
         bs = new BlockStateTag("stone", Collections.emptyMap());
         assertEquals("{Name:stone}", bs.toString());
@@ -38,7 +38,7 @@ public class BlockStateTagTest extends NbtTestCase {
               Properties: {
                 vertical_direction: down,
                 thickness: middle,
-                waterlogged: false
+                waterlogged: \"false\"
               },
               Name: "minecraft:pointed_dripstone"
             }""");
@@ -53,10 +53,10 @@ public class BlockStateTagTest extends NbtTestCase {
     public void testSetPropertiesByMap() {
         BlockStateTag bs = new BlockStateTag("minecraft:pointed_dripstone");
         bs.setProperties(Map.of("waterlogged", false, "vertical_direction", "down"));
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vertical_direction:down,waterlogged:false}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vertical_direction:down,waterlogged:\"false\"}}", bs.toString());
 
         bs.setProperties(Map.of("waterlogged", true, "thickness", new StringTag("tip")));
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{thickness:tip,waterlogged:true}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{thickness:tip,waterlogged:\"true\"}}", bs.toString());
 
         bs.setProperties(Collections.emptyMap());
         assertEquals("{Name:\"minecraft:pointed_dripstone\"}", bs.toString());
@@ -65,7 +65,7 @@ public class BlockStateTagTest extends NbtTestCase {
     public void testSetPropertiesByCompoundTag() {
         BlockStateTag bs = new BlockStateTag("minecraft:pointed_dripstone");
         bs.setProperties(Map.of("waterlogged", false, "vertical_direction", "down"));
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vertical_direction:down,waterlogged:false}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vertical_direction:down,waterlogged:\"false\"}}", bs.toString());
 
         bs.setProperties((CompoundTag) null);
         assertEquals("{Name:\"minecraft:pointed_dripstone\"}", bs.toString());
@@ -74,10 +74,10 @@ public class BlockStateTagTest extends NbtTestCase {
         newProp.putString("waterlogged", "true");
         newProp.putInt("vale", 42);
         bs.setProperties(newProp);
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vale:42,waterlogged:true}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vale:42,waterlogged:\"true\"}}", bs.toString());
         assertSame(newProp, bs.getHandle().get("Properties"));
         bs.setProperties(newProp);
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vale:42,waterlogged:true}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{vale:42,waterlogged:\"true\"}}", bs.toString());
         assertSame(newProp, bs.getHandle().get("Properties"));
 
         bs.setProperties(new CompoundTag());
@@ -158,7 +158,7 @@ public class BlockStateTagTest extends NbtTestCase {
             "thickness", new StringTag("tip"),
             "waterlogged", true
         ));
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{thickness:tip,vertical_direction:down,waterlogged:true}}",
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{thickness:tip,vertical_direction:down,waterlogged:\"true\"}}",
                 bs.toString());
     }
 
@@ -255,7 +255,7 @@ public class BlockStateTagTest extends NbtTestCase {
         assertNull(bs.compute("thickness", (k, v) -> null));
 
         assertEquals("something", bs.compute("nothing", (k, v) -> "something"));
-        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{nothing:something,vertical_direction:down,waterlogged:false}}", bs.toString());
+        assertEquals("{Name:\"minecraft:pointed_dripstone\",Properties:{nothing:something,vertical_direction:down,waterlogged:\"false\"}}", bs.toString());
     }
 
     public void testEquals() {
