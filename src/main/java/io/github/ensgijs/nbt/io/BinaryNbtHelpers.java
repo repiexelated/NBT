@@ -59,6 +59,14 @@ public final class BinaryNbtHelpers {
 	}
 
 	/**
+	 * Auto-detects {@link CompressionType} for the given bytes, then deserializes.
+	 */
+	public static NamedTag deserializeBytes(byte[] bytes) throws IOException {
+		return new BinaryNbtDeserializer(CompressionType.detect(bytes))
+				.fromStream(new ByteArrayInputStream(bytes));
+	}
+
+	/**
 	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
 	 */
 	public static byte[] serializeAsBytes(Tag<?> tag, CompressionType compression) throws IOException {

@@ -27,6 +27,7 @@ public class BinaryNbtSerializer implements Serializer<NamedTag> {
 			nbtOut = new LittleEndianNbtOutputStream(output);
 		}
 		nbtOut.writeTag(object, Tag.DEFAULT_MAX_DEPTH);
+		// TODO: this execution order looks like a bug... fix or document why this is the correct order
 		compression.finish(output);
 		nbtOut.flush();
 	}

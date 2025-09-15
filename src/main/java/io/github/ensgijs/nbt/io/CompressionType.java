@@ -62,4 +62,32 @@ public enum CompressionType {
 		}
 		return null;
 	}
+
+	/**
+	 * Makes an excellent guess (for minecraft nbt data) at the {@link CompressionType} used by looking for each
+	 * compression types respective magic-header values.
+	 *
+	 * <p>
+	 *     There is virtually NO RISK of this detection strategy producing a wrong result if the input
+	 * bytes actually represent binary nbt data. This is because the first (uncompressed) byte is always a tag ID
+	 * and the max tag id is well under 0x1f currently. Additionally, all bin nbt is stored as a {@link NamedTag}
+	 * which is encoded in in-fix order [tag-id, named-tag name, tag-data] where the tag's id is put before the
+	 * named-tag's name and this name is stored using UTF which always uses at least 2 bytes for the string length.
+	 * This means that the tags name string would need to be extremely long (at least 35,592 bytes) before it could
+	 * possibly match either gzip or zlib low magic header bytes, and we would need a valid tag-id of 0x1f to exist.
+	 * <p>
+	 *     WARNING: if this enum, and method, is used for non-nbt data it becomes possible, but probably unlikely,
+	 * for this method to make a mistake and choose the wrong {@link CompressionType}!
+	 */
+	public static CompressionType detect(byte[] bytes) {
+		if (bytes != null && bytes.length > 2) {
+			if (bytes[0] == (byte) 0x1f && bytes[1] == (byte) 0x8b) {
+				return GZIP;
+			}
+			if (bytes[0] == (byte) 0x78 && bytes[1] == (byte) 0x9c) {
+				return ZLIB;
+			}
+		}
+		return NONE;
+	}
 }
