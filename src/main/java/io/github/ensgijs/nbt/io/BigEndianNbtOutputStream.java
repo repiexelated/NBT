@@ -22,9 +22,9 @@ import java.util.Map;
 
 /** Use for Minecraft Java edition data. */
 public class BigEndianNbtOutputStream extends DataOutputStream implements NbtOutput, MaxDepthIO {
-
-	private static Map<Byte, ExceptionTriConsumer<BigEndianNbtOutputStream, Tag<?>, Integer, IOException>> writers = new HashMap<>();
-	private static Map<Class<?>, Byte> classIdMapping = new HashMap<>();
+	private static final Map<Class<?>, Byte> CLASS_ID_MAPPINGS = new HashMap<>();
+	private static final Map<Byte, ExceptionTriConsumer<BigEndianNbtOutputStream, Tag<?>, Integer, IOException>> DEFAULT_WRITERS = new HashMap<>();
+	private final Map<Byte, ExceptionTriConsumer<BigEndianNbtOutputStream, Tag<?>, Integer, IOException>> writers;
 
 	static {
 		put(EndTag.ID, (o, t, d) -> {}, EndTag.class);
@@ -43,12 +43,16 @@ public class BigEndianNbtOutputStream extends DataOutputStream implements NbtOut
 	}
 
 	private static void put(byte id, ExceptionTriConsumer<BigEndianNbtOutputStream, Tag<?>, Integer, IOException> f, Class<?> clazz) {
-		writers.put(id, f);
-		classIdMapping.put(clazz, id);
+		DEFAULT_WRITERS.put(id, f);
+		CLASS_ID_MAPPINGS.put(clazz, id);
 	}
 
-	public BigEndianNbtOutputStream(OutputStream out) {
+	public BigEndianNbtOutputStream(OutputStream out, boolean sortCompoundTagEntries) {
 		super(out);
+		writers = new HashMap<>(DEFAULT_WRITERS);
+		if (sortCompoundTagEntries) {
+			writers.put(CompoundTag.ID, BigEndianNbtOutputStream::writeCompoundSortedKeys);
+		}
 	}
 
 	public void writeTag(NamedTag tag, int maxDepth) throws IOException {
@@ -76,7 +80,7 @@ public class BigEndianNbtOutputStream extends DataOutputStream implements NbtOut
 	}
 
 	static byte idFromClass(Class<?> clazz) {
-		Byte id = classIdMapping.get(clazz);
+		Byte id = CLASS_ID_MAPPINGS.get(clazz);
 		if (id == null) {
 			throw new IllegalArgumentException("unknown Tag class " + clazz.getName());
 		}
@@ -147,6 +151,28 @@ public class BigEndianNbtOutputStream extends DataOutputStream implements NbtOut
 			out.writeUTF(entry.getName());
 			out.writeRawTag(entry.getTag(), out.decrementMaxDepth(maxDepth));
 		}
+		out.writeByte(0);
+	}
+
+	/**
+	 * This is useful for creating repeatable binary nbt data objects when being able to directly compare the bnbt
+	 * directly without having to parse and compare tag data itself.
+	 */
+	private static void writeCompoundSortedKeys(BigEndianNbtOutputStream out, Tag<?> tag, int maxDepth) throws IOException {
+		var iter = ((CompoundTag) tag).entrySet().stream()
+				.sorted(Map.Entry.comparingByKey())
+				.iterator();
+		while (iter.hasNext()) {
+			var entry = iter.next();
+			var entryTag = entry.getValue();
+			if (entryTag.getID() == 0) {
+				throw new IOException("end tag not allowed");
+			}
+			out.writeByte(entryTag.getID());
+			out.writeUTF(entry.getKey());
+			out.writeRawTag(entryTag, out.decrementMaxDepth(maxDepth));
+		}
+
 		out.writeByte(0);
 	}
 }

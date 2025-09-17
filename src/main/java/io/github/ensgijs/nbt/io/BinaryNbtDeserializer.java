@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class BinaryNbtDeserializer implements Deserializer<NamedTag> {
-	private CompressionType compression;
-	private boolean littleEndian;
+	private final CompressionType compression;
+	private final boolean littleEndian;
 
 	public BinaryNbtDeserializer(CompressionType compression) {
 		this(compression, false);

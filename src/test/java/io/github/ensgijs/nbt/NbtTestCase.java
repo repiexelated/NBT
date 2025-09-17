@@ -30,9 +30,13 @@ public abstract class NbtTestCase extends TestCase {
 	}
 
 	protected byte[] serialize(Tag<?> tag) {
+		return serialize(tag, false);
+	}
+
+	protected byte[] serialize(Tag<?> tag, boolean sortCompoundTagEntries) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		try (DataOutputStream dos = new DataOutputStream(baos)) {
-			new BinaryNbtSerializer(CompressionType.NONE).toStream(new NamedTag(null, tag), dos);
+			new BinaryNbtSerializer(CompressionType.NONE, false, sortCompoundTagEntries).toStream(new NamedTag(null, tag), dos);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			fail(ex.getMessage());

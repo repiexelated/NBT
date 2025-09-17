@@ -10,31 +10,55 @@ public final class BinaryNbtHelpers {
 	private BinaryNbtHelpers() {}
 
 	// <editor-fold desc="Big Endian read/write (MC Java)">
-	public static Path write(NamedTag tag, File file, CompressionType compression) throws IOException {
+	public static Path write(NamedTag tag, File file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
 		try (FileOutputStream fos = new FileOutputStream(file)) {
-			new BinaryNbtSerializer(compression).toStream(tag, fos);
+			new BinaryNbtSerializer(compression, sortCompoundTagEntries).toStream(tag, fos);
 		}
 		return file.toPath();
 	}
 
+	public static Path write(NamedTag tag, File file, CompressionType compression) throws IOException {
+		return write(tag, file, compression, false);
+	}
+
 	public static Path write(NamedTag tag, String file, CompressionType compression) throws IOException {
-		return write(tag, new File(file), compression);
+		return write(tag, new File(file), compression, false);
 	}
 
 	public static Path write(NamedTag tag, Path path, CompressionType compression) throws IOException {
-		return write(tag, path.toFile(), compression);
+		return write(tag, path.toFile(), compression, false);
 	}
 
 	public static Path write(Tag<?> tag, File file, CompressionType compression) throws IOException {
-		return write(new NamedTag(null, tag), file, compression);
+		return write(new NamedTag(null, tag), file, compression, false);
 	}
 
 	public static Path write(Tag<?> tag, String file, CompressionType compression) throws IOException {
-		return write(new NamedTag(null, tag), new File(file), compression);
+		return write(new NamedTag(null, tag), new File(file), compression, false);
 	}
 
 	public static Path write(Tag<?> tag, Path path, CompressionType compression) throws IOException {
-		return write(new NamedTag(null, tag), path.toFile(), compression);
+		return write(new NamedTag(null, tag), path.toFile(), compression, false);
+	}
+
+	public static Path write(NamedTag tag, String file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return write(tag, new File(file), compression, sortCompoundTagEntries);
+	}
+
+	public static Path write(NamedTag tag, Path path, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return write(tag, path.toFile(), compression, sortCompoundTagEntries);
+	}
+
+	public static Path write(Tag<?> tag, File file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return write(new NamedTag(null, tag), file, compression, sortCompoundTagEntries);
+	}
+
+	public static Path write(Tag<?> tag, String file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return write(new NamedTag(null, tag), new File(file), compression, sortCompoundTagEntries);
+	}
+
+	public static Path write(Tag<?> tag, Path path, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return write(new NamedTag(null, tag), path.toFile(), compression, sortCompoundTagEntries);
 	}
 
 	public static NamedTag read(File file, CompressionType compression) throws IOException {
@@ -70,7 +94,7 @@ public final class BinaryNbtHelpers {
 	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
 	 */
 	public static byte[] serializeAsBytes(Tag<?> tag, CompressionType compression) throws IOException {
-		return serializeAsBytes(new NamedTag(null, tag), compression);
+		return serializeAsBytes(new NamedTag(null, tag), compression, false);
 	}
 
 	/**
@@ -78,7 +102,7 @@ public final class BinaryNbtHelpers {
 	 */
 	public static byte[] serializeAsBytes(NamedTag tag, CompressionType compression) throws IOException {
 		try (ByteArrayOutputStream fos = new ByteArrayOutputStream(1024)) {
-			new BinaryNbtSerializer(compression).toStream(tag, fos);
+			new BinaryNbtSerializer(compression, false).toStream(tag, fos);
 			return fos.toByteArray();
 		}
 	}
@@ -86,17 +110,31 @@ public final class BinaryNbtHelpers {
 	/**
 	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
 	 */
-	public static NamedTag serializeAsBytes(byte[] bytes, CompressionType compression) throws IOException {
-		return new BinaryNbtDeserializer(compression).fromStream(new ByteArrayInputStream(bytes));
+	public static byte[] serializeAsBytes(Tag<?> tag, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return serializeAsBytes(new NamedTag(null, tag), compression, sortCompoundTagEntries);
+	}
+
+	/**
+	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
+	 */
+	public static byte[] serializeAsBytes(NamedTag tag, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		try (ByteArrayOutputStream fos = new ByteArrayOutputStream(1024)) {
+			new BinaryNbtSerializer(compression, sortCompoundTagEntries).toStream(tag, fos);
+			return fos.toByteArray();
+		}
 	}
 	// </editor-fold>
 
 	// <editor-fold desc="Little Endian read/write (MC Bedrock)">
-	public static Path writeLittleEndian(NamedTag tag, File file, CompressionType compression) throws IOException {
+	public static Path writeLittleEndian(NamedTag tag, File file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
 		try (FileOutputStream fos = new FileOutputStream(file)) {
-			new BinaryNbtSerializer(compression, true).toStream(tag, fos);
+			new BinaryNbtSerializer(compression, true, sortCompoundTagEntries).toStream(tag, fos);
 		}
 		return file.toPath();
+	}
+
+	public static Path writeLittleEndian(NamedTag tag, File file, CompressionType compression) throws IOException {
+		return writeLittleEndian(tag, file, compression, false);
 	}
 
 	public static Path writeLittleEndian(NamedTag tag, String file, CompressionType compression) throws IOException {
@@ -117,6 +155,26 @@ public final class BinaryNbtHelpers {
 
 	public static Path writeLittleEndian(Tag<?> tag, Path path, CompressionType compression) throws IOException {
 		return writeLittleEndian(new NamedTag(null, tag), path.toFile(), compression);
+	}
+
+	public static Path writeLittleEndian(NamedTag tag, String file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return writeLittleEndian(tag, new File(file), compression, sortCompoundTagEntries);
+	}
+
+	public static Path writeLittleEndian(NamedTag tag, Path path, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return writeLittleEndian(tag, path.toFile(), compression, sortCompoundTagEntries);
+	}
+
+	public static Path writeLittleEndian(Tag<?> tag, File file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), file, compression, sortCompoundTagEntries);
+	}
+
+	public static Path writeLittleEndian(Tag<?> tag, String file, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), new File(file), compression, sortCompoundTagEntries);
+	}
+
+	public static Path writeLittleEndian(Tag<?> tag, Path path, CompressionType compression, boolean sortCompoundTagEntries) throws IOException {
+		return writeLittleEndian(new NamedTag(null, tag), path.toFile(), compression, sortCompoundTagEntries);
 	}
 
 	public static NamedTag readLittleEndian(File file, CompressionType compression) throws IOException {

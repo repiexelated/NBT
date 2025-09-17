@@ -28,8 +28,10 @@ public class LittleEndianNbtOutputStream implements DataOutput, NbtOutput, MaxDe
 
 	private final DataOutputStream output;
 
-	private static Map<Byte, ExceptionTriConsumer<LittleEndianNbtOutputStream, Tag<?>, Integer, IOException>> writers = new HashMap<>();
-	private static Map<Class<?>, Byte> classIdMapping = new HashMap<>();
+	private static final Map<Class<?>, Byte> CLASS_ID_MAPPINGS = new HashMap<>();
+	private static final Map<Byte, ExceptionTriConsumer<LittleEndianNbtOutputStream, Tag<?>, Integer, IOException>> DEFAULT_WRITERS = new HashMap<>();
+	private final Map<Byte, ExceptionTriConsumer<LittleEndianNbtOutputStream, Tag<?>, Integer, IOException>> writers;
+
 
 	static {
 		put(EndTag.ID, (o, t, d) -> {}, EndTag.class);
@@ -48,16 +50,16 @@ public class LittleEndianNbtOutputStream implements DataOutput, NbtOutput, MaxDe
 	}
 
 	private static void put(byte id, ExceptionTriConsumer<LittleEndianNbtOutputStream, Tag<?>, Integer, IOException> f, Class<?> clazz) {
-		writers.put(id, f);
-		classIdMapping.put(clazz, id);
+		DEFAULT_WRITERS.put(id, f);
+		CLASS_ID_MAPPINGS.put(clazz, id);
 	}
 
-	public LittleEndianNbtOutputStream(OutputStream out) {
+	public LittleEndianNbtOutputStream(OutputStream out, boolean sortCompoundTagEntries) {
 		output = new DataOutputStream(out);
-	}
-
-	public LittleEndianNbtOutputStream(DataOutputStream out) {
-		output = out;
+		writers = new HashMap<>(DEFAULT_WRITERS);
+		if (sortCompoundTagEntries) {
+			writers.put(CompoundTag.ID, LittleEndianNbtOutputStream::writeCompoundSortedKeys);
+		}
 	}
 
 	public void writeTag(NamedTag tag, int maxDepth) throws IOException {
@@ -85,7 +87,7 @@ public class LittleEndianNbtOutputStream implements DataOutput, NbtOutput, MaxDe
 	}
 
 	static byte idFromClass(Class<?> clazz) {
-		Byte id = classIdMapping.get(clazz);
+		Byte id = CLASS_ID_MAPPINGS.get(clazz);
 		if (id == null) {
 			throw new IllegalArgumentException("unknown Tag class " + clazz.getName());
 		}
@@ -156,6 +158,28 @@ public class LittleEndianNbtOutputStream implements DataOutput, NbtOutput, MaxDe
 			out.writeUTF(entry.getName());
 			out.writeRawTag(entry.getTag(), out.decrementMaxDepth(maxDepth));
 		}
+		out.writeByte(0);
+	}
+
+	/**
+	 * This is useful for creating repeatable binary nbt data objects when being able to directly compare the bnbt
+	 * directly without having to parse and compare tag data itself.
+	 */
+	private static void writeCompoundSortedKeys(LittleEndianNbtOutputStream out, Tag<?> tag, int maxDepth) throws IOException {
+		var iter = ((CompoundTag) tag).entrySet().stream()
+				.sorted(Map.Entry.comparingByKey())
+				.iterator();
+		while (iter.hasNext()) {
+			var entry = iter.next();
+			var entryTag = entry.getValue();
+			if (entryTag.getID() == 0) {
+				throw new IOException("end tag not allowed");
+			}
+			out.writeByte(entryTag.getID());
+			out.writeUTF(entry.getKey());
+			out.writeRawTag(entryTag, out.decrementMaxDepth(maxDepth));
+		}
+
 		out.writeByte(0);
 	}
 

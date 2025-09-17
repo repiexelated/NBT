@@ -48,4 +48,14 @@ public class TextNbtSerializer implements Serializer<NamedTag> {
 			toWriter(object, writer);
 		}
 	}
+
+	@Override
+	public boolean getSortCompoundTagEntries() {
+		return sortCompoundTagEntries;
+	}
+
+	@Override
+	public void setSortCompoundTagEntries(boolean sorted) {
+		sortCompoundTagEntries = sorted;
+	}
 }

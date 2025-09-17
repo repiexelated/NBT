@@ -23,4 +23,7 @@ public interface Serializer<T> {
 		bos.close();
 		return bos.toByteArray();
 	}
+
+	boolean getSortCompoundTagEntries();
+	void setSortCompoundTagEntries(boolean sorted);
 }
