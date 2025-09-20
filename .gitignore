@@ -90,3 +90,4 @@ out/
 TESTDBG/
 ScratchpadTest.java
 /.run/publishToMavenLocal.run.xml
+/nbt-profiling-run.jfr
