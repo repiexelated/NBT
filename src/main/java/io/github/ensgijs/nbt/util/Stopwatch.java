@@ -2,6 +2,7 @@
 package io.github.ensgijs.nbt.util;
 
 import java.io.Closeable;
+import java.text.DecimalFormat;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -13,6 +14,8 @@ public final class Stopwatch {
     private boolean isRunning;
     private long elapsedNanos;
     private long startTick;
+    /** times {@link #start()} has been called */
+    private long laps;
 
     public static Stopwatch createUnstarted() {
         return new Stopwatch();
@@ -23,13 +26,54 @@ public final class Stopwatch {
     }
 
     public class LapToken implements Closeable {
+        final long startNanos;
+        long stopNanos;
+
         LapToken() {
+            startNanos = elapsedNanos;
             start();
         }
 
         @Override
         public void close() {
             stop();
+            stopNanos = elapsedNanos;
+        }
+
+        public long startNanos() {
+            return startNanos;
+        }
+
+        public long stopNanos() {
+            return stopNanos;
+        }
+
+        public long elapsedNanos() {
+            return stopNanos - startNanos;
+        }
+
+        /**
+         * Returns the current elapsed time shown on this stopwatch, expressed in the desired time unit,
+         * with any fraction rounded down.
+         *
+         * <p><b>Note:</b> the overhead of measurement can be more than a microsecond, so it is generally
+         * not useful to specify {@link TimeUnit#NANOSECONDS} precision here.
+         *
+         * <p>It is generally not a good idea to use an ambiguous, unitless {@code long} to represent
+         * elapsed time. Therefore, we recommend using {@link #elapsed()} instead, which returns a
+         * strongly-typed {@code Duration} instance.
+         *
+         * @since 14.0 (since 10.0 as {@code elapsedTime()})
+         */
+        public long elapsed(TimeUnit desiredUnit) {
+            return desiredUnit.convert(elapsedNanos(), NANOSECONDS);
+        }
+
+        public String toString() {
+            long nanos = elapsedNanos();
+            TimeUnit unit = chooseUnit(nanos);
+            double value = (double) nanos / NANOSECONDS.convert(1, unit);
+            return String.format("%.4g", value) + " " + abbreviate(unit);
         }
     }
 
@@ -78,6 +122,7 @@ public final class Stopwatch {
     public Stopwatch start() {
         ArgValidator.checkState(!isRunning, "This stopwatch is already running.");
         isRunning = true;
+        laps++;
         startTick = ticker.get();
         return this;
     }
@@ -87,6 +132,13 @@ public final class Stopwatch {
      */
     public LapToken startLap() {
         return new LapToken();
+    }
+
+    /**
+     * Number of times {@link #start()} has been called.
+     */
+    public long laps() {
+        return laps;
     }
 
     /**
@@ -111,6 +163,7 @@ public final class Stopwatch {
      */
     public Stopwatch reset() {
         elapsedNanos = 0;
+        laps = 0;
         isRunning = false;
         return this;
     }
@@ -153,6 +206,29 @@ public final class Stopwatch {
         return String.format("%.4g", value) + " " + abbreviate(unit);
     }
 
+    private DecimalFormat thousandsFormat = null;
+
+    /**
+     * @param precision number of digits, default=4
+     * @param showLapCount when true " (#,### laps)" will be included in the returned value.
+     * @return String representation of the current elapsed time.
+     */
+    public String toString(int precision, boolean showLapCount) {
+        long nanos = elapsedNanos();
+        TimeUnit unit = chooseUnit(nanos);
+        double value = (double) nanos / NANOSECONDS.convert(1, unit);
+        String s = String.format("%." + precision + "g", value) + " " + abbreviate(unit);
+        if (showLapCount) {
+            if (thousandsFormat != null) {
+                s += " (" + thousandsFormat.format(laps) + " laps)";
+            } else {
+                thousandsFormat = new DecimalFormat("#,###");
+                s += " (" + thousandsFormat.format(laps) + " laps)";
+            }
+        }
+        return s;
+    }
+
     private static TimeUnit chooseUnit(long nanos) {
         if (nanos < 0) nanos = -nanos;
         if (DAYS.convert(nanos, NANOSECONDS) > 0) {
@@ -177,24 +253,14 @@ public final class Stopwatch {
     }
 
     private static String abbreviate(TimeUnit unit) {
-        switch (unit) {
-            case NANOSECONDS:
-                return "ns";
-            case MICROSECONDS:
-//                return "\u03bcs"; // μs
-                return "us"; // μs
-            case MILLISECONDS:
-                return "ms";
-            case SECONDS:
-                return "s";
-            case MINUTES:
-                return "min";
-            case HOURS:
-                return "h";
-            case DAYS:
-                return "d";
-            default:
-                throw new AssertionError();
-        }
+        return switch (unit) {
+            case NANOSECONDS -> "ns";
+            case MICROSECONDS -> "us";  //  "\u03bcs"; // μs
+            case MILLISECONDS -> "ms";
+            case SECONDS -> "s";
+            case MINUTES -> "min";
+            case HOURS -> "h";
+            case DAYS -> "d";
+        };
     }
 }
