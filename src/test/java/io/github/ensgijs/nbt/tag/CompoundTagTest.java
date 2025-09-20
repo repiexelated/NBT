@@ -157,7 +157,7 @@ public class CompoundTagTest extends NbtTestCase {
 		CompoundTag ct = createCompoundTag();
 		byte[] data = serialize(ct);
 		assertArrayEquals(
-				new byte[] {
+				new byte[]{
 						0x0a, 0x00, 0x00, 0x01, 0x00, 0x01, 0x62, 0x7f,
 						0x08, 0x00, 0x03, 0x73, 0x74, 0x72, 0x00, 0x03,
 						0x66, 0x6f, 0x6f, 0x09, 0x00, 0x04, 0x6c, 0x69,
@@ -172,7 +172,7 @@ public class CompoundTagTest extends NbtTestCase {
 		CompoundTag ct = createCompoundTag();
 		byte[] data = serialize(ct, true);
 		assertArrayEquals(
-				new byte[] {
+				new byte[]{
 						0x0a, 0x00, 0x00, 0x01, 0x00, 0x01, 0x62, 0x7f,
 						0x09, 0x00, 0x04, 0x6c, 0x69, 0x73, 0x74, 0x01,
 						0x00, 0x00, 0x00, 0x01, 0x7b, 0x08, 0x00, 0x03,
@@ -214,7 +214,7 @@ public class CompoundTagTest extends NbtTestCase {
 		assertEquals(Integer.MAX_VALUE, cc.get("i", IntTag.class).asInt());
 		assertThrowsRuntimeException(() -> cc.getLong("i"), ClassCastException.class);
 		assertEquals(0, cc.getInt("ii"));
-		
+
 		cc.putLong("l", Long.MAX_VALUE);
 		assertEquals(new LongTag(Long.MAX_VALUE), cc.getLongTag("l"));
 		assertNull(cc.getLongTag("ll"));
@@ -246,21 +246,21 @@ public class CompoundTagTest extends NbtTestCase {
 		cc.putByteArray("ba", new byte[]{Byte.MIN_VALUE, 0, Byte.MAX_VALUE});
 		assertEquals(new ByteArrayTag(new byte[]{Byte.MIN_VALUE, 0, Byte.MAX_VALUE}), cc.getByteArrayTag("ba"));
 		assertNull(cc.getByteArrayTag("baba"));
-		assertArrayEquals(new byte[] { Byte.MIN_VALUE, 0, Byte.MAX_VALUE }, cc.get("ba", ByteArrayTag.class).getValue());
+		assertArrayEquals(new byte[]{Byte.MIN_VALUE, 0, Byte.MAX_VALUE}, cc.get("ba", ByteArrayTag.class).getValue());
 		assertThrowsRuntimeException(() -> cc.getIntArray("ba"), ClassCastException.class);
 		assertArrayEquals(new byte[0], cc.getByteArray("baba"));
 
 		cc.putIntArray("ia", new int[]{Integer.MIN_VALUE, 0, Integer.MAX_VALUE});
 		assertEquals(new IntArrayTag(new int[]{Integer.MIN_VALUE, 0, Integer.MAX_VALUE}), cc.getIntArrayTag("ia"));
 		assertNull(cc.getIntArrayTag("iaia"));
-		assertArrayEquals(new int[] { Integer.MIN_VALUE, 0, Integer.MAX_VALUE }, cc.get("ia", IntArrayTag.class).getValue());
+		assertArrayEquals(new int[]{Integer.MIN_VALUE, 0, Integer.MAX_VALUE}, cc.get("ia", IntArrayTag.class).getValue());
 		assertThrowsRuntimeException(() -> cc.getLongArray("ia"), ClassCastException.class);
 		assertArrayEquals(new int[0], cc.getIntArray("iaia"));
 
 		cc.putLongArray("la", new long[]{Long.MIN_VALUE, 0, Long.MAX_VALUE});
 		assertEquals(new LongArrayTag(new long[]{Long.MIN_VALUE, 0, Long.MAX_VALUE}), cc.getLongArrayTag("la"));
 		assertNull(cc.getLongArrayTag("lala"));
-		assertArrayEquals(new long[] { Long.MIN_VALUE, 0, Long.MAX_VALUE }, cc.get("la", LongArrayTag.class).getValue());
+		assertArrayEquals(new long[]{Long.MIN_VALUE, 0, Long.MAX_VALUE}, cc.get("la", LongArrayTag.class).getValue());
 		assertThrowsRuntimeException(() -> cc.getListTag("la"), ClassCastException.class);
 		assertArrayEquals(new long[0], cc.getLongArray("lala"));
 
@@ -410,8 +410,8 @@ public class CompoundTagTest extends NbtTestCase {
 		CompoundTag ct = new CompoundTag();
 		assertTrue(ct.getBoolean("name", true));
 		assertFalse(ct.getBoolean("name", false));
-		assertEquals((byte)-7, ct.getByte("name", (byte) -7));
-		assertEquals((short)13456, ct.getShort("name", (short) 13456));
+		assertEquals((byte) -7, ct.getByte("name", (byte) -7));
+		assertEquals((short) 13456, ct.getShort("name", (short) 13456));
 		assertEquals(13456789, ct.getInt("name", 13456789));
 		assertEquals(13456789101112L, ct.getLong("name", 13456789101112L));
 		assertEquals(1.23456f, ct.getFloat("name", 1.23456f), 0.5e-5f);
@@ -421,7 +421,7 @@ public class CompoundTagTest extends NbtTestCase {
 
 	public void testPutGetFloatArrayAsTagList() {
 		CompoundTag tag = new CompoundTag();
-		float[] values = new float[] {-1.1f, 0f, 1.1f};
+		float[] values = new float[]{-1.1f, 0f, 1.1f};
 		tag.putFloatArrayAsTagList("name", values);
 		assertTrue(tag.containsKey("name"));
 		assertArrayEquals(values, tag.getFloatTagListAsArray("name"), 1e-5f);
@@ -448,7 +448,7 @@ public class CompoundTagTest extends NbtTestCase {
 
 	public void testPutGetDoubleArrayAsTagList() {
 		CompoundTag tag = new CompoundTag();
-		double[] values = new double[] {-1.1f, 0f, 1.1f};
+		double[] values = new double[]{-1.1f, 0f, 1.1f};
 		tag.putDoubleArrayAsTagList("name", values);
 		assertTrue(tag.containsKey("name"));
 		assertArrayEquals(values, tag.getDoubleTagListAsArray("name"), 1e-5f);
@@ -569,5 +569,17 @@ public class CompoundTagTest extends NbtTestCase {
 		assertEquals(List.of(as), t.getStringTagListValues("key_string_array"));
 
 		assertThrowsException(() -> t.putValue("boom", new Object()), IllegalArgumentException.class);
+	}
+
+
+	public void testPutAll() {
+		CompoundTag ct = new CompoundTag();
+
+		NamedTag t1 = new NamedTag("hello", new StringTag("world"));
+		NamedTag t2 = new NamedTag("goodbye", new IntTag(-7));
+		ct.putAll(List.of(t1, t2));
+		assertEquals(2, ct.size());
+		assertEquals("world", ct.get("hello").getValue());
+		assertEquals(-7, ct.get("goodbye").getValue());
 	}
 }

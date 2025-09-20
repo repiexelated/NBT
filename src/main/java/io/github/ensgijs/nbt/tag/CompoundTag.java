@@ -386,6 +386,15 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 	}
 
 	/**
+	 * Puts all of the provided {@link NamedTag}'s.
+	 */
+	public void putAll(List<NamedTag> namedTags) {
+		for (NamedTag namedTag : namedTags) {
+			put(namedTag.getName(), namedTag.getTag());
+		}
+	}
+
+	/**
 	 * Puts the raw value by wrapping it in an appropriate Tag if necessary.
 	 * @param key Non-null key.
 	 * @param value Any value, passing null will call {@link #remove(String)}.
@@ -613,7 +622,7 @@ public class CompoundTag extends Tag<Map<String, Tag<?>>>
 		return copy;
 	}
 
-	private static class CompoundTagIterator implements Iterator<NamedTag> {
+    private static class CompoundTagIterator implements Iterator<NamedTag> {
 		private final Iterator<Map.Entry<String, Tag<?>>> iterator;
 
 		CompoundTagIterator(Set<Map.Entry<String, Tag<?>>> set) {
