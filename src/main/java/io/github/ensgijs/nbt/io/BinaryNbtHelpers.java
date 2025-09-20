@@ -61,9 +61,13 @@ public final class BinaryNbtHelpers {
 		return write(new NamedTag(null, tag), path.toFile(), compression, sortCompoundTagEntries);
 	}
 
+	public static NamedTag read(InputStream is, CompressionType compression) throws IOException {
+		return new BinaryNbtDeserializer(compression).fromStream(is);
+	}
+
 	public static NamedTag read(File file, CompressionType compression) throws IOException {
 		try (FileInputStream fis = new FileInputStream(file)) {
-			return new BinaryNbtDeserializer(compression).fromStream(fis);
+			return read(fis, compression);
 		}
 	}
 
