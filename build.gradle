@@ -101,3 +101,24 @@ java {
 	withJavadocJar()
 	withSourcesJar()
 }
+
+tasks.register('profilingRun', JavaExec) {
+	mainClass = 'io.github.ensgijs.nbt.profiler.ProfilingRunner'
+	classpath = sourceSets.main.runtimeClasspath
+	classpath += sourceSets.test.runtimeClasspath
+	classpath += sourceSets.jmh.runtimeClasspath
+
+	doFirst {
+		file('build/jfr-profiling').mkdirs()
+	}
+
+	def jfrSettingsFile = sourceSets.jmh.resources.find {it.name == 'profiler_settings.jfc'}
+	if (!jfrSettingsFile) {
+		throw new GradleException("JFR profiler_settings.jfc file not found in jmh/resources folder.")
+	}
+
+	// Add JVM arguments to enable JFR and save a recording
+	jvmArgs += [
+			"-XX:StartFlightRecording=duration=10s,filename=build/jfr-profiling/profiling-run.jfr,settings=${jfrSettingsFile.getAbsolutePath()}"
+	]
+}
