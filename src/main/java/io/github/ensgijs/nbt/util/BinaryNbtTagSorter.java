@@ -61,9 +61,9 @@ public class BinaryNbtTagSorter {
     private static final byte COMPOUND = (byte) 10;
     private static final byte INT_ARRAY = (byte) 11;
     private static final byte LONG_ARRAY = (byte) 12;
+    private static final TagDataComparator TAG_DATA_COMPARATOR = new TagDataComparator();
 
     private UnsafeFastByteArrayIO out;
-    private TagDataComparator tagDataComparator = new TagDataComparator();
 
     public byte[] sort(byte[] nbtData) throws IOException {
         // if (DEBUG_LOG) System.out.printf("--- Starting sort for %d bytes ---\n", nbtData.length);
@@ -82,7 +82,6 @@ public class BinaryNbtTagSorter {
         // if (DEBUG_LOG) System.out.printf("--- Sort finished. Output length: %d ---\n", out.length);
         byte[] ret = out.buffer;
         this.out = null;
-        this.tagDataComparator = null;
         return ret;
     }
 
@@ -103,7 +102,7 @@ public class BinaryNbtTagSorter {
             childTags.add(new NamedBinTag(tag.buffer, type, start, nameEndPos, end));
         }
 
-        childTags.sort(tagDataComparator);
+        childTags.sort(TAG_DATA_COMPARATOR);
 
         for (final NamedBinTag entryTag : childTags) {
             out.writeByte(entryTag.type);
