@@ -244,7 +244,7 @@ import java.util.List;
  */
 public class BinaryNbtTagSorter {
 //    private static final boolean DEBUG_LOG = false;
-    public static final Stopwatch stopwatch = Stopwatch.createUnstarted();
+//    public static final Stopwatch stopwatch = Stopwatch.createUnstarted();
 
     private static final byte END = (byte) 0;
     private static final byte BYTE = (byte) 1;
