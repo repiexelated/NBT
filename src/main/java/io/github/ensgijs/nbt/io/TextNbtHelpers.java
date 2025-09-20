@@ -242,11 +242,14 @@ public final class TextNbtHelpers {
 	// </editor-fold>
 
 	// <editor-fold desc="read from file">
-	/** The given file can be either plain text (uncompressed) or gz compressed. */
-	public static NamedTag readTextNbtFile(File file) throws IOException {
-		try (DataInputStream dis = new DataInputStream(detectDecompression(new FileInputStream(file)))) {
+	public static NamedTag readTextNbt(InputStream is) throws IOException {
+		try (DataInputStream dis = new DataInputStream(detectDecompression(is))) {
 			return new TextNbtDeserializer().fromStream(dis);
 		}
+	}
+	/** The given file can be either plain text (uncompressed) or gz compressed. */
+	public static NamedTag readTextNbtFile(File file) throws IOException {
+		return readTextNbt(new FileInputStream(file));
 	}
 
 	/** The given file can be either plain text (uncompressed) or gz compressed. */
