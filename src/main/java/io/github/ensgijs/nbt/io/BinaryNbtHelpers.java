@@ -75,6 +75,24 @@ public final class BinaryNbtHelpers {
 		return read(path.toFile(), compression);
 	}
 
+	public static NamedTag read(File file) throws IOException {
+		CompressionType compression;
+		try (FileInputStream fis = new FileInputStream(file)) {
+			compression = CompressionType.detect(fis.readNBytes(2));
+		}
+		try (FileInputStream fis = new FileInputStream(file)) {
+			return new BinaryNbtDeserializer(compression).fromStream(fis);
+		}
+	}
+
+	public static NamedTag read(String file) throws IOException {
+		return read(new File(file));
+	}
+
+	public static NamedTag read(Path path) throws IOException {
+		return read(path.toFile());
+	}
+
 	/**
 	 * Note that Paper's ItemStack#serializeAsBytes returns binary nbt data with {@link CompressionType#GZIP}.
 	 */

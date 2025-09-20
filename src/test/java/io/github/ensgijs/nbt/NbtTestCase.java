@@ -70,7 +70,7 @@ public abstract class NbtTestCase extends TestCase {
 	protected NamedTag deserializeFromFile(String f) {
 		if (!f.endsWith(".snbt") && !f.endsWith(".snbt.gz")) {
 			try {
-				return BinaryNbtHelpers.read(getResourceFile(f), CompressionType.NONE);
+				return BinaryNbtHelpers.read(getResourceFile(f));
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				fail(ex.getMessage());

@@ -80,7 +80,7 @@ public enum CompressionType {
 	 * for this method to make a mistake and choose the wrong {@link CompressionType}!
 	 */
 	public static CompressionType detect(byte[] bytes) {
-		if (bytes != null && bytes.length > 2) {
+		if (bytes != null && bytes.length >= 2) {
 			if (bytes[0] == (byte) 0x1f && bytes[1] == (byte) 0x8b) {
 				return GZIP;
 			}

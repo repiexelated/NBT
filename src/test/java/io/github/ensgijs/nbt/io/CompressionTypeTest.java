@@ -16,12 +16,12 @@ public class CompressionTypeTest extends TestCase {
 		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[0]));
 		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[]{0x1f}));
 
-		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[]{0x1f, (byte) 0x8b}));
+		assertEquals(CompressionType.GZIP, CompressionType.detect(new byte[]{0x1f, (byte) 0x8b}));
 		assertEquals(CompressionType.GZIP, CompressionType.detect(new byte[]{0x1f, (byte) 0x8b, 0x08}));
 		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[]{0x1f, (byte) 0xb8, 0x08}));
 
 		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[]{0x78}));
-		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[]{0x78, (byte) 0x9C}));
+		assertEquals(CompressionType.ZLIB, CompressionType.detect(new byte[]{0x78, (byte) 0x9C}));
 		assertEquals(CompressionType.ZLIB, CompressionType.detect(new byte[]{0x78, (byte) 0x9C, 0x08}));
 		assertEquals(CompressionType.NONE, CompressionType.detect(new byte[]{0x78, (byte) 0xc9, 0x08}));
 	}
