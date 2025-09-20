@@ -1,6 +1,8 @@
 plugins {
 	id 'com.github.kt3k.coveralls' version '2.4.0'
 	id 'maven-publish'
+	// Add the JMH Gradle plugin
+	id 'me.champeau.jmh' version '0.7.1'
 }
 
 apply plugin: 'java'
@@ -8,11 +10,11 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'jacoco'
 
-group                        = 'io.github.ensgijs'
-archivesBaseName             = 'ens-nbt'
-version                      = '0.1-SNAPSHOT'
-sourceCompatibility          = JavaLanguageVersion.of(17)
-targetCompatibility          = JavaLanguageVersion.of(17)
+group = 'io.github.ensgijs'
+archivesBaseName = 'ens-nbt'
+version = '0.1-SNAPSHOT'
+sourceCompatibility = JavaLanguageVersion.of(17)
+targetCompatibility = JavaLanguageVersion.of(17)
 compileJava.options.encoding = 'UTF-8'
 compileTestJava.options.encoding = 'UTF-8'
 
@@ -44,6 +46,23 @@ publishing {
 
 dependencies {
 	testImplementation 'junit:junit:4.13.2'
+	jmh 'org.openjdk.jmh:jmh-core:1.37'
+	jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+
+// Configure the JMH plugin
+jmh {
+	// Use an existing test source set for JMH benchmarks, or let the plugin create one
+	// jmh.includes is an array of regular expressions that should match against the
+	// fully qualified names of classes that contain benchmarks.
+	includes = [".*"]
+
+	warmupIterations = 5
+	iterations = 10
+	fork = 1
+
+	resultFormat = 'json'
+	resultsFile = new File('build/reports/jmh/results.json')
 }
 
 javadoc {

@@ -12,10 +12,9 @@ import java.util.List;
  * Lean algorithm for sorting binary nbt data without full object deserialization.
  *
  * <p>
- * - This solution is solidly 5-6x faster than using full Tag objects (takes 15% of the time!)<br/>
+ * - This solution is solidly 4-5x faster than using full Tag objects when used on "real data".<br/>
  *
  * <pre>
- * SAMPLES: 100,000
  * CONTROL: deserialize to Tag objects, sort and write to bin nbt
  * - Note all "times" are in nanoseconds unless otherwise denoted.
  * - "mean pXX" is the mean take over the fastest XX percent of samples.
@@ -25,221 +24,24 @@ import java.util.List;
  * - Tested on AMD 7950X3D CPU.
  * - Yes, the code really does run faster with the "if (DEBUG**" logic commented out. 2-5% faster.
  *
- * [1_20_4/region/r.0.0/0299.11.9.snbt]
- *   Candidate Time.: 1.468 s
- *     mean....: 14682.619173808262
- *     mean p99: 14280.742424242424
- *     mean p90: 13028.333333333334
- *     low.....: 13200 (2, 63, 473)
- *     p50.....: 14200
- *     p90.....: 14900
- *     p95.....: 15300
- *     p99.....: 22800
- *     p999....: 74200
- *     p9999...: 125800
- *     high-2..: 1700000
- *     high-1..: 1730900
- *     high....: 3480600
- *   Control Time...: 10.05 s
- *     mean....: 100508.1269187308
- *     mean p99: 97015.96363636364
- *     mean p90: 87543.55858585858
- *     low.....: 90500 (2, 3, 6)
- *     p50.....: 96000
- *     p90.....: 100200
- *     p95.....: 102800
- *     p99.....: 168200
- *     p999....: 1476800
- *     p9999...: 1943000
- *     high-2..: 2247800
- *     high-1..: 2448700
- *     high....: 24608300
- *   Speedup:
- *     mean....: +149.015% (6.845x)
- *     mean p99: +148.675% (6.793x)
- *     mean p90: +148.183% (6.719x)
- *     low.....: +149.084% (6.856x)
- *     u(p50): u96000 = 99970 (99.969%)
+ * Benchmark                                       (filename) Score (ns)  Speedup
+ * candidate               1_20_4/region/r.0.0/0299.11.9.snbt  13296.909   4.880x
+ * control                 1_20_4/region/r.0.0/0299.11.9.snbt  64892.542
  *
- * [text_nbt_samples/named_item.snbt]
- *   Candidate Time.: 57.72 ms
- *     mean....: 577.2362276377236
- *     mean p99: 561.9494949494949
- *     mean p90: 514.7212121212121
- *     low.....: 500 (48228, 92967, 96461)
- *     p50.....: 600
- *     p90.....: 600
- *     p95.....: 700
- *     p99.....: 1100
- *     p999....: 3000
- *     p9999...: 5200
- *     high-2..: 23400
- *     high-1..: 72200
- *     high....: 77600
- *   Control Time...: 317.6 ms
- *     mean....: 3175.580244197558
- *     mean p99: 3003.5343434343436
- *     mean p90: 2724.110101010101
- *     low.....: 2600 (2, 2071, 25516)
- *     p50.....: 2900
- *     p90.....: 3300
- *     p95.....: 3600
- *     p99.....: 5200
- *     p999....: 18600
- *     p9999...: 75600
- *     high-2..: 1538300
- *     high-1..: 1874700
- *     high....: 1941200
- *   Speedup:
- *     mean....: +138.474% (5.501x)
- *     mean p99: +136.957% (5.345x)
- *     mean p90: +136.431% (5.292x)
- *     low.....: +135.484% (5.200x)
- *     u(p50): u2900 = 99897 (99.896%)
+ * candidate                 text_nbt_samples/named_item.snbt    418.780   4.459x
+ * control                   text_nbt_samples/named_item.snbt   1867.330
  *
- * [text_nbt_samples/named_tag_sample-with_bom.snbt]
- *   Candidate Time.: 12.72 ms
- *     mean....: 127.15972840271597
- *     mean p99: 123.88383838383838
- *     mean p90: 122.55050505050505
- *     low.....: 100 (76619, 98972, 99412)
- *     p50.....: 100
- *     p90.....: 200
- *     p95.....: 200
- *     p99.....: 300
- *     p999....: 900
- *     p9999...: 2200
- *     high-2..: 5000
- *     high-1..: 12800
- *     high....: 45900
- *   Control Time...: 88.21 ms
- *     mean....: 882.1131788682113
- *     mean p99: 857.9555555555555
- *     mean p90: 778.4515151515152
- *     low.....: 700 (5313, 63993, 86307)
- *     p50.....: 800
- *     p90.....: 1000
- *     p95.....: 1100
- *     p99.....: 1800
- *     p999....: 5100
- *     p9999...: 18100
- *     high-2..: 71200
- *     high-1..: 87200
- *     high....: 100700
- *   Speedup:
- *     mean....: +149.603% (6.937x)
- *     mean p99: +149.530% (6.925x)
- *     mean p90: +145.594% (6.352x)
- *     low.....: +150.000% (7.000x)
- *     u(p50): u800 = 99875 (99.874%)
+ * candidate  text_nbt_samples/named_tag_sample-with_bom.snbt     53.442  11.146x
+ * control    text_nbt_samples/named_tag_sample-with_bom.snbt    595.680
  *
- * [text_nbt_samples/unnamed_tag_sample.snbt]
- *   Candidate Time.: 14.23 ms
- *     mean....: 142.34757652423477
- *     mean p99: 122.72424242424242
- *     mean p90: 121.5030303030303
- *     low.....: 100 (77492, 98890, 99293)
- *     p50.....: 100
- *     p90.....: 200
- *     p95.....: 200
- *     p99.....: 300
- *     p999....: 1000
- *     p9999...: 1900
- *     high-2..: 5100
- *     high-1..: 10600
- *     high....: 1598500
- *   Control Time...: 83.05 ms
- *     mean....: 830.5146948530514
- *     mean p99: 807.4141414141415
- *     mean p90: 769.8010101010101
- *     low.....: 700 (14152, 86773, 95892)
- *     p50.....: 800
- *     p90.....: 900
- *     p95.....: 900
- *     p99.....: 1700
- *     p999....: 4300
- *     p9999...: 19900
- *     high-2..: 68100
- *     high-1..: 68400
- *     high....: 76000
- *   Speedup:
- *     mean....: +141.473% (5.834x)
- *     mean p99: +147.223% (6.579x)
- *     mean p90: +145.472% (6.336x)
- *     low.....: +150.000% (7.000x)
- *     u(p50): u800 = 99804 (99.803%)
+ * candidate         text_nbt_samples/unnamed_tag_sample.snbt     53.734  10.702x
+ * control           text_nbt_samples/unnamed_tag_sample.snbt    575.070
  *
- * [mca_palettes/block_states-1.20.4-6entries.snbt]
- *   Candidate Time.: 55.01 ms
- *     mean....: 550.1254987450126
- *     mean p99: 513.6323232323232
- *     mean p90: 475.19191919191917
- *     low.....: 300 (863, 31333, 72913)
- *     p50.....: 500
- *     p90.....: 700
- *     p95.....: 800
- *     p99.....: 1000
- *     p999....: 2600
- *     p9999...: 6200
- *     high-2..: 74800
- *     high-1..: 87600
- *     high....: 2128400
- *   Control Time...: 743.7 ms
- *     mean....: 7437.342626573734
- *     mean p99: 7247.536363636364
- *     mean p90: 6504.152525252525
- *     low.....: 6400 (10, 213, 1595)
- *     p50.....: 7200
- *     p90.....: 7600
- *     p95.....: 8100
- *     p99.....: 10800
- *     p999....: 23800
- *     p9999...: 95300
- *     high-2..: 1409500
- *     high-1..: 1501500
- *     high....: 1508100
- *   Speedup:
- *     mean....: +172.451% (13.519x)
- *     mean p99: +173.528% (14.110x)
- *     mean p90: +172.766% (13.687x)
- *     low.....: +182.090% (21.333x)
- *     u(p50): u7200 = 99992 (99.991%)
+ * candidate   mca_palettes/block_states-1.20.4-6entries.snbt    278.948  15.503x
+ * control     mca_palettes/block_states-1.20.4-6entries.snbt   4324.503
  *
- * [text_nbt_samples/little_of_everything.snbt]
- *   Candidate Time.: 354.3 ms
- *     mean....: 3542.6475735242648
- *     mean p99: 3393.159595959596
- *     mean p90: 3124.9989898989897
- *     low.....: 3100 (860, 21460, 52572)
- *     p50.....: 3300
- *     p90.....: 3600
- *     p95.....: 3800
- *     p99.....: 5600
- *     p999....: 18600
- *     p9999...: 71500
- *     high-2..: 1527700
- *     high-1..: 1531100
- *     high....: 1543400
- *   Control Time...: 1.572 s
- *     mean....: 15715.421845781542
- *     mean p99: 15185.578787878789
- *     mean p90: 13582.733333333334
- *     low.....: 13400 (3, 11, 27)
- *     p50.....: 14900
- *     p90.....: 16200
- *     p95.....: 17700
- *     p99.....: 24500
- *     p999....: 88500
- *     p9999...: 1397400
- *     high-2..: 1621700
- *     high-1..: 1760100
- *     high....: 1780900
- *   Speedup:
- *     mean....: +126.417% (4.436x)
- *     mean p99: +126.945% (4.475x)
- *     mean p90: +125.184% (4.346x)
- *     low.....: +124.848% (4.323x)
- *     u(p50): u14900 = 99864 (99.863%)
+ * candidate       text_nbt_samples/little_of_everything.snbt   3077.330   3.316x
+ * control         text_nbt_samples/little_of_everything.snbt  10205.399
  * </pre>
  */
 public class BinaryNbtTagSorter {
