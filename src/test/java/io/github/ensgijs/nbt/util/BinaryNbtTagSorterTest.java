@@ -1,13 +1,10 @@
 package io.github.ensgijs.nbt.util;
 
 import io.github.ensgijs.nbt.NbtTestCase;
-import io.github.ensgijs.nbt.io.BinaryNbtHelpers;
-import io.github.ensgijs.nbt.io.CompressionType;
-import io.github.ensgijs.nbt.io.NamedTag;
+import io.github.ensgijs.nbt.io.*;
 import io.github.ensgijs.nbt.tag.CompoundTag;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +26,7 @@ public class BinaryNbtTagSorterTest extends NbtTestCase {
 //        System.out.println("\nINPUT(HEX DATA)");
 //        System.out.println(HEX_FORMATTER.formatHex(controlUnordered));
 
-        byte[] actual = new BinaryNbtTagSorter().sort(controlUnordered);
+        byte[] actual = new BinaryNbtTagSorterV4().sort(controlUnordered);
 
 //        System.out.println("\nEXPECTED(ORDERED HEX DATA)");
 //        System.out.println(HEX_FORMATTER.formatHex(controlOrdered));
@@ -37,11 +34,19 @@ public class BinaryNbtTagSorterTest extends NbtTestCase {
 
 //        System.out.println("\nOUTPUT");
 //        System.out.println(HEX_FORMATTER.formatHex(actual));
-//        System.out.println(TextNbtHelpers.toTextNbt(BinaryNbtHelpers.deserializeBytes(actual), false, false));
+//        System.out.println(TextNbtHelpers.toTextNbt(BinaryNbtHelpers.deserializeBytes(actual), true, false));
 
 //        CompoundTag tagOut = (CompoundTag) assertThrowsNoException(() -> BinaryNbtHelpers.deserializeBytes(actual, CompressionType.NONE)).getTag();
 //        assertEquals(tag, tagOut);
         assertArrayEquals(controlOrdered, actual);
+    }
+
+    public void _testBugProbe() throws IOException {
+        byte[] nbt = HEX_FORMATTER.parseHex("0A 00 00 08 00 04 74 65 73 74 00 05 76 61 6C 75 65 00");
+//        NamedTag parsedTag = BinaryNbtHelpers.deserializeBytes(nbt);
+//        System.out.println(TextNbtHelpers.toTextNbt(parsedTag, false, false));
+        byte[] sortedNbt = new BinaryNbtTagSorterV4().sort(nbt);
+        assertArrayEquals(nbt, sortedNbt);
     }
 
     public void testBinNbtSorter() throws IOException {
@@ -62,10 +67,15 @@ public class BinaryNbtTagSorterTest extends NbtTestCase {
         tests.add(new PerfTest("mca_palettes/block_states-1.20.4-6entries.snbt"));
         tests.add(new PerfTest("text_nbt_samples/little_of_everything.snbt"));
 
-        // touch code paths so JIT loading doesn't mess with timing
+        // touch code paths so JIT loading doesn't mess with timing and JIT compilation can optimize
+        for (int j = 0; j < 10000; j++) {
+            for (var t : tests) {
+                t.execCandidate();
+                t.execControl();
+            }
+        }
         for (var t : tests) {
-            t.execCandidate();
-            t.execControl();
+            t.reset();
         }
         for (int j = 0; j < 10000; j++) {
             for (var t : tests) {
@@ -122,6 +132,13 @@ public class BinaryNbtTagSorterTest extends NbtTestCase {
         final Stopwatch controlStopwatch = Stopwatch.createUnstarted();
         final List<Long> candidateLapTimes = new ArrayList<>(100000);
         final List<Long> controlLapTimes = new ArrayList<>(100000);
+
+        public void reset() {
+            candidateStopwatch.reset();
+            controlStopwatch.reset();
+            candidateLapTimes.clear();
+            controlLapTimes.clear();
+        }
 
         PerfTest(String filename) {
             this.filename = filename;

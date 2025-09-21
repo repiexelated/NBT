@@ -25,22 +25,22 @@ import java.util.List;
  * - Yes, the code really does run faster with the "if (DEBUG**" logic commented out. 2-5% faster.
  *
  * Benchmark                                       (filename) Score (ns)  Speedup
- * candidate               1_20_4/region/r.0.0/0299.11.9.snbt  13296.909   4.880x
+ * candidate               1_20_4/region/r.0.0/0299.11.9.snbt  12275.810   5.286x
  * control                 1_20_4/region/r.0.0/0299.11.9.snbt  64892.542
  *
- * candidate                 text_nbt_samples/named_item.snbt    418.780   4.459x
+ * candidate                 text_nbt_samples/named_item.snbt    367.690   5.079x
  * control                   text_nbt_samples/named_item.snbt   1867.330
  *
- * candidate  text_nbt_samples/named_tag_sample-with_bom.snbt     53.442  11.146x
+ * candidate  text_nbt_samples/named_tag_sample-with_bom.snbt     42.674  13.959x
  * control    text_nbt_samples/named_tag_sample-with_bom.snbt    595.680
  *
- * candidate         text_nbt_samples/unnamed_tag_sample.snbt     53.734  10.702x
+ * candidate         text_nbt_samples/unnamed_tag_sample.snbt     43.371  13.259x
  * control           text_nbt_samples/unnamed_tag_sample.snbt    575.070
  *
- * candidate   mca_palettes/block_states-1.20.4-6entries.snbt    278.948  15.503x
+ * candidate   mca_palettes/block_states-1.20.4-6entries.snbt    252.857  17.106x
  * control     mca_palettes/block_states-1.20.4-6entries.snbt   4324.503
  *
- * candidate       text_nbt_samples/little_of_everything.snbt   3077.330   3.316x
+ * candidate       text_nbt_samples/little_of_everything.snbt   2855.182   3.574x
  * control         text_nbt_samples/little_of_everything.snbt  10205.399
  * </pre>
  */
@@ -67,17 +67,19 @@ public class BinaryNbtTagSorter {
 
     public byte[] sort(byte[] nbtData) throws IOException {
         // if (DEBUG_LOG) System.out.printf("--- Starting sort for %d bytes ---\n", nbtData.length);
-        UnsafeFastByteArrayIO in = new UnsafeFastByteArrayIO(nbtData);
+        UnsafeFastByteArrayIO tag = new UnsafeFastByteArrayIO(nbtData);
         out = new UnsafeFastByteArrayIO(new byte[nbtData.length]);
 
-        if (in.readByte() != COMPOUND) {
+        if (tag.readByte() != COMPOUND) {
             throw new IOException("Root tag is not a CompoundTag.");
         }
 
-        out.writeByte(COMPOUND);
-        in.copyStringTo(out);
-        // if (DEBUG_LOG) System.out.printf("Sorting root CompoundTag named '%s'...\n", in.debugReadString(1));
-        scanCompound(in/*, 0*/);
+        // write root compound tag id and root tag name
+        tag.skipString();
+        out.write(tag.buffer, 0, tag.position);
+
+        // if (DEBUG_LOG) System.out.printf("Sorting root CompoundTag named '%s'...\n", tag.debugReadString(1));
+        scanCompound(tag/*, 0*/);
 
         // if (DEBUG_LOG) System.out.printf("--- Sort finished. Output length: %d ---\n", out.length);
         byte[] ret = out.buffer;
@@ -93,31 +95,26 @@ public class BinaryNbtTagSorter {
             if (type == END) {
                 break;
             }
-            final int start = tag.position;
+            final int start = tag.position - 1;
             tag.skipString();
             final int nameEndPos = tag.position;
             // if (DEBUG_LOG) System.out.printf("  %s- Reading tag '%s' (Type %d) at 0x%X\n", "  ".repeat(level), tag.debugReadString(start), type, start - 1);
             skipTagData(type, tag/*, level + 1*/);
-            final int end = tag.position;
-            childTags.add(new NamedBinTag(tag.buffer, type, start, nameEndPos, end));
+            childTags.add(new NamedBinTag(type, tag.buffer, start, nameEndPos, tag.position));
         }
 
         childTags.sort(TAG_DATA_COMPARATOR);
 
         for (final NamedBinTag entryTag : childTags) {
-            out.writeByte(entryTag.type);
-            int pos = entryTag.position;
-            entryTag.position = entryTag.start;
-            entryTag.copyStringTo(out);
-            entryTag.position = pos;
-
             if (entryTag.type == COMPOUND) {
+                out.write(entryTag.buffer, entryTag.start, entryTag.nameEndPos - entryTag.start);
                 scanCompound(entryTag/*, level + 1*/);
             } else if (entryTag.type == LIST) {
+                out.write(entryTag.buffer, entryTag.start, entryTag.nameEndPos - entryTag.start);
                 scanList(entryTag/*, level + 1*/);
             } else {
                 // if (DEBUG_LOG) System.out.printf("  %s> Writing %d bytes of raw data from pos %d\n", "  ".repeat(level + 1), entryTag.remaining(), entryTag.position);
-                entryTag.writeRemaining(out);
+                entryTag.writeFull(out);
                 // if (DEBUG_LOG) System.out.printf("  %s< Finished writing raw data\n", "  ".repeat(level + 1));
             }
         }
@@ -128,14 +125,14 @@ public class BinaryNbtTagSorter {
     private void scanList(UnsafeFastByteArrayIO tag/*, int level*/) throws IOException {
         // if (DEBUG_LOG) System.out.printf("  %s>> Scanning ListTag (tag.position=%d, tag.limit=%d)\n", "  ".repeat(level), tag.position, tag.limit);
         final byte listType = tag.readByte();
-        final int listLength = tag.readInt();
-
-        out.writeByte(listType);
-        out.writeInt(listLength);
-
-        // if (DEBUG_LOG) System.out.printf("  %s- List type %d, length %d\n", "  ".repeat(level), listType, listLength);
+        // if (DEBUG_LOG) System.out.printf("  %s- List type %d\n", "  ".repeat(level), listType);
 
         if (listType == COMPOUND || listType == LIST) {
+            final int listLength = tag.readInt();
+            // if (DEBUG_LOG) System.out.printf("  %s- List length %d\n", "  ".repeat(level), listLength);
+            // writing these 5 bytes directly is faster than arraycopy of 5 bytes
+            out.writeByte(listType);
+            out.writeInt(listLength);
             final List<UnsafeFastByteArrayIO> listItems = new ArrayList<>(listLength);
             for (int i = 0; i < listLength; i++) {
                 final int start = tag.position;
@@ -153,6 +150,7 @@ public class BinaryNbtTagSorter {
             }
         } else {
             // if (DEBUG_LOG) System.out.printf("  %s> Writing %d bytes of raw data from pos %d\n", "  ".repeat(level + 1), tag.remaining(), tag.position);
+            tag.position--;
             tag.writeRemaining(out);
             // if (DEBUG_LOG) System.out.printf("  %s< Finished writing raw data\n", "  ".repeat(level + 1));
         }
@@ -175,16 +173,16 @@ public class BinaryNbtTagSorter {
                 tag.position += 8;
                 break;
             case STRING:
-                tag.skip(tag.readUShort());
+                tag.skipString();
                 break;
             case BYTE_ARRAY:
-                tag.skip(tag.readInt());
+                tag.position = tag.readInt() + tag.position;
                 break;
             case INT_ARRAY:
-                tag.skip(tag.readInt() * 4);
+                tag.position = tag.readInt() * 4 + tag.position;
                 break;
             case LONG_ARRAY:
-                tag.skip(tag.readInt() * 8);
+                tag.position = tag.readInt() * 8 + tag.position;
                 break;
             case LIST:
                 final byte listType = tag.readByte();
@@ -296,7 +294,11 @@ public class BinaryNbtTagSorter {
          * Writes all remaining data from position to limit.
          */
         public void writeRemaining(UnsafeFastByteArrayIO out) {
-            out.write(buffer, position, remaining());
+            out.write(buffer, position, limit - position);
+        }
+
+        public void writeFull(UnsafeFastByteArrayIO out) {
+            out.write(buffer, start, limit - start);
         }
 
         private void write(byte[] source, int sourcePos, int length) {
@@ -327,14 +329,6 @@ public class BinaryNbtTagSorter {
             buffer[position++] = (byte) (v >>> 8);
             buffer[position++] = (byte) v;
         }
-
-        public void copyStringTo(UnsafeFastByteArrayIO destination) {
-            int length = peekUShort() + 2;
-            // if (DEBUG_IO) { checkPosition(length); destination.checkPosition(length); }
-            System.arraycopy(buffer, position, destination.buffer, destination.position, length);
-            position += length;
-            destination.position += length;
-        }
     }
 
     private static class NamedBinTag extends UnsafeFastByteArrayIO {
@@ -342,13 +336,13 @@ public class BinaryNbtTagSorter {
         final int nameEndPos;
 
         /**
-         * @param buffer binary nbt data
          * @param type tag type
+         * @param buffer binary nbt data
          * @param start start position
          * @param nameEndPos exclusive ending position of the tag's name (use .position after {@link #skipString()})
          * @param limit an exclusive valid end position
          */
-        public NamedBinTag(byte[] buffer, byte type, int start, int nameEndPos, int limit) {
+        public NamedBinTag(byte type, byte[] buffer, int start, int nameEndPos, int limit) {
             super(buffer, start, limit);
             this.type = type;
             this.nameEndPos = nameEndPos;
@@ -357,7 +351,7 @@ public class BinaryNbtTagSorter {
 
         // debugging function
         public String nameStr() {
-            return new String(buffer, start + 2, nameEndPos - start - 2, StandardCharsets.UTF_8);
+            return new String(buffer, start + 3, nameEndPos - start - 3, StandardCharsets.UTF_8);
         }
 
         @Override
@@ -370,8 +364,8 @@ public class BinaryNbtTagSorter {
         @Override
         public int compare(NamedBinTag o1, NamedBinTag o2) {
             return Arrays.compare(
-                    o1.buffer, o1.start + 2, o1.nameEndPos,
-                    o2.buffer, o2.start + 2, o2.nameEndPos);
+                    o1.buffer, o1.start + 3, o1.nameEndPos,
+                    o2.buffer, o2.start + 3, o2.nameEndPos);
         }
     }
 }
