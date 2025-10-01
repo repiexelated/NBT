@@ -1,0 +1,4 @@
+jdk:
+  - openjdk-21
+install:
+  - ./gradlew jar
